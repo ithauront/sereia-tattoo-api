@@ -1,0 +1,83 @@
+# ==========================
+# Arquivos e pastas do Python
+# ==========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pdb
+*.so
+*.dll
+*.dylib
+
+# ==========================
+# Ambientes virtuais
+# ==========================
+.venv/
+venv/
+env/
+ENV/
+
+# ==========================
+# Configurações e variáveis locais
+# ==========================
+.env
+*.env
+.env.*
+
+# ==========================
+# Cache, logs e builds
+# ==========================
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ==========================
+# Ferramentas de build / distribuição
+# ==========================
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# ==========================
+# IDEs e editores
+# ==========================
+.vscode/
+.idea/
+*.iml
+*.code-workspace
+
+# ==========================
+# Banco de dados local (se for SQLite)
+# ==========================
+*.db
+*.sqlite3
+
+# ==========================
+# Alembic (migrations)
+# ==========================
+# Mantém apenas a pasta, mas ignora arquivos gerados automaticamente
+alembic/versions/*.pyc
+alembic/__pycache__/
+
+# ==========================
+# Testes e coverage
+# ==========================
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+.nox/
+
+# ==========================
+# Arquivos temporários de ferramentas
+# ==========================
+.mypy_cache/
+.pyre/
+.pytype/
+.cache/
