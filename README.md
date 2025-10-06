@@ -7,7 +7,7 @@ Inclui dois caminhos para quem tem Python antigo (3.8/3.9): usando o uv (recomen
 
 Git
 
-SQLite (já vem na maioria das distros)
+SQLite
 
 Linux/Mac (testado no Ubuntu/Mint); no Windows, use WSL2
 
@@ -15,7 +15,7 @@ Linux/Mac (testado no Ubuntu/Mint); no Windows, use WSL2
 
 1) Clonar o projeto
 ```bash
-git clone https://github.com/<seu-usuario>/sereia-tattoo-api.git
+git clone https://github.com/ithauront/sereia-tattoo-api.git
 cd sereia-tattoo-api
 ```
 2) Variáveis de ambiente
