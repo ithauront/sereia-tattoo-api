@@ -4,7 +4,7 @@ from pydantic import SecretStr, field_validator
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "sereia-tattoo-api"
-    API: str = "/api"
+    API: str = ""
     DATABASE_URL: str = "sqlite:///./app.db"
 
     SECRET_KEY: SecretStr | None = None
