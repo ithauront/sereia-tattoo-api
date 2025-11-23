@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from app.db.models.users import User
 from app.db.session import SessionLocal
-from app.core.security import get_password_hash
+from app.core.security.security import get_password_hash
 
 
 ADMINS = [

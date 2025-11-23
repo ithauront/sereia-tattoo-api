@@ -1,0 +1,11 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:16
+    restart: always
+    environment:
+      POSTGRES_USER: sereia
+      POSTGRES_PASSWORD: sereia
+      POSTGRES_DB: sereia
+    ports:
+      - "5432:5432"

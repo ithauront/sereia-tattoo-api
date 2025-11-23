@@ -1,6 +1,6 @@
 from fastapi import APIRouter
-from .endpoints import health
-from .endpoints import auth
+from .v1 import health
+from .v1 import auth
 
 router = APIRouter()
 router.include_router(health.router, tags=["health"])
