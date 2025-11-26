@@ -9,3 +9,7 @@ class LoginInput(BaseModel):
 class TokenOutput(BaseModel):
     access_token: str
     refresh_token: str
+
+
+class RefreshInput(BaseModel):
+    refresh_token: str
