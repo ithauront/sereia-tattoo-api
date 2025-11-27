@@ -1,3 +1,4 @@
+import enum
 from pydantic import BaseModel
 
 
@@ -13,3 +14,18 @@ class TokenOutput(BaseModel):
 
 class RefreshInput(BaseModel):
     refresh_token: str
+
+
+class VerifyInput(BaseModel):
+    authorization: str
+
+
+class TokenType(str, enum.Enum):
+    access = "access"
+    refresh = "refresh"
+
+
+class VerifyOutput(BaseModel):
+    valid: bool
+    sub: str
+    type: TokenType
