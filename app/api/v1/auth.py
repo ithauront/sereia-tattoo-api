@@ -1,14 +1,15 @@
-from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
-from jose import JWTError
 from app.api.deps import get_db
-from app.api.schemas.auth import LoginRequest, RefreshRequest, TokenPair
-from app.core.config import settings
-from app.domain.users.use_cases.DTO.login_dto import LoginInput
+from app.api.schemas.auth import LoginRequest, RefreshRequest, TokenPair, VerifyResponse
+from app.domain.users.use_cases.DTO.login_dto import (
+    LoginInput,
+    RefreshInput,
+    VerifyInput,
+)
 from app.domain.users.use_cases.login_user import LoginUserUseCase
-from app.infrastructure.sqlalchemy.models.users import UserModel
-from app.core.security import jwt_service
+from app.domain.users.use_cases.refresh_user import RefreshUserUseCase
+from app.domain.users.use_cases.verify_user import VerifyUserUseCase
 from app.infrastructure.sqlalchemy.repositories.users_repository_sqlalchemy import (
     SQLAlchemyUsersRepository,
 )
@@ -17,8 +18,7 @@ from app.infrastructure.sqlalchemy.repositories.users_repository_sqlalchemy impo
 router = APIRouter()
 
 
-# TODO mover a logica para um useCase em users e aqui so chamar o usecase. talvez
-# mover a criação de hash e token para pasta crypto e tokens em infra, ou
+# TODO mover a criação de hash e token para pasta crypto e tokens em infra, ou
 # deixar em domain config e security como esta
 # o usecase vai chamar o hash e vai devolver o token, se eu não me engano
 @router.post("/auth/login", response_model=TokenPair)
@@ -30,7 +30,7 @@ def login(data: LoginRequest, db: Session = Depends(get_db)) -> TokenPair:
         result = use_case.execute(use_case_input)
     except ValueError:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="invalid_credentials"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_credentials"
         )
 
     return TokenPair(
@@ -40,50 +40,34 @@ def login(data: LoginRequest, db: Session = Depends(get_db)) -> TokenPair:
 
 @router.post("/auth/refresh", response_model=TokenPair)
 def refresh(data: RefreshRequest, db: Session = Depends(get_db)) -> TokenPair:
+    repo = SQLAlchemyUsersRepository(session=db)
+    use_case = RefreshUserUseCase(repo)
+    use_case_input = RefreshInput(refresh_token=data.refresh_token)
     try:
-        payload = jwt_service.verify(data.refresh_token, expected_type="refresh")
-    except Exception:
+        result = use_case.execute(use_case_input)
+    except ValueError:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid refresh token"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_credentials"
         )
 
-    username = payload["sub"]
-    user: Optional[UserModel] = (
-        db.query(UserModel).filter(UserModel.username == username).first()
+    return TokenPair(
+        access_token=result.access_token, refresh_token=result.refresh_token
     )
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="user not found"
-        )
-    access = jwt_service.create(
-        subject=user.username,
-        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
-        token_type="access",
-    )
-    new_refresh = jwt_service.create(
-        subject=user.username,
-        minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES,
-        token_type="refresh",
-    )
-    return TokenPair(access_token=access, refresh_token=new_refresh)
 
 
 @router.get("/auth/verify")
-def verify(authorization: Optional[str] = Header(None)) -> dict:
-    if not authorization or not authorization.lower().startswith("bearer "):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="missing bearer token"
-        )
-    token = authorization.split(" ", 1)[1]
+def verify(
+    authorization: str = Header(...), db: Session = Depends(get_db)
+) -> VerifyResponse:
+    repo = SQLAlchemyUsersRepository(session=db)
+    use_case = VerifyUserUseCase(repo)
+    use_case_input = VerifyInput(authorization=authorization)
 
     try:
-        payload = jwt_service.verify(token, expected_type="access")
-    except JWTError:
+        result = use_case.execute(use_case_input)
+    except ValueError:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid token"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_credentials"
         )
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid token"
-        )
-    return {"valid": True, "sub": payload.get("sub"), "type": payload.get("type")}
+
+    return VerifyResponse(valid=result.valid, sub=result.sub, token_type=result.type)
