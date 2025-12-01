@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict
+from uuid import uuid4
 from jose import jwt, JWTError
 from pydantic import SecretStr
 
@@ -26,12 +27,18 @@ class JWTService:
             "iat": int(now.timestamp()),
             "nbf": int(now.timestamp()),
             "exp": int((now + timedelta(minutes=minutes)).timestamp()),
+            "jti": str(uuid4()),
         }
 
         return jwt.encode(payload, self.secret_key, algorithm=self.algorithm)
 
     def decode(self, token: str) -> Dict[str, Any]:
-        return jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
+        return jwt.decode(
+            token,
+            self.secret_key,
+            algorithms=[self.algorithm],
+            options={"verify_exp": True},
+        )
 
     def verify(self, token: str, expected_type: str) -> Dict[str, Any]:
         try:
