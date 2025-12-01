@@ -1,10 +1,10 @@
+from uuid import UUID
 from app.core.config import settings
 from app.core.security import jwt_service
 from app.domain.users.repositories.users_repository import UsersRepository
 from app.domain.users.use_cases.DTO.login_dto import RefreshInput, TokenOutput
 
 
-# TODO fazer teste desse useCase
 class RefreshUserUseCase:
     def __init__(self, repo: UsersRepository):
         self.repo = repo
@@ -16,7 +16,7 @@ class RefreshUserUseCase:
         except Exception:
             raise ValueError("invalid_token")
 
-        user_id = payload["sub"]
+        user_id = UUID(payload["sub"])
         user = self.repo.find_by_id(user_id)
 
         if not user or not user.is_active:

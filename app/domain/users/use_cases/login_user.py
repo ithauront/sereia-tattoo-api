@@ -5,7 +5,6 @@ from app.domain.users.use_cases.DTO.login_dto import LoginInput, TokenOutput
 from app.core.config import settings
 
 
-# TODO fazer teste desse useCase
 class LoginUserUseCase:
     def __init__(self, repo: UsersRepository):
         self.repo = repo
