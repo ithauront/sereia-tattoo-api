@@ -37,6 +37,7 @@ class SQLAlchemyUsersRepository(UsersRepository):
         orm_user.hashed_password = user.hashed_password
         orm_user.is_active = user.is_active
         orm_user.is_admin = user.is_admin
+        orm_user.updated_at = user.updated_at
 
         self.session.commit()
 
@@ -91,4 +92,5 @@ class SQLAlchemyUsersRepository(UsersRepository):
             is_admin=orm_user.is_admin,
             is_active=orm_user.is_active,
             created_at=orm_user.created_at,
+            updated_at=orm_user.updated_at,
         )
