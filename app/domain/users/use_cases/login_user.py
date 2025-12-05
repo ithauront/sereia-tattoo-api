@@ -18,6 +18,9 @@ class LoginUserUseCase:
         if not user:
             raise ValueError("invalid_credentials")
 
+        if user.is_active is False:
+            raise ValueError("inactive_user")
+
         if not verify_password(data.password, user.hashed_password):
             raise ValueError("invalid_credentials")
 

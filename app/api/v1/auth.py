@@ -18,9 +18,6 @@ from app.infrastructure.sqlalchemy.repositories.users_repository_sqlalchemy impo
 router = APIRouter()
 
 
-# TODO mover a criação de hash e token para pasta crypto e tokens em infra, ou
-# deixar em domain config e security como esta
-# o usecase vai chamar o hash e vai devolver o token, se eu não me engano
 @router.post("/auth/login", response_model=TokenPair)
 def login(data: LoginRequest, db: Session = Depends(get_db)) -> TokenPair:
     repo = SQLAlchemyUsersRepository(session=db)
@@ -28,7 +25,12 @@ def login(data: LoginRequest, db: Session = Depends(get_db)) -> TokenPair:
     use_case_input = LoginInput(identifier=data.identifier, password=data.password)
     try:
         result = use_case.execute(use_case_input)
-    except ValueError:
+    except ValueError as exception:
+        if str(exception) == "inactive_user":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="inactive_user"
+            )
+
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_credentials"
         )
