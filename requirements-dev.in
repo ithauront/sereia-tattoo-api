@@ -4,3 +4,4 @@ pip-tools
 black
 isort
 mypy
+freezegun

@@ -1,3 +1,4 @@
+from operator import gt
 from uuid import uuid4
 import pytest
 
@@ -8,21 +9,6 @@ from tests.fakes.fake_users_repository import FakeUsersRepository
 @pytest.fixture
 def repo():
     return FakeUsersRepository()
-
-
-@pytest.fixture
-def make_user():
-    def _factory(**kwargs):
-        return User(
-            id=uuid4(),
-            username=kwargs.get("username", "JhonDoe"),
-            email=kwargs.get("email", "jhon@doe.com"),
-            hashed_password="123456",
-            is_active=kwargs.get("is_active", True),
-            is_admin=kwargs.get("is_admin", False),
-        )
-
-    return _factory
 
 
 def test_create_and_find_by_id(repo, make_user):
@@ -76,6 +62,7 @@ def test_update(repo, make_user):
     assert found is not None
     assert found.username == "NewName"
     assert not_found is None
+    assert found.updated_at > found.created_at
 
 
 def test_find_many(repo, make_user):

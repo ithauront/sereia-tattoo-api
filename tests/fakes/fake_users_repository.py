@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import List, Optional
 from uuid import UUID
 from app.domain.users.entities.user import User
@@ -14,6 +15,7 @@ class FakeUsersRepository(UsersRepository):
     def update(self, user: User) -> None:
         for index, user_in_bank in enumerate(self.users):
             if user_in_bank.id == user.id:
+                user.updated_at = datetime.now(timezone.utc)
                 self.users[index] = user
                 return
 
