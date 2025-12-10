@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Header
-from sqlalchemy.orm import Session
-from app.api.deps import get_db
+from app.api.dependencies.users import get_users_repository
 from app.api.schemas.auth import LoginRequest, RefreshRequest, TokenPair, VerifyResponse
 from app.domain.users.use_cases.DTO.login_dto import (
     LoginInput,
@@ -10,17 +9,13 @@ from app.domain.users.use_cases.DTO.login_dto import (
 from app.domain.users.use_cases.login_user import LoginUserUseCase
 from app.domain.users.use_cases.refresh_user import RefreshUserUseCase
 from app.domain.users.use_cases.verify_user import VerifyUserUseCase
-from app.infrastructure.sqlalchemy.repositories.users_repository_sqlalchemy import (
-    SQLAlchemyUsersRepository,
-)
 
 
 router = APIRouter()
 
 
 @router.post("/auth/login", response_model=TokenPair)
-def login(data: LoginRequest, db: Session = Depends(get_db)) -> TokenPair:
-    repo = SQLAlchemyUsersRepository(session=db)
+def login(data: LoginRequest, repo=Depends(get_users_repository)) -> TokenPair:
     use_case = LoginUserUseCase(repo)
     use_case_input = LoginInput(identifier=data.identifier, password=data.password)
     try:
@@ -41,8 +36,7 @@ def login(data: LoginRequest, db: Session = Depends(get_db)) -> TokenPair:
 
 
 @router.post("/auth/refresh", response_model=TokenPair)
-def refresh(data: RefreshRequest, db: Session = Depends(get_db)) -> TokenPair:
-    repo = SQLAlchemyUsersRepository(session=db)
+def refresh(data: RefreshRequest, repo=Depends(get_users_repository)) -> TokenPair:
     use_case = RefreshUserUseCase(repo)
     use_case_input = RefreshInput(refresh_token=data.refresh_token)
     try:
@@ -59,9 +53,8 @@ def refresh(data: RefreshRequest, db: Session = Depends(get_db)) -> TokenPair:
 
 @router.get("/auth/verify")
 def verify(
-    authorization: str = Header(...), db: Session = Depends(get_db)
+    authorization: str = Header(...), repo=Depends(get_users_repository)
 ) -> VerifyResponse:
-    repo = SQLAlchemyUsersRepository(session=db)
     use_case = VerifyUserUseCase(repo)
     use_case_input = VerifyInput(authorization=authorization)
 
