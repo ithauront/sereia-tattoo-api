@@ -26,7 +26,7 @@ class VerifyUserUseCase:
             raise ValueError("invalid_token")
 
         user = self.repo.find_by_id(user_id)
-        if not user or not user.is_active:
+        if not user:
             raise ValueError("invalid_token")
 
         return VerifyOutput(valid=True, sub=payload["sub"], type=payload["type"])
