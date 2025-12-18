@@ -1,4 +1,5 @@
 from typing import List
+from uuid import UUID
 from pydantic import BaseModel, Field
 
 
@@ -28,3 +29,7 @@ class ListUsersInput(BaseModel):
 
 class ListUsersOutput(BaseModel):
     users: List[UserOutput]
+
+
+class GetUserInput(BaseModel):
+    user_id: UUID

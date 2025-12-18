@@ -82,9 +82,9 @@ def get_user(
     use_case = GetUserUseCase(repo)
     dto = GetUserInput(user_id=user_id)
 
-    result = use_case.execute(dto)
-
-    return result
-
-
-# TODO fazer test da rota get_user
+    try:
+        return use_case.execute(dto)
+    except ValueError as exception:
+        if str(exception) == "user_not_found":
+            raise HTTPException(status_code=404, detail="user_not_found")
+        raise
