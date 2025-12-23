@@ -28,25 +28,37 @@ class User:
         self.hashed_password = new_hashed_password
         self._touch()
 
-    def activate(self):
-        if not self.is_active:
-            self.is_active = True
-            self._touch()
-
-    def deactivate(self):
+    def activate(self) -> bool:
         if self.is_active:
-            self.is_active = False
-            self._touch()
+            return False
 
-    def promote_to_admin(self):
-        if not self.is_admin:
-            self.is_admin = True
-            self._touch()
+        self.is_active = True
+        self._touch()
+        return True
 
-    def demote_from_admin(self):
+    def deactivate(self) -> bool:
+        if not self.is_active:
+            return False
+
+        self.is_active = False
+        self._touch()
+        return True
+
+    def promote_to_admin(self) -> bool:
         if self.is_admin:
-            self.is_admin = False
-            self._touch()
+            return False
+
+        self.is_admin = True
+        self._touch()
+        return True
+
+    def demote_from_admin(self) -> bool:
+        if not self.is_admin:
+            return False
+
+        self.is_admin = False
+        self._touch()
+        return True
 
     def _touch(self):
         self.updated_at = datetime.now(timezone.utc)
