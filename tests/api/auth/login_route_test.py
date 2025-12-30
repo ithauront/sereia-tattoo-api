@@ -176,6 +176,3 @@ def test_login_invalid_payload_types(repo):
 
     response = client.post("/auth/login", json=payload)
     assert response.status_code == 422
-
-
-# TODO: fazer testes de falha
