@@ -1,8 +1,8 @@
-"""initial
+"""initial users with activation
 
-Revision ID: 404b8781f5f1
+Revision ID: 5f3821a89b71
 Revises: 
-Create Date: 2025-12-03 23:17:48.907814
+Create Date: 2025-12-29 12:14:21.738905
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '404b8781f5f1'
+revision: str = '5f3821a89b71'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -28,6 +28,8 @@ def upgrade() -> None:
     sa.Column('hashed_password', sa.String(length=255), nullable=False),
     sa.Column('is_admin', sa.Boolean(), server_default='0', nullable=False),
     sa.Column('is_active', sa.Boolean(), server_default='1', nullable=False),
+    sa.Column('has_activated_once', sa.Boolean(), server_default='0', nullable=False),
+    sa.Column('activation_token_version', sa.Integer(), server_default='0', nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.PrimaryKeyConstraint('id')

@@ -1,6 +1,6 @@
 from uuid import uuid4
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy import String, Boolean, DateTime, func
+from sqlalchemy import Integer, String, Boolean, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column
 from datetime import datetime
 
@@ -22,6 +22,11 @@ class UserModel(Base):
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     is_admin: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="0")
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="1")
+    has_activated_once = mapped_column(Boolean, nullable=False, server_default="0")
+
+    activation_token_version = mapped_column(
+        Integer, nullable=False, server_default="0"
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

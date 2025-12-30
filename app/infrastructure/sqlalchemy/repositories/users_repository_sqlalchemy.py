@@ -21,6 +21,8 @@ class SQLAlchemyUsersRepository(UsersRepository):
             hashed_password=user.hashed_password,
             is_admin=user.is_admin,
             is_active=user.is_active,
+            has_activated_once=user.has_activated_once,
+            activation_token_version=user.activation_token_version,
         )
         self.session.add(orm_user)
         self.session.commit()
@@ -37,6 +39,8 @@ class SQLAlchemyUsersRepository(UsersRepository):
         orm_user.hashed_password = user.hashed_password
         orm_user.is_active = user.is_active
         orm_user.is_admin = user.is_admin
+        orm_user.has_activated_once = user.has_activated_once
+        orm_user.activation_token_version = user.activation_token_version
         orm_user.updated_at = user.updated_at
 
         self.session.commit()
@@ -91,6 +95,8 @@ class SQLAlchemyUsersRepository(UsersRepository):
             hashed_password=orm_user.hashed_password,
             is_admin=orm_user.is_admin,
             is_active=orm_user.is_active,
+            has_activated_once=orm_user.has_activated_once,
+            activation_token_version=orm_user.activation_token_version,
             created_at=orm_user.created_at,
             updated_at=orm_user.updated_at,
         )
