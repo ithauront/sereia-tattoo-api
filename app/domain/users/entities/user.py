@@ -11,6 +11,8 @@ class User:
         hashed_password: str = "",
         is_admin: bool = False,
         is_active: bool = False,
+        has_activated_once: bool = False,
+        activation_token_version: int = 0,
         created_at: datetime | None = None,
         updated_at: datetime | None = None,
     ):
@@ -21,8 +23,20 @@ class User:
         self.hashed_password = hashed_password
         self.is_admin = is_admin
         self.is_active = is_active
+        self.has_activated_once = has_activated_once
+        self.activation_token_version = activation_token_version
         self.created_at = created_at or now
         self.updated_at = updated_at or now
+
+    @classmethod
+    def create_pending(cls, email: str) -> "User":
+        return cls(
+            email=email,
+            is_active=False,
+            is_admin=False,
+            has_activated_once=False,
+            activation_token_version=0,
+        )
 
     def change_password(self, new_hashed_password):
         self.hashed_password = new_hashed_password
@@ -33,6 +47,7 @@ class User:
             return False
 
         self.is_active = True
+        self.has_activated_once = True
         self._touch()
         return True
 
@@ -59,6 +74,10 @@ class User:
         self.is_admin = False
         self._touch()
         return True
+
+    def bump_activation_token(self):
+        self.activation_token_version += 1
+        self._touch()
 
     def _touch(self):
         self.updated_at = datetime.now(timezone.utc)
