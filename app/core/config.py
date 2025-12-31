@@ -7,10 +7,16 @@ class Settings(BaseSettings):
     API: str = ""
     DATABASE_URL: str
 
+    ##jwt
     SECRET_KEY: SecretStr
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24
+
+    # email Brevo
+    BREVO_API_KEY: str
+    BREVO_SENDER_EMAIL: str
+    BREVO_SENDER_NAME: str
 
     model_config = SettingsConfigDict(
         env_file=".env",
