@@ -18,7 +18,13 @@ class JWTService:
     def _now_utc() -> datetime:
         return datetime.now(timezone.utc)
 
-    def create(self, subject: str, minutes: int, token_type: str) -> str:
+    def create(
+        self,
+        subject: str,
+        minutes: int,
+        token_type: str,
+        extra_claims: dict[str, Any] | None = None,
+    ) -> str:
         now = self._now_utc()
 
         payload: Dict[str, Any] = {
@@ -29,6 +35,9 @@ class JWTService:
             "exp": int((now + timedelta(minutes=minutes)).timestamp()),
             "jti": str(uuid4()),
         }
+
+        if extra_claims:
+            payload.update(extra_claims)
 
         return jwt.encode(payload, self.secret_key, algorithm=self.algorithm)
 
