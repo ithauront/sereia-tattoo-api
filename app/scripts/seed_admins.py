@@ -1,7 +1,9 @@
-from sqlalchemy.orm import Session
-from app.db.models.users import User
-from app.db.session import SessionLocal
-from app.core.security.security import get_password_hash
+from app.core.security.passwords import hash_password
+from app.domain.users.entities.user import User
+from app.infrastructure.sqlalchemy.repositories.users_repository_sqlalchemy import (
+    SQLAlchemyUsersRepository,
+)
+from app.infrastructure.sqlalchemy.session import SessionLocal
 
 
 ADMINS = [
@@ -10,27 +12,40 @@ ADMINS = [
 ]
 
 
-def seed_admins(db: Session):
-    for adm in ADMINS:
-        user = db.query(User).filter(User.username == adm["username"]).first()
-        if user:
-            user.hashed_password = get_password_hash(adm["password"])
-            user.is_admin = True
-            db.add(user)
-            continue
+def seed_admins():
+    db = SessionLocal()
+
+    try:
+        repo = SQLAlchemyUsersRepository(db)
+
+        email = "admin@sereiatattoo.dev"
+        password = "admin123"
+        hashed_password = hash_password(password)
+
+        existing = repo.find_by_email(email)
+        if existing:
+            print("admin ja existe")
+            return
+
         user = User(
-            username=adm["username"],
-            hashed_password=get_password_hash(adm["password"]),
+            email=email,
+            username="admin",
+            hashed_password=hashed_password,
             is_admin=True,
+            is_active=True,
+            has_activated_once=True,
         )
-        db.add(user)
-    db.commit()
+
+        repo.create(user)
+        db.commit()
+
+        print("Admin criado com sucesso")
+        print(f"Email: {email}")
+        print(f"Senha: {password}")
+
+    finally:
+        db.close()
 
 
 if __name__ == "__main__":
-    db = SessionLocal()
-    try:
-        seed_admins(db)
-        print("Admins created/checked sucessfully")
-    finally:
-        db.close()
+    seed_admins()
