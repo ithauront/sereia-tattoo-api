@@ -1,13 +1,15 @@
 from app.domain.users.events.user_creation_requested import UserCreationRequested
 from app.domain.users.repositories.users_repository import UsersRepository
-from app.domain.users.use_cases.DTO.create_user_dto import CreateUserInput
+from app.domain.users.use_cases.DTO.resend_activation_email_dto import (
+    ResendActivationEmailInput,
+)
 
 
 class ResendActivationEmailUseCase:
     def __init__(self, repo: UsersRepository):
         self.repo = repo
 
-    def execute(self, data: CreateUserInput) -> UserCreationRequested:
+    def execute(self, data: ResendActivationEmailInput) -> UserCreationRequested:
         user = self.repo.find_by_email(data.user_email)
         if not user:
             raise ValueError("user_not_found")

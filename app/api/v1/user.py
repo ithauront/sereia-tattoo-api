@@ -41,7 +41,7 @@ from app.domain.users.use_cases.resend_activation_email import (
 
 router = APIRouter()
 
-
+# TODO: fazer teste dessa rota
 @router.post("/users")
 async def create_user(
     data: ActivateUserRequest,
@@ -77,6 +77,7 @@ async def create_user(
 
 
 # TODO: atualizar o create userInput para activateUserInput
+# TODO: fazer teste dessa rota
 @router.post("/users/resend-email")
 async def resend_email(
     data: ActivateUserRequest,
