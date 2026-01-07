@@ -22,6 +22,8 @@ def make_user():
             hashed_password=hash_password("123456"),
             is_active=kwargs.get("is_active", True),
             is_admin=kwargs.get("is_admin", False),
+            activation_token_version=kwargs.get("activation_token_version", 0),
+            has_activated_once=kwargs.get("has_activated_once", False),
         )
 
     return _factory
