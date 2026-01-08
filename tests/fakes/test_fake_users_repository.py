@@ -1,5 +1,3 @@
-from operator import gt
-from uuid import uuid4
 import pytest
 
 from app.domain.users.entities.user import User
