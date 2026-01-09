@@ -1,5 +1,7 @@
 pytest
 pytest-mock
+pytest-asyncio
+respx
 pip-tools
 black
 isort
