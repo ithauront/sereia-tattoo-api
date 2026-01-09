@@ -24,6 +24,7 @@ class SendUserActivationHandler:
         activation_link = f"https://frontend/activate?token={token}"
 
         html = render_activation_email(activation_link)
+
         await self.email_service.send_email(
             to=event.email, subject="Ative sua conta", html_content=html
         )

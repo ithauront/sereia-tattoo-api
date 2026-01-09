@@ -19,6 +19,9 @@ from app.domain.users.use_cases.DTO.get_users_dto import (
     Direction,
 )
 from app.domain.users.use_cases.DTO.password_dto import ChangePasswordInput
+from app.domain.users.use_cases.DTO.resend_activation_email_dto import (
+    ResendActivationEmailInput,
+)
 from app.domain.users.use_cases.DTO.user_output_dto import UserOutput
 from app.domain.users.use_cases.DTO.user_status_dto import (
     ActivateUserInput,
@@ -40,6 +43,7 @@ from app.domain.users.use_cases.resend_activation_email import (
 
 
 router = APIRouter()
+
 
 # TODO: fazer teste dessa rota
 @router.post("/users")
@@ -76,7 +80,6 @@ async def create_user(
     return {"message": "User created and activation mail sent"}
 
 
-# TODO: atualizar o create userInput para activateUserInput
 # TODO: fazer teste dessa rota
 @router.post("/users/resend-email")
 async def resend_email(
@@ -87,7 +90,7 @@ async def resend_email(
 ):
     try:
         use_case = ResendActivationEmailUseCase(repo)
-        dto = CreateUserInput(user_email=data.email)
+        dto = ResendActivationEmailInput(user_email=data.email)
         event = use_case.execute(dto)
 
         handler = SendUserActivationHandler(
