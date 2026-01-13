@@ -7,6 +7,9 @@ from app.api.dependencies.security import get_activation_token_service
 from app.api.dependencies.users import get_users_repository
 from app.api.schemas.user import ActivateUserRequest, ChangePasswordRequest
 
+from app.application.users.services.resend_activation_email_service import (
+    ResendActivationEmailService,
+)
 from app.domain.notifications.handlers.send_user_activation_email import (
     SendUserActivationHandler,
 )
@@ -19,8 +22,8 @@ from app.domain.users.use_cases.DTO.get_users_dto import (
     Direction,
 )
 from app.domain.users.use_cases.DTO.password_dto import ChangePasswordInput
-from app.domain.users.use_cases.DTO.resend_activation_email_dto import (
-    ResendActivationEmailInput,
+from app.domain.users.use_cases.DTO.prepare_resend_activation_email_dto import (
+    PrepareResendActivationEmailInput,
 )
 from app.domain.users.use_cases.DTO.user_output_dto import UserOutput
 from app.domain.users.use_cases.DTO.user_status_dto import (
@@ -37,15 +40,14 @@ from app.domain.users.use_cases.demote_user_from_admin import DemoteUserFromAdmi
 from app.domain.users.use_cases.get_user import GetUserUseCase
 from app.domain.users.use_cases.list_users import ListUsersUseCase
 from app.domain.users.use_cases.promote_user_to_admin import PromoteUserToAdminUseCase
-from app.domain.users.use_cases.resend_activation_email import (
-    ResendActivationEmailUseCase,
+from app.domain.users.use_cases.prepare_resend_activation_email import (
+    PrepareResendActivationEmailUseCase,
 )
 
 
 router = APIRouter()
 
 
-# TODO: fazer teste dessa rota
 @router.post("/users")
 async def create_user(
     data: ActivateUserRequest,
@@ -80,7 +82,6 @@ async def create_user(
     return {"message": "User created and activation mail sent"}
 
 
-# TODO: fazer teste dessa rota
 @router.post("/users/resend-email")
 async def resend_email(
     data: ActivateUserRequest,
@@ -88,15 +89,24 @@ async def resend_email(
     email_service=Depends(get_email_service),
     token_service=Depends(get_activation_token_service),
 ):
+    # Escolhi deixar essa rota publica porque a segurança vai estar no
+    # email do usuario que foi cadastrado pelo ADMIN"
     try:
-        use_case = ResendActivationEmailUseCase(repo)
-        dto = ResendActivationEmailInput(user_email=data.email)
-        event = use_case.execute(dto)
+        prepare_use_case = PrepareResendActivationEmailUseCase(repo)
 
-        handler = SendUserActivationHandler(
-            email_service=email_service, token_service=token_service
+        email_handler = SendUserActivationHandler(
+            email_service=email_service,
+            token_service=token_service,
         )
-        await handler.handle(event)
+
+        service = ResendActivationEmailService(
+            repo=repo,
+            prepare_use_case=prepare_use_case,
+            email_handler=email_handler,
+        )
+        dto = PrepareResendActivationEmailInput(user_email=data.email)
+
+        await service.execute(dto)
 
     except ValueError as exception:
         if str(exception) == "user_not_found":
@@ -116,7 +126,7 @@ async def resend_email(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exception)
             )
 
-    return {"message": "User created and activation mail sent"}
+    return {"message": "Activation mail sent"}
 
 
 @router.post("/me/change-password")
