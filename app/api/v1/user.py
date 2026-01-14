@@ -23,9 +23,14 @@ from app.core.exceptions.services import (
     EmailServiceUnavailableError,
 )
 from app.core.exceptions.users import (
+    AuthenticationFailedError,
+    CannotDeactivateYourselfError,
+    CannotDemoteYourselfError,
     InvalidActivationTokenError,
+    LastAdminCannotBeDeactivatedError,
+    LastAdminCannotBeDemotedError,
     UserActivatedBeforeError,
-    UserAlreadyActivatedError,
+    UserAlreadyExistsError,
     UserNotFoundError,
     UsernameAlreadyTakenError,
 )
@@ -89,11 +94,10 @@ async def create_user(
             email_service=email_service, token_service=token_service
         )
         await handler.handle(event)
-    except ValueError as exception:
-        if str(exception) == "user_already_exists":
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT, detail=str(exception)
-            )
+    except UserAlreadyExistsError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="user_already_exists"
+        )
     except EmailServiceUnavailableError:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY, detail="email_service_unavailable"
@@ -133,15 +137,15 @@ async def resend_email(
 
         await service.execute(dto)
 
-    except ValueError as exception:
-        if str(exception) == "user_not_found":
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail=str(exception)
-            )
-        if str(exception) == "user_has_been_activated_before":
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT, detail=str(exception)
-            )
+    except UserNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="user_not_found"
+        )
+    except UserActivatedBeforeError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="user_has_been_activated_before",
+        )
     except EmailServiceUnavailableError:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY, detail="email_service_unavailable"
@@ -211,11 +215,10 @@ def change_password(
 
     try:
         use_case.execute(dto, current_user)
-    except ValueError as exception:
-        if str(exception) == "invalid_credentials":
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_credentials"
-            )
+    except AuthenticationFailedError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_credentials"
+        )
 
     return Response(status_code=204)
 
@@ -260,10 +263,8 @@ def get_user(
 
     try:
         return use_case.execute(dto)
-    except ValueError as exception:
-        if str(exception) == "user_not_found":
-            raise HTTPException(status_code=404, detail="user_not_found")
-        raise
+    except UserNotFoundError:
+        raise HTTPException(status_code=404, detail="user_not_found")
 
 
 @router.patch("/users/deactivate/{user_id}", status_code=204)
@@ -277,16 +278,12 @@ def deactivate_user(
 
     try:
         return use_case.execute(dto)
-    except ValueError as exception:
-        if str(exception) == "user_not_found":
-            raise HTTPException(status_code=404, detail="user_not_found")
-        elif str(exception) == "last_admin_cannot_be_deactivated":
-            raise HTTPException(
-                status_code=409, detail="last_admin_cannot_be_deactivated"
-            )
-        elif str(exception) == "cannot_deactivate_yourself":
-            raise HTTPException(status_code=409, detail="cannot_deactivate_yourself")
-        raise
+    except UserNotFoundError:
+        raise HTTPException(status_code=404, detail="user_not_found")
+    except LastAdminCannotBeDeactivatedError:
+        raise HTTPException(status_code=409, detail="last_admin_cannot_be_deactivated")
+    except CannotDeactivateYourselfError:
+        raise HTTPException(status_code=409, detail="cannot_deactivate_yourself")
 
 
 @router.patch("/users/activate/{user_id}", status_code=204)
@@ -300,10 +297,8 @@ def activate_user(
 
     try:
         return use_case.execute(dto)
-    except ValueError as exception:
-        if str(exception) == "user_not_found":
-            raise HTTPException(status_code=404, detail="user_not_found")
-        raise
+    except UserNotFoundError:
+        raise HTTPException(status_code=404, detail="user_not_found")
 
 
 @router.patch("/users/demote/{user_id}", status_code=204)
@@ -317,14 +312,12 @@ def demote_user(
 
     try:
         return use_case.execute(dto)
-    except ValueError as exception:
-        if str(exception) == "user_not_found":
-            raise HTTPException(status_code=404, detail="user_not_found")
-        elif str(exception) == "last_admin_cannot_be_demoted":
-            raise HTTPException(status_code=409, detail="last_admin_cannot_be_demoted")
-        elif str(exception) == "cannot_demote_yourself":
-            raise HTTPException(status_code=409, detail="cannot_demote_yourself")
-        raise
+    except UserNotFoundError:
+        raise HTTPException(status_code=404, detail="user_not_found")
+    except LastAdminCannotBeDemotedError:
+        raise HTTPException(status_code=409, detail="last_admin_cannot_be_demoted")
+    except CannotDemoteYourselfError:
+        raise HTTPException(status_code=409, detail="cannot_demote_yourself")
 
 
 @router.patch("/users/promote/{user_id}", status_code=204)
@@ -338,7 +331,6 @@ def promote_user(
 
     try:
         return use_case.execute(dto)
-    except ValueError as exception:
-        if str(exception) == "user_not_found":
-            raise HTTPException(status_code=404, detail="user_not_found")
-        raise
+    except UserNotFoundError:
+
+        raise HTTPException(status_code=404, detail="user_not_found")

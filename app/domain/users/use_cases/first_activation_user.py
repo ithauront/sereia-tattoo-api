@@ -1,7 +1,6 @@
 from app.core.exceptions.users import (
     InvalidActivationTokenError,
     UserActivatedBeforeError,
-    UserAlreadyActivatedError,
     UserNotFoundError,
     UsernameAlreadyTakenError,
 )

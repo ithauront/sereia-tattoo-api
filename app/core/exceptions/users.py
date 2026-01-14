@@ -6,10 +6,6 @@ class UserActivatedBeforeError(Exception):
     pass
 
 
-class UserAlreadyActivatedError(Exception):
-    pass
-
-
 class InvalidActivationTokenError(Exception):
     pass
 

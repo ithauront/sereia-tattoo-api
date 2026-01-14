@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Header
 from app.api.dependencies.users import get_users_repository
 from app.api.schemas.auth import LoginRequest, RefreshRequest, TokenPair, VerifyResponse
+from app.core.exceptions.users import AuthenticationFailedError, UserInactiveError
 from app.domain.users.use_cases.DTO.login_dto import (
     LoginInput,
     RefreshInput,
@@ -20,12 +21,11 @@ def login(data: LoginRequest, repo=Depends(get_users_repository)) -> TokenPair:
     use_case_input = LoginInput(identifier=data.identifier, password=data.password)
     try:
         result = use_case.execute(use_case_input)
-    except ValueError as exception:
-        if str(exception) == "inactive_user":
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="inactive_user"
-            )
-
+    except UserInactiveError:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="inactive_user"
+        )
+    except AuthenticationFailedError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_credentials"
         )
@@ -41,7 +41,7 @@ def refresh(data: RefreshRequest, repo=Depends(get_users_repository)) -> TokenPa
     use_case_input = RefreshInput(refresh_token=data.refresh_token)
     try:
         result = use_case.execute(use_case_input)
-    except ValueError:
+    except AuthenticationFailedError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_credentials"
         )
@@ -60,7 +60,7 @@ def verify(
 
     try:
         result = use_case.execute(use_case_input)
-    except ValueError:
+    except AuthenticationFailedError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_credentials"
         )
