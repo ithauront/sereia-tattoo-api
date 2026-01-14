@@ -1,3 +1,4 @@
+from app.core.exceptions.users import UserNotFoundError
 from app.domain.users.repositories.users_repository import UsersRepository
 from app.domain.users.use_cases.DTO.user_status_dto import ActivateUserInput
 
@@ -11,7 +12,7 @@ class ActivateUserUseCase:
         user = self.repo.find_by_id(data.user_id)
 
         if not user:
-            raise ValueError("user_not_found")
+            raise UserNotFoundError()
 
         changed = user.activate()
 

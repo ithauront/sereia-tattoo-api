@@ -4,13 +4,14 @@ from uuid import uuid4
 from jose import jwt, JWTError
 from pydantic import SecretStr
 
+from app.core.exceptions.configuration import InvalidSecurityConfigurationError
 from app.core.exceptions.security import TokenError
 
 
 class JWTService:
     def __init__(self, secret_key: SecretStr, algorithm: str):
         if secret_key is None:
-            raise ValueError("SECRET_KEY must not be None")
+            raise InvalidSecurityConfigurationError("SECRET_KEY must not be None")
         self.secret_key = secret_key.get_secret_value()
         self.algorithm = algorithm
 

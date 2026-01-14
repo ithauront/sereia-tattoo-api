@@ -24,6 +24,7 @@ from app.core.exceptions.services import (
 )
 from app.core.exceptions.users import (
     InvalidActivationTokenError,
+    UserActivatedBeforeError,
     UserAlreadyActivatedError,
     UserNotFoundError,
     UsernameAlreadyTakenError,
@@ -175,7 +176,7 @@ def first_activation(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="user_not_found"
         )
-    except UserAlreadyActivatedError:
+    except UserActivatedBeforeError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="user_was_activated_before"
         )

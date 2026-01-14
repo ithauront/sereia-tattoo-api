@@ -1,3 +1,4 @@
+from app.core.exceptions.users import UserAlreadyExistsError
 from app.domain.users.entities.user import User
 from app.domain.users.events.activation_email_requested import (
     ActivationEmailRequested,
@@ -13,7 +14,7 @@ class CreateUserUseCase:
     def execute(self, data: CreateUserInput) -> ActivationEmailRequested:
         user_already_exists = self.repo.find_by_email(data.user_email)
         if user_already_exists:
-            raise ValueError("user_already_exists")
+            raise UserAlreadyExistsError()
 
         user = User.create_pending(email=data.user_email)
         self.repo.create(user)

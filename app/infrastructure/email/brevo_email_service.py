@@ -1,6 +1,10 @@
 import logging
 import httpx
 from app.core.config import settings
+from app.core.exceptions.services import (
+    EmailSentFailedError,
+    EmailServiceUnavailableError,
+)
 from app.domain.notifications.ports.email_service import EmailService
 
 logger = logging.getLogger(__name__)
@@ -30,7 +34,7 @@ class BrevoEmailService(EmailService):
             try:
                 response = await client.post(url, json=payload, headers=headers)
             except httpx.RequestError:
-                raise ValueError("email_service_unavailable")
+                raise EmailServiceUnavailableError()
 
         if response.status_code < 400:
             logger.info(
@@ -51,4 +55,4 @@ class BrevoEmailService(EmailService):
                     "response": response.text[:500],
                 },
             )
-            raise ValueError("email_send_failed")
+            raise EmailSentFailedError()

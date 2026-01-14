@@ -1,0 +1,2 @@
+class InvalidSecurityConfigurationError(RuntimeError):
+    pass

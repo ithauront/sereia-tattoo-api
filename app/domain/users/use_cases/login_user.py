@@ -1,3 +1,4 @@
+from app.core.exceptions.users import AuthenticationFailedError, UserInactiveError
 from app.core.security import jwt_service
 from app.core.security.passwords import verify_password
 from app.domain.users.repositories.users_repository import UsersRepository
@@ -16,13 +17,13 @@ class LoginUserUseCase:
             user = self.repo.find_by_username(data.identifier)
 
         if not user:
-            raise ValueError("invalid_credentials")
+            raise AuthenticationFailedError()
 
         if user.is_active is False:
-            raise ValueError("inactive_user")
+            raise UserInactiveError()
 
         if not verify_password(data.password, user.hashed_password):
-            raise ValueError("invalid_credentials")
+            raise AuthenticationFailedError()
 
         access_token = jwt_service.create(
             subject=str(user.id),

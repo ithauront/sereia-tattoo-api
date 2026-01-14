@@ -1,5 +1,6 @@
 from app.core.exceptions.users import (
     InvalidActivationTokenError,
+    UserActivatedBeforeError,
     UserAlreadyActivatedError,
     UserNotFoundError,
     UsernameAlreadyTakenError,
@@ -22,7 +23,7 @@ class FirstActivationUserUseCase:
         if not user:
             raise UserNotFoundError()
         if user.has_activated_once:
-            raise UserAlreadyActivatedError()
+            raise UserActivatedBeforeError()
         if user.activation_token_version != data.token_version:
             raise InvalidActivationTokenError()
 

@@ -1,3 +1,4 @@
+from app.core.exceptions.users import AuthenticationFailedError
 from app.core.security.passwords import hash_password, verify_password
 from app.domain.users.entities.user import User
 from app.domain.users.repositories.users_repository import UsersRepository
@@ -11,7 +12,7 @@ class ChangePasswordUseCase:
     def execute(self, data: ChangePasswordInput, current_user: User) -> None:
 
         if not verify_password(data.old_password, current_user.hashed_password):
-            raise ValueError("invalid_credentials")
+            raise AuthenticationFailedError()
 
         hashed_password = hash_password(data.new_password)
 

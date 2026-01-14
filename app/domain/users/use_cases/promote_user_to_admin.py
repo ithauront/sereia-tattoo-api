@@ -1,3 +1,4 @@
+from app.core.exceptions.users import UserNotFoundError
 from app.domain.users.use_cases.DTO.user_status_dto import PromoteUserInput
 
 
@@ -10,7 +11,7 @@ class PromoteUserToAdminUseCase:
         user = self.repo.find_by_id(data.user_id)
 
         if not user:
-            raise ValueError("user_not_found")
+            raise UserNotFoundError()
 
         changed = user.promote_to_admin()
 

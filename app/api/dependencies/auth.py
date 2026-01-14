@@ -2,6 +2,7 @@ from uuid import UUID
 from fastapi import Depends, HTTPException, Header, status
 
 from app.api.dependencies.users import get_users_repository
+from app.core.exceptions.security import TokenError
 from app.domain.users.repositories.users_repository import UsersRepository
 from app.domain.users.use_cases.verify_user import VerifyUserUseCase
 
@@ -16,7 +17,7 @@ def get_current_user(
 
     try:
         result = use_case.execute(VerifyInput(authorization=authorization))
-    except ValueError:
+    except TokenError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_credentials"
         )

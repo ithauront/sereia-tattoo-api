@@ -1,4 +1,5 @@
 from typing import Dict
+from app.core.exceptions.security import TokenError
 from app.core.security.jwt_service import JWTService
 
 
@@ -19,6 +20,6 @@ class ActivationTokenService:
         token_version = payload.get("ver")
 
         if token_version is None:
-            raise ValueError("missing_token_version")
+            raise TokenError("missing_token_version")
 
         return payload
