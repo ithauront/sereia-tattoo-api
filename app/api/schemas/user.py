@@ -8,3 +8,8 @@ class ChangePasswordRequest(BaseModel):
 
 class ActivateUserRequest(BaseModel):
     email: str
+
+
+class FirstActivationRequest(BaseModel):
+    username: str
+    password: str

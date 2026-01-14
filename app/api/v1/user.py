@@ -1,19 +1,41 @@
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
-from app.api.dependencies.auth import get_current_active_user, get_current_admin_user
+from app.api.dependencies.activation import get_current_activation_context
+from app.api.dependencies.auth import (
+    get_current_active_user,
+    get_current_admin_user,
+)
 from app.api.dependencies.notifications import get_email_service
 from app.api.dependencies.security import get_activation_token_service
 from app.api.dependencies.users import get_users_repository
-from app.api.schemas.user import ActivateUserRequest, ChangePasswordRequest
+from app.api.schemas.user import (
+    ActivateUserRequest,
+    ChangePasswordRequest,
+    FirstActivationRequest,
+)
 
 from app.application.users.services.resend_activation_email_service import (
     ResendActivationEmailService,
 )
+from app.core.exceptions.services import (
+    EmailSentFailedError,
+    EmailServiceUnavailableError,
+)
+from app.core.exceptions.users import (
+    InvalidActivationTokenError,
+    UserAlreadyActivatedError,
+    UserNotFoundError,
+    UsernameAlreadyTakenError,
+)
+from app.core.exceptions.validation import ValidationError
 from app.domain.notifications.handlers.send_user_activation_email import (
     SendUserActivationHandler,
 )
 from app.domain.users.use_cases.DTO.create_user_dto import CreateUserInput
+from app.domain.users.use_cases.DTO.first_activation_user_dto import (
+    FirstActivationInput,
+)
 from app.domain.users.use_cases.DTO.get_users_dto import (
     GetUserInput,
     ListUsersInput,
@@ -37,6 +59,7 @@ from app.domain.users.use_cases.change_password import ChangePasswordUseCase
 from app.domain.users.use_cases.create_user import CreateUserUseCase
 from app.domain.users.use_cases.deactivate_user import DeactivateUserUseCase
 from app.domain.users.use_cases.demote_user_from_admin import DemoteUserFromAdminUseCase
+from app.domain.users.use_cases.first_activation_user import FirstActivationUserUseCase
 from app.domain.users.use_cases.get_user import GetUserUseCase
 from app.domain.users.use_cases.list_users import ListUsersUseCase
 from app.domain.users.use_cases.promote_user_to_admin import PromoteUserToAdminUseCase
@@ -70,14 +93,15 @@ async def create_user(
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT, detail=str(exception)
             )
-        if str(exception) == "email_service_unavailable":
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exception)
-            )
-        if str(exception) == "email_send_failed":
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exception)
-            )
+    except EmailServiceUnavailableError:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY, detail="email_service_unavailable"
+        )
+    except EmailSentFailedError:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="email_send_failed",
+        )
 
     return {"message": "User created and activation mail sent"}
 
@@ -117,16 +141,60 @@ async def resend_email(
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT, detail=str(exception)
             )
-        if str(exception) == "email_service_unavailable":
-            raise HTTPException(
-                status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exception)
-            )
-        if str(exception) == "email_send_failed":
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exception)
-            )
+    except EmailServiceUnavailableError:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY, detail="email_service_unavailable"
+        )
+    except EmailSentFailedError:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="email_send_failed",
+        )
 
     return {"message": "Activation mail sent"}
+
+
+# TODO: fazer teste dessa rota
+@router.post("/me/first-activation")
+def first_activation(
+    data: FirstActivationRequest,
+    current_activation_context=Depends(get_current_activation_context),
+    repo=Depends(get_users_repository),
+):
+    use_case = FirstActivationUserUseCase(repo)
+    dto = FirstActivationInput(
+        user_id=current_activation_context.user_id,
+        token_version=current_activation_context.token_version,
+        username=data.username,
+        password=data.password,
+    )
+
+    try:
+        use_case.execute(dto)
+    except UserNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="user_not_found"
+        )
+    except UserAlreadyActivatedError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="user_was_activated_before"
+        )
+    except InvalidActivationTokenError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_activation_token"
+        )
+    except UsernameAlreadyTakenError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="username_already_taken",
+        )
+    except ValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        )
+
+    return Response(status_code=201)
 
 
 @router.post("/me/change-password")
