@@ -156,3 +156,25 @@ enviando um body json com:
 
 GET http://127.0.0.1:8000/api/auth/verify
 enviando no header um bearer token com o seu access token.
+
+## Validações
+
+Fazemos validações de username e password no backend. Para estarem nos conformes essas são as regras:
+USERNAME:
+
+- Não pode conter espaços
+- Deve ter entre 3 e 30 caracteres
+- Deve conter letras
+- Pode conter numeros, ponto, underline e hifen seguindo esse regex
+  ```python
+   USERNAME_REGEX = re.compile(r"^[a-zA-Z0-9._-]+$")
+  ```
+
+PASSWORD:
+
+- Não pode conter espaços
+- Deve ter ao menos 8 caracteres
+- Deve ter letras maiusculas
+- Deve ter letras minusculas
+- Deve ter numero
+- Pode ter mas não é obrigatorio de ter caracteres especiais
