@@ -1,5 +1,7 @@
 from uuid import uuid4
 import pytest
+from app.core.exceptions.security import TokenError
+from app.core.exceptions.users import AuthenticationFailedError
 from app.domain.users.use_cases.DTO.login_dto import RefreshInput
 from app.domain.users.use_cases.refresh_user import RefreshUserUseCase
 from app.core.config import settings
@@ -32,7 +34,7 @@ def test_wrong_token(repo, make_user):
     use_case = RefreshUserUseCase(repo)
     refresh_input = RefreshInput(refresh_token="wrong_token")
 
-    with pytest.raises(ValueError) as exception:
+    with pytest.raises(TokenError) as exception:
         use_case.execute(refresh_input)
 
     assert str(exception.value) == "invalid_token"
@@ -50,7 +52,7 @@ def test_wrong_token_type(repo, make_user):
     )
     refresh_input = RefreshInput(refresh_token=access_token)
 
-    with pytest.raises(ValueError) as exception:
+    with pytest.raises(TokenError) as exception:
         use_case.execute(refresh_input)
 
     assert str(exception.value) == "invalid_token"
@@ -68,7 +70,7 @@ def test_expired_token(repo, make_user):
     )
     refresh_input = RefreshInput(refresh_token=refresh_token)
 
-    with pytest.raises(ValueError) as exception:
+    with pytest.raises(TokenError) as exception:
         use_case.execute(refresh_input)
 
     assert str(exception.value) == "invalid_token"
@@ -84,7 +86,7 @@ def test_wrong_user(repo):
     )
     refresh_input = RefreshInput(refresh_token=refresh_token)
 
-    with pytest.raises(ValueError) as exception:
+    with pytest.raises(AuthenticationFailedError) as exception:
         use_case.execute(refresh_input)
 
     assert str(exception.value) == "user_not_found_or_inactive"

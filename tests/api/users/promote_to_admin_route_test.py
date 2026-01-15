@@ -145,6 +145,7 @@ def wrong_token_type_promote_user(repo, make_user, make_token):
     admin = make_user(is_admin=True)
     user = make_user(is_admin=False)
 
+    repo.create(admin)
     repo.create(user)
 
     token = make_token(admin, token_type="refresh")

@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 import pytest
+from app.core.exceptions.users import UserNotFoundError
 from app.domain.users.use_cases.DTO.user_status_dto import (
     PromoteUserInput,
 )
@@ -26,10 +27,8 @@ def test_user_not_found_to_promote(repo):
     use_case = PromoteUserToAdminUseCase(repo)
     input_data = PromoteUserInput(user_id=not_user_id)
 
-    with pytest.raises(ValueError) as exception:
+    with pytest.raises(UserNotFoundError):
         use_case.execute(input_data)
-
-    assert str(exception.value) == "user_not_found"
 
 
 def test_user_already_axmin(repo, make_user):

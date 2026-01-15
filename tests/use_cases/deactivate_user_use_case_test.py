@@ -1,6 +1,11 @@
 from uuid import uuid4
 
 import pytest
+from app.core.exceptions.users import (
+    CannotDeactivateYourselfError,
+    LastAdminCannotBeDeactivatedError,
+    UserNotFoundError,
+)
 from app.domain.users.use_cases.DTO.user_status_dto import DeactivateUserInput
 from app.domain.users.use_cases.deactivate_user import DeactivateUserUseCase
 
@@ -9,7 +14,7 @@ def test_deactivate_user_success(repo, make_user):
     admin = make_user(
         is_active=True, is_admin=True
     )  # admin is verify in route but I prefer to explicit admin here
-    user = make_user(is_active=True)
+    user = make_user(is_active=True, has_activated_once=True)
     repo.create(admin)
     repo.create(user)
 
@@ -19,6 +24,7 @@ def test_deactivate_user_success(repo, make_user):
     use_case.execute(input_data)
 
     assert user.is_active is False
+    assert user.has_activated_once is True
 
 
 def test_cannot_deactivate_yourself(repo, make_user):
@@ -31,10 +37,8 @@ def test_cannot_deactivate_yourself(repo, make_user):
     use_case = DeactivateUserUseCase(repo)
     input_data = DeactivateUserInput(user_id=admin1.id, actor_id=admin1.id)
 
-    with pytest.raises(ValueError) as exception:
+    with pytest.raises(CannotDeactivateYourselfError):
         use_case.execute(input_data)
-
-    assert str(exception.value) == "cannot_deactivate_yourself"
 
 
 def test_last_active_admin_cannot_be_deactivated(repo, make_user):
@@ -50,10 +54,8 @@ def test_last_active_admin_cannot_be_deactivated(repo, make_user):
         user_id=last_active_admin.id, actor_id=inactive_admin.id
     )
 
-    with pytest.raises(ValueError) as exception:
+    with pytest.raises(LastAdminCannotBeDeactivatedError):
         use_case.execute(input_data)
-
-    assert str(exception.value) == "last_admin_cannot_be_deactivated"
 
 
 def test_user_not_found_to_deactivate(repo, make_user):
@@ -64,10 +66,8 @@ def test_user_not_found_to_deactivate(repo, make_user):
     use_case = DeactivateUserUseCase(repo)
     input_data = DeactivateUserInput(user_id=not_user_id, actor_id=admin.id)
 
-    with pytest.raises(ValueError) as exception:
+    with pytest.raises(UserNotFoundError):
         use_case.execute(input_data)
-
-    assert str(exception.value) == "user_not_found"
 
 
 def test_user_already_inactive(repo, make_user):

@@ -1,6 +1,7 @@
 from uuid import UUID
 import pytest
-from app.domain.users.events.user_creation_requested import UserCreationRequested
+from app.core.exceptions.users import UserAlreadyExistsError
+from app.domain.users.events.activation_email_requested import ActivationEmailRequested
 from app.domain.users.use_cases.DTO.create_user_dto import CreateUserInput
 from app.domain.users.use_cases.create_user import CreateUserUseCase
 
@@ -17,7 +18,7 @@ def test_create_user_success(repo):
     assert saved_user.has_activated_once is False
 
     assert result is not None
-    assert isinstance(result, UserCreationRequested)
+    assert isinstance(result, ActivationEmailRequested)
     assert result.email == "jhon@doe.com"
     assert type(result.user_id) is UUID
     assert type(result.activation_token_version) is int
@@ -33,10 +34,9 @@ def test_user_already_exists(repo, make_user, mocker):
     use_case = CreateUserUseCase(repo)
     input_data = CreateUserInput(user_email="jhon@doe.com")
 
-    with pytest.raises(ValueError) as exception:
+    with pytest.raises(UserAlreadyExistsError):
         use_case.execute(input_data)
 
-    assert str(exception.value) == "user_already_exists"
     spy.assert_not_called()
 
 

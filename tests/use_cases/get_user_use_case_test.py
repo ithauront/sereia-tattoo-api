@@ -1,5 +1,6 @@
 import pytest
 from uuid import uuid4
+from app.core.exceptions.users import UserNotFoundError
 from app.domain.users.use_cases.DTO.get_users_dto import GetUserInput
 from app.domain.users.use_cases.get_user import GetUserUseCase
 from app.domain.users.use_cases.DTO.user_output_dto import UserOutput
@@ -27,7 +28,5 @@ def test_user_not_found(repo):
     fake_id = uuid4()
     dto = GetUserInput(user_id=fake_id)
 
-    with pytest.raises(ValueError) as exception:
+    with pytest.raises(UserNotFoundError):
         use_case.execute(dto)
-
-    assert str(exception.value) == "user_not_found"

@@ -1,6 +1,11 @@
 from uuid import uuid4
 
 import pytest
+from app.core.exceptions.users import (
+    CannotDemoteYourselfError,
+    LastAdminCannotBeDemotedError,
+    UserNotFoundError,
+)
 from app.domain.users.use_cases.DTO.user_status_dto import (
     DemoteUserInput,
 )
@@ -33,10 +38,8 @@ def test_cannot_demote_yourself(repo, make_user):
     use_case = DemoteUserFromAdminUseCase(repo)
     input_data = DemoteUserInput(user_id=admin1.id, actor_id=admin1.id)
 
-    with pytest.raises(ValueError) as exception:
+    with pytest.raises(CannotDemoteYourselfError):
         use_case.execute(input_data)
-
-    assert str(exception.value) == "cannot_demote_yourself"
 
 
 def test_last_active_admin_cannot_be_demoted(repo, make_user):
@@ -52,10 +55,8 @@ def test_last_active_admin_cannot_be_demoted(repo, make_user):
         user_id=last_active_admin.id, actor_id=inactive_admin.id
     )
 
-    with pytest.raises(ValueError) as exception:
+    with pytest.raises(LastAdminCannotBeDemotedError) as exception:
         use_case.execute(input_data)
-
-    assert str(exception.value) == "last_admin_cannot_be_demoted"
 
 
 def test_user_not_found_to_demote(repo, make_user):
@@ -65,10 +66,8 @@ def test_user_not_found_to_demote(repo, make_user):
     use_case = DemoteUserFromAdminUseCase(repo)
     input_data = DemoteUserInput(user_id=not_user_id, actor_id=admin.id)
 
-    with pytest.raises(ValueError) as exception:
+    with pytest.raises(UserNotFoundError):
         use_case.execute(input_data)
-
-    assert str(exception.value) == "user_not_found"
 
 
 def test_user_already_non_admin(repo, make_user):

@@ -1,4 +1,5 @@
 import pytest
+from app.core.exceptions.users import AuthenticationFailedError
 from app.core.security.passwords import verify_password
 from app.domain.users.use_cases.DTO.password_dto import ChangePasswordInput
 from app.domain.users.use_cases.change_password import ChangePasswordUseCase
@@ -32,7 +33,5 @@ def test_wrong_old_password(repo, make_user):
         old_password="wrong_password", new_password="abcdef"
     )
 
-    with pytest.raises(ValueError) as exception:
+    with pytest.raises(AuthenticationFailedError):
         use_case.execute(input_data, user)
-
-    assert str(exception.value) == "invalid_credentials"
