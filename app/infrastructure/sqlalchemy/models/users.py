@@ -21,10 +21,13 @@ class UserModel(Base):
     )
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     is_admin: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="0")
-    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="1")
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="0")
     has_activated_once = mapped_column(Boolean, nullable=False, server_default="0")
 
-    activation_token_version = mapped_column(
+    activation_token_version: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default="0"
+    )
+    password_token_version: Mapped[int] = mapped_column(
         Integer, nullable=False, server_default="0"
     )
     created_at: Mapped[datetime] = mapped_column(

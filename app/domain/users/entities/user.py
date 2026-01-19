@@ -13,6 +13,7 @@ class User:
         is_active: bool = False,
         has_activated_once: bool = False,
         activation_token_version: int = 0,
+        password_token_version: int = 0,
         created_at: datetime | None = None,
         updated_at: datetime | None = None,
     ):
@@ -25,6 +26,7 @@ class User:
         self.is_active = is_active
         self.has_activated_once = has_activated_once
         self.activation_token_version = activation_token_version
+        self.password_token_version = password_token_version
         self.created_at = created_at or now
         self.updated_at = updated_at or now
 
@@ -36,10 +38,12 @@ class User:
             is_admin=False,
             has_activated_once=False,
             activation_token_version=0,
+            password_token_version=0,
         )
 
     def change_password(self, new_hashed_password):
         self.hashed_password = new_hashed_password
+        self.bump_password_token()
         self._touch()
 
     def activate(self) -> bool:
@@ -77,6 +81,10 @@ class User:
 
     def bump_activation_token(self):
         self.activation_token_version += 1
+        self._touch()
+
+    def bump_password_token(self):
+        self.password_token_version += 1
         self._touch()
 
     def _touch(self):
