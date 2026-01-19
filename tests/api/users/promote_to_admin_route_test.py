@@ -141,7 +141,7 @@ def test_nonexistent_user_promote_user(repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def wrong_token_type_promote_user(repo, make_user, make_token):
+def test_wrong_token_type_promote_user(repo, make_user, make_token):
     admin = make_user(is_admin=True)
     user = make_user(is_admin=False)
 
@@ -237,7 +237,7 @@ def test_invalid_token_sub(repo, make_user):
 
     response = client.patch(
         f"/users/promote/{user.id}",
-        headers={"Authorization": f" {token}"},
+        headers={"Authorization": f"Bearer {token}"},
     )
 
     assert response.status_code == 401
