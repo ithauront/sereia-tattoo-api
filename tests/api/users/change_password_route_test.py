@@ -14,7 +14,7 @@ def test_change_password_success(repo, make_user, make_token):
 
     app.dependency_overrides[get_users_repository] = lambda: repo
 
-    payload = {"old_password": "123456", "new_password": "abcdef"}
+    payload = {"old_password": "123456", "new_password": "StrongPassword1"}
 
     response = client.post(
         "/me/change-password",
@@ -24,7 +24,7 @@ def test_change_password_success(repo, make_user, make_token):
 
     assert response.status_code == 204
 
-    assert verify_password("abcdef", user.hashed_password)
+    assert verify_password("StrongPassword1", user.hashed_password)
 
     app.dependency_overrides = {}
 

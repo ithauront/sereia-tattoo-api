@@ -1,5 +1,6 @@
 from app.core.exceptions.users import AuthenticationFailedError
 from app.core.security.passwords import hash_password, verify_password
+from app.core.validations.password import validate_password
 from app.domain.users.entities.user import User
 from app.domain.users.repositories.users_repository import UsersRepository
 from app.domain.users.use_cases.DTO.password_dto import ChangePasswordInput
@@ -13,6 +14,8 @@ class ChangePasswordUseCase:
 
         if not verify_password(data.old_password, current_user.hashed_password):
             raise AuthenticationFailedError()
+
+        validate_password(data.new_password)
 
         hashed_password = hash_password(data.new_password)
 

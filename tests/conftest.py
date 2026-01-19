@@ -19,7 +19,9 @@ def make_user():
             id=uuid4(),
             username=kwargs.get("username", "JhonDoe"),
             email=kwargs.get("email", "jhon@doe.com"),
-            hashed_password=hash_password("123456"),
+            hashed_password=kwargs.get(
+                "hashed_password", hash_password("123456")
+            ),
             is_active=kwargs.get("is_active", True),
             is_admin=kwargs.get("is_admin", False),
             activation_token_version=kwargs.get("activation_token_version", 0),

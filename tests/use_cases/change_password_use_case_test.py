@@ -10,7 +10,9 @@ def test_change_password(repo, make_user):
     repo.create(user)
 
     use_case = ChangePasswordUseCase(repo)
-    input_data = ChangePasswordInput(old_password="123456", new_password="abcdef")
+    input_data = ChangePasswordInput(
+        old_password="123456", new_password="StrongPassword1"
+    )
 
     old_hash = user.hashed_password
 
@@ -18,10 +20,10 @@ def test_change_password(repo, make_user):
 
     assert user.hashed_password != old_hash
 
-    assert verify_password("abcdef", user.hashed_password)
+    assert verify_password("StrongPassword1", user.hashed_password)
 
     saved = repo.find_by_id(user.id)
-    assert verify_password("abcdef", saved.hashed_password)
+    assert verify_password("StrongPassword1", saved.hashed_password)
 
 
 def test_wrong_old_password(repo, make_user):
@@ -30,7 +32,7 @@ def test_wrong_old_password(repo, make_user):
 
     use_case = ChangePasswordUseCase(repo)
     input_data = ChangePasswordInput(
-        old_password="wrong_password", new_password="abcdef"
+        old_password="wrong_password", new_password="StrongPassword1"
     )
 
     with pytest.raises(AuthenticationFailedError):
