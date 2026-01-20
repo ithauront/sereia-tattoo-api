@@ -1,4 +1,4 @@
-from app.core.security.activation_token_service import ActivationTokenService
+from app.core.security.versioned_token_service import VersionedTokenService
 from app.domain.notifications.handlers.utils.render_activation_email import (
     render_activation_email,
 )
@@ -9,7 +9,7 @@ from app.domain.users.events.activation_email_requested import ActivationEmailRe
 # TODO: colocar o link correto quando o frontend estiver pronto.
 class SendUserActivationHandler:
     def __init__(
-        self, email_service: EmailService, token_service: ActivationTokenService
+        self, email_service: EmailService, token_service: VersionedTokenService
     ):
         self.email_service = email_service
         self.token_service = token_service
