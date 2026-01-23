@@ -1,22 +1,29 @@
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
-from app.api.dependencies.activation import get_current_activation_context
+from app.api.dependencies.token_context import get_current_activation_context
 from app.api.dependencies.auth import (
     get_current_active_user,
     get_current_admin_user,
 )
 from app.api.dependencies.notifications import get_email_service
-from app.api.dependencies.security import get_activation_token_service
+from app.api.dependencies.security import (
+    get_activation_token_service,
+    get_reset_password_token_service,
+)
 from app.api.dependencies.users import get_users_repository
 from app.api.schemas.user import (
     ActivateUserRequest,
     ChangePasswordRequest,
     FirstActivationRequest,
+    ResetPasswordEmailRequest,
 )
 
 from app.application.users.services.resend_activation_email_service import (
     ResendActivationEmailService,
+)
+from app.application.users.services.send_password_reset_email_service import (
+    SendPasswordResetEmailService,
 )
 from app.core.exceptions.services import (
     EmailSentFailedError,
@@ -31,10 +38,15 @@ from app.core.exceptions.users import (
     LastAdminCannotBeDemotedError,
     UserActivatedBeforeError,
     UserAlreadyExistsError,
+    UserInactiveError,
     UserNotFoundError,
     UsernameAlreadyTakenError,
 )
 from app.core.exceptions.validation import ValidationError
+from app.core.security.activation_context import ActivationContext
+from app.domain.notifications.handlers.send_password_reset_email import (
+    SendPasswordResetEmailHandler,
+)
 from app.domain.notifications.handlers.send_user_activation_email import (
     SendUserActivationHandler,
 )
@@ -53,6 +65,9 @@ from app.domain.users.use_cases.DTO.password_dto import ChangePasswordInput
 from app.domain.users.use_cases.DTO.prepare_resend_activation_email_dto import (
     PrepareResendActivationEmailInput,
 )
+from app.domain.users.use_cases.DTO.prepare_send_forgot_password_email_dto import (
+    PrepareSendForgotPasswordEmailInput,
+)
 from app.domain.users.use_cases.DTO.user_output_dto import UserOutput
 from app.domain.users.use_cases.DTO.user_status_dto import (
     ActivateUserInput,
@@ -68,6 +83,9 @@ from app.domain.users.use_cases.demote_user_from_admin import DemoteUserFromAdmi
 from app.domain.users.use_cases.first_activation_user import FirstActivationUserUseCase
 from app.domain.users.use_cases.get_user import GetUserUseCase
 from app.domain.users.use_cases.list_users import ListUsersUseCase
+from app.domain.users.use_cases.prepare_send_forgot_password_email import (
+    PrepareSendForgotPasswordEmailUseCase,
+)
 from app.domain.users.use_cases.promote_user_to_admin import PromoteUserToAdminUseCase
 from app.domain.users.use_cases.prepare_resend_activation_email import (
     PrepareResendActivationEmailUseCase,
@@ -77,6 +95,7 @@ from app.domain.users.use_cases.prepare_resend_activation_email import (
 router = APIRouter()
 
 
+# TODO: talvez mudar as rotas de me para um arquivo separado e não esquecer de cadastrar ele no main.
 @router.post("/users")
 async def create_user(
     data: ActivateUserRequest,
@@ -159,11 +178,12 @@ async def resend_email(
     return {"message": "Activation mail sent"}
 
 
-# TODO: fazer teste dessa rota
 @router.post("/me/first-activation")
 def first_activation(
     data: FirstActivationRequest,
-    current_activation_context=Depends(get_current_activation_context),
+    current_activation_context: ActivationContext = Depends(
+        get_current_activation_context
+    ),
     repo=Depends(get_users_repository),
 ):
     use_case = FirstActivationUserUseCase(repo)
@@ -195,7 +215,7 @@ def first_activation(
         )
     except ValidationError as exc:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(exc),
         )
 
@@ -221,6 +241,48 @@ def change_password(
         )
 
     return Response(status_code=204)
+
+
+# TODO fazer teste para essa rota.
+@router.post("/me/reset-password-request")
+async def send_reset_password(
+    data: ResetPasswordEmailRequest,
+    repo=Depends(get_users_repository),
+    email_service=Depends(get_email_service),
+    token_service=Depends(get_reset_password_token_service),
+):
+    try:
+        prepare_use_case = PrepareSendForgotPasswordEmailUseCase(repo)
+
+        email_handler = SendPasswordResetEmailHandler(
+            email_service=email_service,
+            token_service=token_service,
+        )
+
+        service = SendPasswordResetEmailService(
+            repo=repo, prepare_use_case=prepare_use_case, email_handler=email_handler
+        )
+
+        dto = PrepareSendForgotPasswordEmailInput(user_email=data.email)
+
+        await service.execute(dto)
+
+    except (UserNotFoundError, UserInactiveError):
+        # retornamos 200 com uma msg generica para não dar info
+        return {
+            "message": "if user exists and is active a link was sent to reset password"
+        }
+    except EmailServiceUnavailableError:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY, detail="email_service_unavailable"
+        )
+    except EmailSentFailedError:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="email_send_failed",
+        )
+
+    return {"message": "if user exists and is active a link was sent to reset password"}
 
 
 @router.get("/admin/users", response_model=ListUsersOutput)

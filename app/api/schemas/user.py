@@ -13,3 +13,7 @@ class ActivateUserRequest(BaseModel):
 class FirstActivationRequest(BaseModel):
     username: str
     password: str
+
+
+class ResetPasswordEmailRequest(BaseModel):
+    email: str
