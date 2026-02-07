@@ -16,7 +16,6 @@ from app.domain.users.use_cases.prepare_send_forgot_password_email import (
 )
 
 
-# TODO: fazer teste disso
 class SendPasswordResetEmailService:
     def __init__(
         self,

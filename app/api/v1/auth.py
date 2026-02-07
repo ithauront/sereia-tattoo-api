@@ -12,10 +12,10 @@ from app.domain.users.use_cases.refresh_user import RefreshUserUseCase
 from app.domain.users.use_cases.verify_user import VerifyUserUseCase
 
 
-router = APIRouter()
+router = APIRouter(prefix="/auth")
 
 
-@router.post("/auth/login", response_model=TokenPair)
+@router.post("/login", response_model=TokenPair)
 def login(data: LoginRequest, repo=Depends(get_users_repository)) -> TokenPair:
     use_case = LoginUserUseCase(repo)
     use_case_input = LoginInput(identifier=data.identifier, password=data.password)
@@ -35,7 +35,7 @@ def login(data: LoginRequest, repo=Depends(get_users_repository)) -> TokenPair:
     )
 
 
-@router.post("/auth/refresh", response_model=TokenPair)
+@router.post("/refresh", response_model=TokenPair)
 def refresh(data: RefreshRequest, repo=Depends(get_users_repository)) -> TokenPair:
     use_case = RefreshUserUseCase(repo)
     use_case_input = RefreshInput(refresh_token=data.refresh_token)
@@ -51,7 +51,7 @@ def refresh(data: RefreshRequest, repo=Depends(get_users_repository)) -> TokenPa
     )
 
 
-@router.get("/auth/verify")
+@router.get("/verify")
 def verify(
     authorization: str = Header(...), repo=Depends(get_users_repository)
 ) -> VerifyResponse:
