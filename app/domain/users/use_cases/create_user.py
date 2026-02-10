@@ -12,11 +12,12 @@ class CreateUserUseCase:
         self.repo = repo
 
     def execute(self, data: CreateUserInput) -> ActivationEmailRequested:
-        user_already_exists = self.repo.find_by_email(data.user_email)
+        email = data.user_email.strip().lower()
+        user_already_exists = self.repo.find_by_email(email)
         if user_already_exists:
             raise UserAlreadyExistsError()
 
-        user = User.create_pending(email=data.user_email)
+        user = User.create_pending(email=email)
         self.repo.create(user)
         return ActivationEmailRequested(
             user_id=user.id, email=user.email, activation_token_version=0

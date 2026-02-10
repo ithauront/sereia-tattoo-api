@@ -10,7 +10,8 @@ class PrepareSendForgotPasswordEmailUseCase:
         self.repo = repo
 
     def execute(self, data: PrepareSendForgotPasswordEmailInput):
-        user = self.repo.find_by_email(data.user_email)
+        email = data.user_email.strip().lower()
+        user = self.repo.find_by_email(email)
 
         if not user:
             raise UserNotFoundError()
