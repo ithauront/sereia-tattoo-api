@@ -1,18 +1,25 @@
 from app.core.exceptions.users import AuthenticationFailedError, UserInactiveError
-from app.core.security import jwt_service
 from app.core.security.passwords import verify_password
+from app.core.security.versioned_token_service import VersionedTokenService
 from app.domain.users.repositories.users_repository import UsersRepository
 from app.domain.users.use_cases.DTO.login_dto import LoginInput, TokenOutput
-from app.core.config import settings
 
 
 class LoginUserUseCase:
-    def __init__(self, repo: UsersRepository):
+    def __init__(
+        self,
+        repo: UsersRepository,
+        access_tokens: VersionedTokenService,
+        refresh_tokens: VersionedTokenService,
+    ):
         self.repo = repo
+        self.access_tokens = access_tokens
+        self.refresh_tokens = refresh_tokens
 
     def execute(self, data: LoginInput) -> TokenOutput:
         if "@" in data.identifier:
-            user = self.repo.find_by_email(data.identifier)
+            email = data.identifier.strip().lower()
+            user = self.repo.find_by_email(email)
         else:
             user = self.repo.find_by_username(data.identifier)
 
@@ -25,16 +32,15 @@ class LoginUserUseCase:
         if not verify_password(data.password, user.hashed_password):
             raise AuthenticationFailedError()
 
-        access_token = jwt_service.create(
-            subject=str(user.id),
-            minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
-            token_type="access",
+        access_version = user.access_token_version
+        refresh_version = user.refresh_token_version
+
+        access_token = self.access_tokens.create(
+            user_id=str(user.id), version=access_version
         )
 
-        refresh_token = jwt_service.create(
-            subject=str(user.id),
-            minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES,
-            token_type="refresh",
+        refresh_token = self.refresh_tokens.create(
+            user_id=str(user.id), version=refresh_version
         )
 
         return TokenOutput(access_token=access_token, refresh_token=refresh_token)

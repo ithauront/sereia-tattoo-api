@@ -1,13 +1,14 @@
 from uuid import UUID
 from app.core.exceptions.security import TokenError
-from app.core.security import jwt_service
+from app.core.security.versioned_token_service import VersionedTokenService
 from app.domain.users.repositories.users_repository import UsersRepository
 from app.domain.users.use_cases.DTO.login_dto import VerifyInput, VerifyOutput
 
 
 class VerifyUserUseCase:
-    def __init__(self, repo: UsersRepository):
+    def __init__(self, repo: UsersRepository, access_tokens: VersionedTokenService):
         self.repo = repo
+        self.access_tokens = access_tokens
 
     def execute(self, data: VerifyInput) -> VerifyOutput:
         auth = data.authorization
@@ -17,7 +18,7 @@ class VerifyUserUseCase:
         token = auth.split(" ", 1)[1]
 
         try:
-            payload = jwt_service.verify(token, expected_type="access")
+            payload = self.access_tokens.verify(token)
         except Exception:
             raise TokenError("invalid_token")
 
@@ -29,5 +30,9 @@ class VerifyUserUseCase:
         user = self.repo.find_by_id(user_id)
         if not user:
             raise TokenError("invalid_token")
+
+        token_version = payload["ver"]
+        if user.access_token_version != token_version:
+            raise TokenError("token_revoked")
 
         return VerifyOutput(valid=True, sub=payload["sub"], type=payload["type"])
