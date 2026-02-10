@@ -1,8 +1,10 @@
 from uuid import UUID
 from fastapi import Depends, HTTPException, Header, status
 
+from app.api.dependencies.security import get_access_token_service
 from app.api.dependencies.users import get_users_repository
 from app.core.exceptions.security import TokenError
+from app.core.security.versioned_token_service import VersionedTokenService
 from app.domain.users.repositories.users_repository import UsersRepository
 from app.domain.users.use_cases.verify_user import VerifyUserUseCase
 
@@ -12,8 +14,9 @@ from app.domain.users.use_cases.DTO.login_dto import VerifyInput
 def get_current_user(
     authorization: str = Header(...),
     repo: UsersRepository = Depends(get_users_repository),
+    access_tokens: VersionedTokenService = Depends(get_access_token_service),
 ):
-    use_case = VerifyUserUseCase(repo)
+    use_case = VerifyUserUseCase(repo, access_tokens)
 
     try:
         result = use_case.execute(VerifyInput(authorization=authorization))

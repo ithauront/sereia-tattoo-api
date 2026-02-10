@@ -22,3 +22,23 @@ def get_reset_password_token_service(
     return VersionedTokenService(
         jwt_service=jwt_service, token_type="reset_password", ttl_minutes=15
     )
+
+
+def get_access_token_service(
+    jwt_service: JWTService = Depends(get_jwt_service),
+) -> VersionedTokenService:
+    return VersionedTokenService(
+        jwt_service=jwt_service,
+        token_type="access",
+        ttl_minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
+    )
+
+
+def get_refresh_token_service(
+    jwt_service: JWTService = Depends(get_jwt_service),
+) -> VersionedTokenService:
+    return VersionedTokenService(
+        jwt_service=jwt_service,
+        token_type="refresh",
+        ttl_minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES,
+    )
