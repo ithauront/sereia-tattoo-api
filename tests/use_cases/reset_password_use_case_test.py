@@ -12,7 +12,9 @@ from app.core.security.passwords import verify_password
 
 
 def test_reset_password_success(repo, make_user):
-    user = make_user(password_token_version=0)
+    user = make_user(
+        password_token_version=0, access_token_version=0, refresh_token_version=0
+    )
     repo.create(user)
     old_hash = user.hashed_password
 
@@ -28,6 +30,8 @@ def test_reset_password_success(repo, make_user):
     saved = repo.find_by_id(user.id)
     assert verify_password("StrongPassword1", saved.hashed_password)
     assert saved.password_token_version == 1
+    assert saved.access_token_version == 1
+    assert saved.refresh_token_version == 1
 
 
 def test_reset_password_wrong_user_id(repo, make_user):
@@ -44,6 +48,9 @@ def test_reset_password_wrong_user_id(repo, make_user):
     with pytest.raises(UserNotFoundError):
         use_case.execute(input_data)
 
+    saved = repo.find_by_id(user.id)
+    assert saved.password_token_version == 0
+
 
 def test_reset_password_wrong_token_version(repo, make_user):
     user = make_user(password_token_version=1)
@@ -58,6 +65,9 @@ def test_reset_password_wrong_token_version(repo, make_user):
     with pytest.raises(InvalidPasswordTokenError):
         use_case.execute(input_data)
 
+    saved = repo.find_by_id(user.id)
+    assert saved.password_token_version == 1
+
 
 def test_reset_password_user_inactive(repo, make_user):
     user = make_user(password_token_version=0, is_active=False)
@@ -71,3 +81,6 @@ def test_reset_password_user_inactive(repo, make_user):
 
     with pytest.raises(UserInactiveError):
         use_case.execute(input_data)
+
+    saved = repo.find_by_id(user.id)
+    assert saved.password_token_version == 0

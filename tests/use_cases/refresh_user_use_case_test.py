@@ -4,20 +4,14 @@ from app.core.exceptions.security import TokenError
 from app.core.exceptions.users import AuthenticationFailedError
 from app.domain.users.use_cases.DTO.login_dto import RefreshInput
 from app.domain.users.use_cases.refresh_user import RefreshUserUseCase
-from app.core.config import settings
-from app.core.security import jwt_service
 
 
-def test_refresh_user(repo, make_user):
-    user = make_user()
+def test_refresh_user(repo, make_user, refresh_token_service, access_token_service):
+    user = make_user(access_token_version=1, refresh_token_version=0)
     repo.create(user)
 
-    use_case = RefreshUserUseCase(repo)
-    refresh_token = jwt_service.create(
-        subject=str(user.id),
-        minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES,
-        token_type="refresh",
-    )
+    use_case = RefreshUserUseCase(repo, refresh_token_service, access_token_service)
+    refresh_token = refresh_token_service.create(user_id=str(user.id), version=0)
     refresh_input = RefreshInput(refresh_token=refresh_token)
     result = use_case.execute(refresh_input)
 
@@ -26,12 +20,51 @@ def test_refresh_user(repo, make_user):
     assert len(result.access_token) > 10
     assert len(result.refresh_token) > 10
     assert refresh_token != result.refresh_token
+    saved = repo.find_by_id(user.id)
+    assert saved.access_token_version == 1
+    assert saved.refresh_token_version == 0
 
 
-def test_wrong_token(repo, make_user):
+def test_refresh_user_wrong_token_version(
+    repo, make_user, refresh_token_service, access_token_service
+):
+    user = make_user(refresh_token_version=0)
+    repo.create(user)
+
+    use_case = RefreshUserUseCase(repo, refresh_token_service, access_token_service)
+    refresh_token = refresh_token_service.create(user_id=str(user.id), version=1)
+    refresh_input = RefreshInput(refresh_token=refresh_token)
+
+    with pytest.raises(TokenError) as exception:
+        use_case.execute(refresh_input)
+
+    assert str(exception.value) == "token_revoked"
+
+
+def test_refresh_after_logout(
+    repo, make_user, refresh_token_service, access_token_service
+):
+    user = make_user(refresh_token_version=0)
+    repo.create(user)
+
+    stolen = refresh_token_service.create(user_id=str(user.id), version=0)
+
+    # incrementamos o refresh para simular um logout
+    user.refresh_token_version = 1
+    repo.update(user)
+
+    use_case = RefreshUserUseCase(repo, refresh_token_service, access_token_service)
+
+    with pytest.raises(TokenError) as exception:
+        use_case.execute(RefreshInput(refresh_token=stolen))
+
+    assert str(exception.value) == "token_revoked"
+
+
+def test_wrong_token(repo, make_user, refresh_token_service, access_token_service):
     user = make_user()
     repo.create(user)
-    use_case = RefreshUserUseCase(repo)
+    use_case = RefreshUserUseCase(repo, refresh_token_service, access_token_service)
     refresh_input = RefreshInput(refresh_token="wrong_token")
 
     with pytest.raises(TokenError) as exception:
@@ -40,16 +73,12 @@ def test_wrong_token(repo, make_user):
     assert str(exception.value) == "invalid_token"
 
 
-def test_wrong_token_type(repo, make_user):
+def test_wrong_token_type(repo, make_user, refresh_token_service, access_token_service):
     user = make_user()
     repo.create(user)
 
-    use_case = RefreshUserUseCase(repo)
-    access_token = jwt_service.create(
-        subject=str(user.id),
-        minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES,
-        token_type="access",
-    )
+    use_case = RefreshUserUseCase(repo, refresh_token_service, access_token_service)
+    access_token = access_token_service.create(user_id=str(user.id), version=0)
     refresh_input = RefreshInput(refresh_token=access_token)
 
     with pytest.raises(TokenError) as exception:
@@ -58,16 +87,15 @@ def test_wrong_token_type(repo, make_user):
     assert str(exception.value) == "invalid_token"
 
 
-def test_expired_token(repo, make_user):
+def test_expired_token(repo, make_user, refresh_token_service, access_token_service):
     user = make_user()
     repo.create(user)
 
-    use_case = RefreshUserUseCase(repo)
-    refresh_token = jwt_service.create(
-        subject=str(user.id),
-        minutes=-1,
-        token_type="refresh",
+    use_case = RefreshUserUseCase(repo, refresh_token_service, access_token_service)
+    refresh_token = refresh_token_service.jwt.create(
+        subject=str(user.id), minutes=-1, token_type="refresh", extra_claims={"ver": 0}
     )
+
     refresh_input = RefreshInput(refresh_token=refresh_token)
 
     with pytest.raises(TokenError) as exception:
@@ -76,14 +104,10 @@ def test_expired_token(repo, make_user):
     assert str(exception.value) == "invalid_token"
 
 
-def test_wrong_user(repo):
-    use_case = RefreshUserUseCase(repo)
+def test_wrong_user(repo, refresh_token_service, access_token_service):
+    use_case = RefreshUserUseCase(repo, refresh_token_service, access_token_service)
     fake_id = uuid4()
-    refresh_token = jwt_service.create(
-        subject=str(fake_id),
-        minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES,
-        token_type="refresh",
-    )
+    refresh_token = refresh_token_service.create(user_id=str(fake_id), version=0)
     refresh_input = RefreshInput(refresh_token=refresh_token)
 
     with pytest.raises(AuthenticationFailedError) as exception:

@@ -12,7 +12,7 @@ from app.domain.users.use_cases.deactivate_user import DeactivateUserUseCase
 
 def test_deactivate_user_success(repo, make_user):
     admin = make_user(
-        is_active=True, is_admin=True
+        is_active=True, is_admin=True, access_token_version=0, refresh_token_version=0
     )  # admin is verify in route but I prefer to explicit admin here
     user = make_user(is_active=True, has_activated_once=True)
     repo.create(admin)
@@ -25,10 +25,12 @@ def test_deactivate_user_success(repo, make_user):
 
     assert user.is_active is False
     assert user.has_activated_once is True
+    assert user.access_token_version == 1
+    assert user.refresh_token_version == 1
 
 
 def test_cannot_deactivate_yourself(repo, make_user):
-    admin1 = make_user(is_admin=True)
+    admin1 = make_user(is_admin=True, access_token_version=0, refresh_token_version=0)
     admin2 = make_user(is_admin=True)  # 2 admins to not mistake with last admin rule.
 
     repo.create(admin1)
@@ -39,6 +41,9 @@ def test_cannot_deactivate_yourself(repo, make_user):
 
     with pytest.raises(CannotDeactivateYourselfError):
         use_case.execute(input_data)
+
+    assert admin1.access_token_version == 0
+    assert admin1.refresh_token_version == 0
 
 
 def test_last_active_admin_cannot_be_deactivated(repo, make_user):

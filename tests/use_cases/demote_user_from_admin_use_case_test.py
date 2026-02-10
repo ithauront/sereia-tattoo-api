@@ -14,7 +14,7 @@ from app.domain.users.use_cases.demote_user_from_admin import DemoteUserFromAdmi
 
 def test_demote_user_success(repo, make_user):
     admin = make_user(
-        is_active=True, is_admin=True
+        is_active=True, is_admin=True, access_token_version=0, refresh_token_version=0
     )  # admin is verify in route but I prefer to explicit admin here
     user = make_user(is_active=True, is_admin=True)
     repo.create(admin)
@@ -26,10 +26,13 @@ def test_demote_user_success(repo, make_user):
     use_case.execute(input_data)
 
     assert user.is_admin is False
+    assert user.access_token_version == 1
+    # demote não muda a versão do refresh
+    assert user.refresh_token_version == 0
 
 
 def test_cannot_demote_yourself(repo, make_user):
-    admin1 = make_user(is_admin=True)
+    admin1 = make_user(is_admin=True, access_token_version=0, refresh_token_version=0)
     admin2 = make_user(is_admin=True)  # 2 admins to not mistake with last admin rule.
 
     repo.create(admin1)
@@ -40,6 +43,9 @@ def test_cannot_demote_yourself(repo, make_user):
 
     with pytest.raises(CannotDemoteYourselfError):
         use_case.execute(input_data)
+
+    assert admin1.access_token_version == 0
+    assert admin1.refresh_token_version == 0
 
 
 def test_last_active_admin_cannot_be_demoted(repo, make_user):

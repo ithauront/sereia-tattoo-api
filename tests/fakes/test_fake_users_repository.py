@@ -1,6 +1,5 @@
 import pytest
 
-from app.domain.users.entities.user import User
 from tests.fakes.fake_users_repository import FakeUsersRepository
 
 
@@ -44,14 +43,8 @@ def test_find_by_username(repo, make_user):
 def test_update(repo, make_user):
     user = make_user()
     repo.create(user)
-    user = User(
-        id=user.id,
-        username="NewName",
-        email="jhon@doe.com",
-        hashed_password="123456",
-        is_active=True,
-        is_admin=True,
-    )
+    user.username = "NewName"
+    user.is_admin = True
     repo.update(user)
 
     found = repo.find_by_username("NewName")
@@ -64,9 +57,15 @@ def test_update(repo, make_user):
 
 
 def test_find_many(repo, make_user):
-    user1 = make_user(is_active=True, is_admin=True)
-    user2 = make_user(is_active=True, is_admin=False)
-    user3 = make_user(is_active=False, is_admin=False)
+    user1 = make_user(
+        is_active=True, is_admin=True, username="jhonDoe", email="jhon@doe.com"
+    )
+    user2 = make_user(
+        is_active=True, is_admin=False, username="janeDoe", email="jane@doe.com"
+    )
+    user3 = make_user(
+        is_active=False, is_admin=False, username="jamesDoe", email="james@doe.com"
+    )
 
     repo.create(user1)
     repo.create(user2)

@@ -1,22 +1,16 @@
 from uuid import uuid4
 import pytest
-from app.core.config import settings
 from app.core.exceptions.security import TokenError
-from app.core.security import jwt_service
 from app.domain.users.use_cases.DTO.login_dto import VerifyInput
 from app.domain.users.use_cases.verify_user import VerifyUserUseCase
 
 
-def test_verify_user(repo, make_user):
+def test_verify_user(repo, make_user, access_token_service):
     user = make_user()
     repo.create(user)
 
-    use_case = VerifyUserUseCase(repo)
-    access_token = jwt_service.create(
-        subject=str(user.id),
-        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
-        token_type="access",
-    )
+    use_case = VerifyUserUseCase(repo, access_token_service)
+    access_token = access_token_service.create(user_id=str(user.id), version=0)
     input_data = VerifyInput(authorization=f"Bearer {access_token}")
     result = use_case.execute(input_data)
 
@@ -25,16 +19,26 @@ def test_verify_user(repo, make_user):
     assert result.type == "access"
 
 
-def test_not_bearer_token(repo, make_user):
+def test_verify_user_wrong_token_version(repo, make_user, access_token_service):
+    user = make_user(access_token_version=0)
+    repo.create(user)
+
+    use_case = VerifyUserUseCase(repo, access_token_service)
+    access_token = access_token_service.create(user_id=str(user.id), version=1)
+    input_data = VerifyInput(authorization=f"Bearer {access_token}")
+
+    with pytest.raises(TokenError) as exception:
+        use_case.execute(input_data)
+
+    assert str(exception.value) == "token_revoked"
+
+
+def test_not_bearer_token(repo, make_user, access_token_service):
     user = make_user()
     repo.create(user)
 
-    use_case = VerifyUserUseCase(repo)
-    access_token = jwt_service.create(
-        subject=str(user.id),
-        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
-        token_type="access",
-    )
+    use_case = VerifyUserUseCase(repo, access_token_service)
+    access_token = access_token_service.create(user_id=str(user.id), version=0)
     input_data = VerifyInput(authorization=f"Not a Bearer {access_token}")
 
     with pytest.raises(TokenError) as exception:
@@ -43,14 +47,10 @@ def test_not_bearer_token(repo, make_user):
     assert str(exception.value) == "missing_bearer_token"
 
 
-def test_invalid_token(repo):
-    use_case = VerifyUserUseCase(repo)
+def test_invalid_token(repo, access_token_service):
+    use_case = VerifyUserUseCase(repo, access_token_service)
     fake_id = uuid4()
-    access_token = jwt_service.create(
-        subject=str(fake_id),
-        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
-        token_type="access",
-    )
+    access_token = access_token_service.create(user_id=str(fake_id), version=0)
     input_data = VerifyInput(authorization=f"Bearer {access_token}")
 
     with pytest.raises(TokenError) as exception:
@@ -59,17 +59,13 @@ def test_invalid_token(repo):
     assert str(exception.value) == "invalid_token"
 
 
-def test_wrong_token_type(repo, make_user):
+def test_wrong_token_type(repo, make_user, access_token_service, refresh_token_service):
     user = make_user()
     repo.create(user)
 
-    use_case = VerifyUserUseCase(repo)
-    access_token = jwt_service.create(
-        subject=str(user.id),
-        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES,
-        token_type="refresh",
-    )
-    input_data = VerifyInput(authorization=f"Bearer {access_token}")
+    use_case = VerifyUserUseCase(repo, access_token_service)
+    refresh_token = refresh_token_service.create(user_id=str(user.id), version=0)
+    input_data = VerifyInput(authorization=f"Bearer {refresh_token}")
 
     with pytest.raises(TokenError) as exception:
         use_case.execute(input_data)
@@ -77,15 +73,13 @@ def test_wrong_token_type(repo, make_user):
     assert str(exception.value) == "invalid_token"
 
 
-def test_expired_token(repo, make_user):
+def test_expired_token(repo, make_user, access_token_service):
     user = make_user()
     repo.create(user)
 
-    use_case = VerifyUserUseCase(repo)
-    access_token = jwt_service.create(
-        subject=str(user.id),
-        minutes=-1,
-        token_type="access",
+    use_case = VerifyUserUseCase(repo, access_token_service)
+    access_token = access_token_service.jwt.create(
+        subject=str(user.id), minutes=-1, token_type="access", extra_claims={"ver": 0}
     )
 
     input_data = VerifyInput(authorization=f"Bearer {access_token}")
