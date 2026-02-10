@@ -24,7 +24,7 @@ class ResetPasswordUseCase:
 
         validate_password(data.password)
 
-        user.hashed_password = hash_password(data.password)
-        user.bump_password_token()
+        new_hashed_password = hash_password(data.password)
+        user.change_password(new_hashed_password)
 
         self.repo.update(user)
