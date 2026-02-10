@@ -30,6 +30,12 @@ class UserModel(Base):
     password_token_version: Mapped[int] = mapped_column(
         Integer, nullable=False, server_default="0"
     )
+    access_token_version: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default="0"
+    )
+    refresh_token_version: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default="0"
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
