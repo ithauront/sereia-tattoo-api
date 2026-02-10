@@ -6,6 +6,11 @@ class ChangePasswordRequest(BaseModel):
     new_password: str
 
 
+class ChangeEmailRequest(BaseModel):
+    password: str
+    new_email: str
+
+
 class ActivateUserRequest(BaseModel):
     email: str
 
@@ -17,3 +22,7 @@ class FirstActivationRequest(BaseModel):
 
 class ResetPasswordEmailRequest(BaseModel):
     email: str
+
+
+class ResetPasswordRequest(BaseModel):
+    new_password: str

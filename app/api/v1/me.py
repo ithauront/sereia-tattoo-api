@@ -7,6 +7,7 @@ from app.core.exceptions.services import (
 from app.core.exceptions.validation import ValidationError
 from app.core.exceptions.users import (
     AuthenticationFailedError,
+    EmailAlreadyTakenError,
     InvalidActivationTokenError,
     InvalidPasswordTokenError,
     UserActivatedBeforeError,
@@ -16,9 +17,11 @@ from app.core.exceptions.users import (
 )
 from app.core.security.activation_context import ActivationContext
 from app.core.security.password_context import PasswordContext
+from app.domain.users.use_cases.DTO.change_email_dto import ChangeEmailInput
 from app.domain.users.use_cases.DTO.first_activation_user_dto import (
     FirstActivationInput,
 )
+from app.domain.users.use_cases.change_email import ChangeEmailUseCase
 from app.domain.users.use_cases.first_activation_user import FirstActivationUserUseCase
 from app.domain.users.use_cases.prepare_send_forgot_password_email import (
     PrepareSendForgotPasswordEmailUseCase,
@@ -32,6 +35,7 @@ from app.api.dependencies.security import (
     get_reset_password_token_service,
 )
 from app.api.schemas.user import (
+    ChangeEmailRequest,
     ChangePasswordRequest,
     FirstActivationRequest,
     ResetPasswordEmailRequest,
@@ -100,10 +104,10 @@ def first_activation(
             detail=str(exc),
         )
 
-    return Response(status_code=201)
+    return Response(status_code=204)
 
 
-@router.post("/change-password")
+@router.patch("/change-password")
 def change_password(
     data: ChangePasswordRequest,
     current_user=Depends(get_current_active_user),
@@ -119,6 +123,29 @@ def change_password(
     except AuthenticationFailedError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_credentials"
+        )
+
+    return Response(status_code=204)
+
+
+@router.patch("/change-email")
+def change_email(
+    data: ChangeEmailRequest,
+    current_user=Depends(get_current_active_user),
+    repo=Depends(get_users_repository),
+):
+    use_case = ChangeEmailUseCase(repo)
+    dto = ChangeEmailInput(password=data.password, new_email=data.new_email)
+
+    try:
+        use_case.execute(dto, current_user)
+    except AuthenticationFailedError:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="invalid_credentials"
+        )
+    except EmailAlreadyTakenError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="email_chosen_is_already_taken"
         )
 
     return Response(status_code=204)
@@ -200,4 +227,4 @@ def reset_password(
             detail=str(exc),
         )
 
-    return Response(status_code=201)
+    return Response(status_code=204)
