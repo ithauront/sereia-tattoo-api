@@ -11,6 +11,7 @@ from app.domain.users.use_cases.prepare_resend_activation_email import (
 )
 
 
+# TODO: avaliar se não devemos dar bump no token antes de enviar o email por conta de possivel inconsistencia de sistema externo e falsos positivos ou negativos que podem gerar bug
 class ResendActivationEmailService:
     def __init__(
         self,
@@ -34,4 +35,5 @@ class ResendActivationEmailService:
         await self.email_handler.handle(event)
 
         user.bump_activation_token()
+        user._touch()
         self.repo.update(user)

@@ -37,6 +37,5 @@ class FirstActivationUserUseCase:
         user.username = data.username
         user.hashed_password = hash_password(data.password)
         user.activate()
-        user.bump_activation_token()
 
         self.repo.update(user)

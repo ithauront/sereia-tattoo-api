@@ -45,6 +45,11 @@ class User:
             password_token_version=0,
         )
 
+    def logout(self):
+        self.bump_access_token()
+        self.bump_refresh_token()
+        self._touch()
+
     def change_password(self, new_hashed_password):
         self.hashed_password = new_hashed_password
         self.bump_password_token()
@@ -54,9 +59,9 @@ class User:
 
     def change_email(self, new_email):
         self.email = new_email
-        self._touch()
         self.bump_access_token()
         self.bump_refresh_token()
+        self._touch()
 
     def activate(self) -> bool:
         if self.is_active:
@@ -64,6 +69,7 @@ class User:
 
         self.is_active = True
         self.has_activated_once = True
+        self.bump_activation_token()
         self._touch()
         return True
 
@@ -72,9 +78,9 @@ class User:
             return False
 
         self.is_active = False
-        self._touch()
         self.bump_access_token()
         self.bump_refresh_token()
+        self._touch()
         return True
 
     def promote_to_admin(self) -> bool:
@@ -90,25 +96,21 @@ class User:
             return False
 
         self.is_admin = False
-        self._touch()
         self.bump_access_token()
+        self._touch()
         return True
 
     def bump_activation_token(self):
         self.activation_token_version += 1
-        self._touch()
 
     def bump_password_token(self):
         self.password_token_version += 1
-        self._touch()
 
     def bump_access_token(self):
         self.access_token_version += 1
-        self._touch()
 
     def bump_refresh_token(self):
         self.refresh_token_version += 1
-        self._touch()
 
     def _touch(self):
         self.updated_at = datetime.now(timezone.utc)
