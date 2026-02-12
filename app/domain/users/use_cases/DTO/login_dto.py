@@ -1,10 +1,15 @@
 import enum
+from uuid import UUID
 from pydantic import BaseModel
 
 
 class LoginInput(BaseModel):
     identifier: str
     password: str
+
+
+class LogoutInput(BaseModel):
+    user_id: UUID
 
 
 class TokenOutput(BaseModel):
