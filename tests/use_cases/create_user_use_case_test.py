@@ -1,4 +1,5 @@
 from uuid import UUID
+from pydantic import ValidationError
 import pytest
 from app.core.exceptions.users import UserAlreadyExistsError
 from app.domain.users.events.activation_email_requested import ActivationEmailRequested
@@ -37,6 +38,17 @@ def test_user_already_exists(repo, make_user, mocker):
     with pytest.raises(UserAlreadyExistsError):
         use_case.execute(input_data)
 
+    spy.assert_not_called()
+
+
+def test_user_email_not_valid(repo, mocker):
+    spy = mocker.spy(repo, "create")
+
+    with pytest.raises(ValidationError):
+        CreateUserInput(user_email="not_an_email")
+
+    saved_user = repo.find_by_email("not_an_email")
+    assert saved_user is None
     spy.assert_not_called()
 
 
