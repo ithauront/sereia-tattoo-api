@@ -157,6 +157,10 @@ enviando um body json com:
 GET http://127.0.0.1:8000/api/auth/verify
 enviando no header um bearer token com o seu access token.
 
+## LOGOUT
+
+Estamos usando um sistema de tokens para autentificação totalmente stateless com versionamento de access e refresh token. o tradeoff disso é que no momento de logout o access token com a versão antiga ainda fica valido até sua expiração (tempo curto, porem existente). Para mitigar isso na experiencia para usuario é ecensial que o frontend remova os cookies de access e refresh token no momento de logout confirmado.
+
 ## Validações
 
 Fazemos validações de username e password no backend. Para estarem nos conformes essas são as regras:
@@ -178,3 +182,7 @@ PASSWORD:
 - Deve ter letras minusculas
 - Deve ter numero
 - Pode ter mas não é obrigatorio de ter caracteres especiais
+
+### FRONTEND:
+
+Nos não usamos uma segurança para mudança de email em dois tempos (change pending) então o ideal é que em operação de atualização de email o frontend faça doublecheck do input digitado
