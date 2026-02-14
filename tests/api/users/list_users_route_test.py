@@ -1,5 +1,4 @@
 from fastapi.testclient import TestClient
-
 from app.api.dependencies.users import get_users_repository
 from app.core.security import jwt_service
 from app.main import app
@@ -28,7 +27,7 @@ def test_list_users_default_success(repo, make_user, make_token):
     app.dependency_overrides[get_users_repository] = lambda: repo
 
     response = client.get(
-        "/admin/users",
+        "/users",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -61,7 +60,7 @@ def test_list_users_custom_queries_success(repo, make_user, make_token):
     app.dependency_overrides[get_users_repository] = lambda: repo
 
     response = client.get(
-        "/admin/users?is_active=false&direction=desc",
+        "/users?is_active=false&direction=desc",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -85,7 +84,7 @@ def test_not_admin(repo, make_user, make_token):
 
     app.dependency_overrides[get_users_repository] = lambda: repo
     response = client.get(
-        "/admin/users",
+        "/users",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -109,7 +108,7 @@ def test_inactive_admin(repo, make_user, make_token):
     app.dependency_overrides[get_users_repository] = lambda: repo
 
     response = client.get(
-        "/admin/users",
+        "/users",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -126,7 +125,7 @@ def test_not_user_list_users(repo, make_user, make_token):
     app.dependency_overrides[get_users_repository] = lambda: repo
 
     response = client.get(
-        "/admin/users",
+        "/users",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -144,7 +143,7 @@ def test_wrong_token_type_list_users(repo, make_user, make_token):
     app.dependency_overrides[get_users_repository] = lambda: repo
 
     response = client.get(
-        "/admin/users",
+        "/users",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -158,7 +157,7 @@ def test_missing_authorization_header(repo):
     app.dependency_overrides[get_users_repository] = lambda: repo
 
     response = client.get(
-        "/admin/users",
+        "/users",
     )
 
     assert response.status_code == 422
@@ -170,7 +169,7 @@ def test_missing_authorization_header(repo):
 def test_missing_bearer_prefix(repo):
     app.dependency_overrides[get_users_repository] = lambda: repo
 
-    response = client.get("/admin/users", headers={"Authorization": "Token 123"})
+    response = client.get("/users", headers={"Authorization": "Token 123"})
 
     assert response.status_code == 401
     assert response.json()["detail"] == "invalid_credentials"
@@ -182,7 +181,7 @@ def test_invalid_jwt_format(repo):
     app.dependency_overrides[get_users_repository] = lambda: repo
 
     response = client.get(
-        "/admin/users",
+        "/users",
         headers={"Authorization": "Bearer abc.def.ghi"},
     )
 
@@ -198,7 +197,7 @@ def test_invalid_token_sub(repo):
     token = jwt_service.create(subject="not-a-uuid", minutes=60, token_type="access")
 
     response = client.get(
-        "/admin/users",
+        "/users",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -214,7 +213,7 @@ def test_list_users_negative_page(repo, make_user):
 
     app.dependency_overrides[get_users_repository] = lambda: repo
 
-    response = client.get("/admin/users?page=-1")
+    response = client.get("/users?page=-1")
 
     assert response.status_code == 422
 
@@ -227,7 +226,7 @@ def test_list_users_invalid_limit(repo, make_user):
 
     app.dependency_overrides[get_users_repository] = lambda: repo
 
-    response = client.get("/admin/users?limit=0")
+    response = client.get("/users?limit=0")
 
     assert response.status_code == 422
 
@@ -240,7 +239,7 @@ def test_list_users_invalid_order_by(repo, make_user):
 
     app.dependency_overrides[get_users_repository] = lambda: repo
 
-    response = client.get("/admin/users?order_by=invalid_field")
+    response = client.get("/users?order_by=invalid_field")
 
     assert response.status_code == 422
 
@@ -253,7 +252,7 @@ def test_list_users_invalid_direction(repo, make_user):
 
     app.dependency_overrides[get_users_repository] = lambda: repo
 
-    response = client.get("/admin/users?direction=sideways")
+    response = client.get("/users?direction=sideways")
 
     assert response.status_code == 422
 
