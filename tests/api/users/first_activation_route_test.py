@@ -44,7 +44,7 @@ def test_first_activation_user_success(repo, make_user):
 
     user_in_repo = repo.find_by_email("jhon@doe.com")
 
-    assert response.status_code == 201
+    assert response.status_code == 204
     assert user_in_repo.username == "JhonDoe"
     assert verify_password("Password1", user_in_repo.hashed_password) is True
     assert user_in_repo.is_active is True
@@ -87,7 +87,7 @@ def test_first_activation_admin_success(repo, make_user):
 
     user_in_repo = repo.find_by_email("jhon@doe.com")
 
-    assert response.status_code == 201
+    assert response.status_code == 204
     assert user_in_repo.username == "JhonDoe"
     assert verify_password("Password1", user_in_repo.hashed_password) is True
     assert user_in_repo.is_active is True
@@ -208,7 +208,7 @@ def test_first_activation_second_call_route_same_token(repo, make_user):
     )
     user_in_repo = repo.find_by_email("jhon@doe.com")
 
-    assert first_call.status_code == 201
+    assert first_call.status_code == 204
 
     assert second_call.status_code == 409
     assert second_call.json()["detail"] == "user_was_activated_before"
