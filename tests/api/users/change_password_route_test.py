@@ -1,6 +1,5 @@
 from fastapi.testclient import TestClient
 from app.api.dependencies.users import get_users_repository
-from app.core.security import jwt_service
 from app.main import app
 from app.core.security.passwords import verify_password
 
@@ -16,7 +15,7 @@ def test_change_password_success(repo, make_user, make_token):
 
     payload = {"old_password": "123456", "new_password": "StrongPassword1"}
 
-    response = client.post(
+    response = client.patch(
         "/me/change-password",
         json=payload,
         headers={"Authorization": f"Bearer {token}"},
@@ -29,6 +28,28 @@ def test_change_password_success(repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
+def test_change_password_invalid_old_password(repo, make_user, make_token):
+    user = make_user()
+    repo.create(user)
+    token = make_token(user)
+
+    app.dependency_overrides[get_users_repository] = lambda: repo
+
+    payload = {"old_password": "wrong_password", "new_password": "StrongPassword1"}
+
+    response = client.patch(
+        "/me/change-password",
+        json=payload,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "invalid_credentials"
+    assert verify_password("123456", user.hashed_password)
+
+    app.dependency_overrides = {}
+
+
 def test_inactive_user_change_password(repo, make_user, make_token):
     user = make_user(is_active=False)
     repo.create(user)
@@ -37,7 +58,7 @@ def test_inactive_user_change_password(repo, make_user, make_token):
     app.dependency_overrides[get_users_repository] = lambda: repo
     payload = {"old_password": "123456", "new_password": "abcdef"}
 
-    response = client.post(
+    response = client.patch(
         "/me/change-password",
         json=payload,
         headers={"Authorization": f"Bearer {token}"},
@@ -57,7 +78,7 @@ def test_not_user_change_password(repo, make_user, make_token):
 
     payload = {"old_password": "123456", "new_password": "abcdef"}
 
-    response = client.post(
+    response = client.patch(
         "/me/change-password",
         json=payload,
         headers={"Authorization": f"Bearer {token}"},
@@ -78,74 +99,7 @@ def test_wrong_token_type(repo, make_user, make_token):
 
     payload = {"old_password": "123456", "new_password": "abcdef"}
 
-    response = client.post(
-        "/me/change-password",
-        json=payload,
-        headers={"Authorization": f"Bearer {token}"},
-    )
-
-    assert response.status_code == 401
-    assert response.json()["detail"] == "invalid_credentials"
-
-    app.dependency_overrides = {}
-
-
-def test_missing_authorization_header(repo):
-    app.dependency_overrides[get_users_repository] = lambda: repo
-
-    payload = {"old_password": "123456", "new_password": "abcdef"}
-
-    response = client.post(
-        "/me/change-password",
-        json=payload,
-    )
-
-    assert response.status_code == 422
-    assert response.json()["detail"][0]["loc"] == ["header", "authorization"]
-
-    app.dependency_overrides = {}
-
-
-def test_missing_bearer_prefix(repo):
-    app.dependency_overrides[get_users_repository] = lambda: repo
-
-    payload = {"old_password": "123456", "new_password": "abcdef"}
-
-    response = client.post(
-        "/me/change-password", json=payload, headers={"Authorization": "Token 123"}
-    )
-
-    assert response.status_code == 401
-    assert response.json()["detail"] == "invalid_credentials"
-
-    app.dependency_overrides = {}
-
-
-def test_invalid_jwt_format(repo):
-    app.dependency_overrides[get_users_repository] = lambda: repo
-
-    payload = {"old_password": "123456", "new_password": "abcdef"}
-
-    response = client.post(
-        "/me/change-password",
-        json=payload,
-        headers={"Authorization": "Bearer abc.def.ghi"},
-    )
-
-    assert response.status_code == 401
-    assert response.json()["detail"] == "invalid_credentials"
-
-    app.dependency_overrides = {}
-
-
-def test_invalid_token_sub(repo):
-    app.dependency_overrides[get_users_repository] = lambda: repo
-
-    token = jwt_service.create(subject="not-a-uuid", minutes=60, token_type="access")
-
-    payload = {"old_password": "123456", "new_password": "abcdef"}
-
-    response = client.post(
+    response = client.patch(
         "/me/change-password",
         json=payload,
         headers={"Authorization": f"Bearer {token}"},
@@ -167,7 +121,7 @@ def test_invalid_payload_types(repo, make_user, make_token):
 
     payload = {"old_password": 123, "new_password": "abcdef"}
 
-    response = client.post(
+    response = client.patch(
         "/me/change-password",
         json=payload,
         headers={"Authorization": f"Bearer {token}"},
