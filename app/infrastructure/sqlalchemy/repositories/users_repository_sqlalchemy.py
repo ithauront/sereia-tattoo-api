@@ -25,7 +25,7 @@ class SQLAlchemyUsersRepository(UsersRepository):
             activation_token_version=user.activation_token_version,
         )
         self.session.add(orm_user)
-        self.session.commit()
+        self.session.flush()
 
     def update(self, user: User) -> None:
         user_in_question = select(UserModel).where(UserModel.id == user.id)
@@ -41,9 +41,8 @@ class SQLAlchemyUsersRepository(UsersRepository):
         orm_user.is_admin = user.is_admin
         orm_user.has_activated_once = user.has_activated_once
         orm_user.activation_token_version = user.activation_token_version
-        orm_user.updated_at = user.updated_at
 
-        self.session.commit()
+        self.session.flush()
 
     def find_by_id(self, userId: UUID) -> Optional[User]:
         user_in_question = select(UserModel).where(UserModel.id == userId)
