@@ -5,13 +5,21 @@ from app.core.security.jwt_service import JWTService
 from app.core.security.passwords import hash_password
 from app.core.security.versioned_token_service import VersionedTokenService
 from app.domain.users.entities.user import User
+from app.domain.users.entities.value_objects.client_code import ClientCode
+from app.domain.users.entities.vip_client import VipClient
 from tests.fakes.fake_users_repository import FakeUsersRepository
 from app.core.config import settings
+from tests.fakes.fake_vip_clients_repository import FakeVipClientsRepository
 
 
 @pytest.fixture
-def repo():
+def users_repo():
     return FakeUsersRepository()
+
+
+@pytest.fixture
+def vip_clients_repo():
+    return FakeVipClientsRepository()
 
 
 @pytest.fixture
@@ -69,3 +77,18 @@ def refresh_token_service(jwt_service_instance):
     return VersionedTokenService(
         jwt_service_instance, token_type="refresh", ttl_minutes=60
     )
+
+
+@pytest.fixture
+def make_vip_client():
+    def _factory(**kwargs):
+        return VipClient(
+            id=uuid4(),
+            first_name=kwargs.get("first_name", "Jhon"),
+            last_name=kwargs.get("last_name", "Doe"),
+            email=kwargs.get("email", "jhon@doe.com"),
+            phone=kwargs.get("phone", "71999999999"),
+            client_code=ClientCode(kwargs.get("client_code", "JHON-BLUE")),
+        )
+
+    return _factory
