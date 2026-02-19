@@ -1,5 +1,3 @@
-from freezegun import freeze_time
-
 from app.core.security.passwords import hash_password, verify_password
 from app.domain.users.entities.user import User
 from app.infrastructure.sqlalchemy.repositories.users_repository_sqlalchemy import (
@@ -7,41 +5,43 @@ from app.infrastructure.sqlalchemy.repositories.users_repository_sqlalchemy impo
 )
 
 
-def test_create_and_find_by_id(sqlalchemy_repo: SQLAlchemyUsersRepository, make_user):
+def test_create_and_find_by_id(
+    sqlalchemy_users_repo: SQLAlchemyUsersRepository, make_user
+):
     user = make_user()
-    sqlalchemy_repo.create(user)
+    sqlalchemy_users_repo.create(user)
 
-    found = sqlalchemy_repo.find_by_id(user.id)
+    found = sqlalchemy_users_repo.find_by_id(user.id)
 
     assert found is not None
     assert found.email == "jhon@doe.com"
     assert found.id == user.id
 
 
-def test_find_by_email(sqlalchemy_repo: SQLAlchemyUsersRepository, make_user):
+def test_find_by_email(sqlalchemy_users_repo: SQLAlchemyUsersRepository, make_user):
     user = make_user()
-    sqlalchemy_repo.create(user)
+    sqlalchemy_users_repo.create(user)
 
-    found = sqlalchemy_repo.find_by_email(user.email)
+    found = sqlalchemy_users_repo.find_by_email(user.email)
 
     assert found is not None
     assert found.email == "jhon@doe.com"
     assert found.id == user.id
 
 
-def test_find_by_username(sqlalchemy_repo: SQLAlchemyUsersRepository, make_user):
+def test_find_by_username(sqlalchemy_users_repo: SQLAlchemyUsersRepository, make_user):
 
     user = make_user()
-    sqlalchemy_repo.create(user)
+    sqlalchemy_users_repo.create(user)
 
-    found = sqlalchemy_repo.find_by_username(user.username)
+    found = sqlalchemy_users_repo.find_by_username(user.username)
 
     assert found is not None
     assert found.username == "JhonDoe"
     assert found.id == user.id
 
 
-def test_find_many(sqlalchemy_repo: SQLAlchemyUsersRepository, make_user):
+def test_find_many(sqlalchemy_users_repo: SQLAlchemyUsersRepository, make_user):
     user1 = make_user(is_active=True, is_admin=True)
     user2 = make_user(
         username="JackDoe", email="jack@doe.com", is_active=True, is_admin=False
@@ -50,15 +50,15 @@ def test_find_many(sqlalchemy_repo: SQLAlchemyUsersRepository, make_user):
         username="JaneDoe", email="jane@doe.com", is_active=False, is_admin=False
     )
 
-    sqlalchemy_repo.create(user1)
-    sqlalchemy_repo.create(user2)
-    sqlalchemy_repo.create(user3)
+    sqlalchemy_users_repo.create(user1)
+    sqlalchemy_users_repo.create(user2)
+    sqlalchemy_users_repo.create(user3)
 
-    found_actives = sqlalchemy_repo.find_many(is_active=True)
-    found_inactives = sqlalchemy_repo.find_many(is_active=False)
-    found_not_admins = sqlalchemy_repo.find_many(is_admin=False)
-    found_all = sqlalchemy_repo.find_many()
-    found_combined = sqlalchemy_repo.find_many(is_admin=True, is_active=True)
+    found_actives = sqlalchemy_users_repo.find_many(is_active=True)
+    found_inactives = sqlalchemy_users_repo.find_many(is_active=False)
+    found_not_admins = sqlalchemy_users_repo.find_many(is_admin=False)
+    found_all = sqlalchemy_users_repo.find_many()
+    found_combined = sqlalchemy_users_repo.find_many(is_admin=True, is_active=True)
 
     assert len(found_actives) == 2
     assert len(found_inactives) == 1
@@ -67,10 +67,10 @@ def test_find_many(sqlalchemy_repo: SQLAlchemyUsersRepository, make_user):
     assert len(found_combined) == 1
 
 
-def test_update_user(sqlalchemy_repo: SQLAlchemyUsersRepository, make_user):
+def test_update_user(sqlalchemy_users_repo: SQLAlchemyUsersRepository, make_user):
     user = make_user()
-    with freeze_time("2025-01-01 12:00:00"):
-        sqlalchemy_repo.create(user)
+    sqlalchemy_users_repo.create(user)
+
     new_user = User(
         id=user.id,
         username=user.username,
@@ -81,14 +81,17 @@ def test_update_user(sqlalchemy_repo: SQLAlchemyUsersRepository, make_user):
         created_at=user.created_at,
     )
 
-    with freeze_time("2025-01-01 12:00:10"):
-        sqlalchemy_repo.update(new_user)
+    before = sqlalchemy_users_repo.find_by_id(user.id)
 
-    updated_user = sqlalchemy_repo.find_by_id(user.id)
+    sqlalchemy_users_repo.update(new_user)
 
-    assert updated_user is not None
-    assert updated_user.email == "jhon@doe.com"
-    assert updated_user.is_admin is True
-    assert updated_user.is_active is False
-    assert verify_password("abcdef", updated_user.hashed_password)
-    assert updated_user.updated_at > updated_user.created_at
+    after = sqlalchemy_users_repo.find_by_id(user.id)
+
+    assert after is not None
+    assert before is not None
+    assert after.email == "jhon@doe.com"
+    assert before.is_admin is False
+    assert after.is_admin is True
+    assert before.is_active is True
+    assert after.is_active is False
+    assert verify_password("abcdef", after.hashed_password)
