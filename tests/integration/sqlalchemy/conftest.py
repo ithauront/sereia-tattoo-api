@@ -1,18 +1,24 @@
 from typing import Generator
-from uuid import uuid4
 import pytest
-from sqlalchemy import create_engine
+from sqlalchemy import StaticPool, create_engine
 from sqlalchemy.orm import Session, sessionmaker
-from app.domain.users.entities.user import User
 from app.infrastructure.sqlalchemy.base_class import Base
 from app.infrastructure.sqlalchemy.repositories.users_repository_sqlalchemy import (
     SQLAlchemyUsersRepository,
+)
+from app.infrastructure.sqlalchemy.repositories.vip_clients_repository_sqlalchemy import (
+    SQLAlchemyVipClientsRepository,
 )
 
 
 @pytest.fixture
 def engine() -> Generator:
-    engine = create_engine("sqlite:///:memory", future=True)
+    engine = create_engine(
+        "sqlite:///:memory",
+        future=True,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
     Base.metadata.create_all(bind=engine)
 
     yield engine
@@ -22,19 +28,25 @@ def engine() -> Generator:
 
 
 @pytest.fixture
-def db_session(engine) -> Generator[Session, None, None]:
-    TestingSessionLocal = sessionmaker(
-        bind=engine, autoflush=False, autocommit=False, future=True
-    )
+def db_session(engine):
+    connection = engine.connect()
+    transaction = connection.begin()
 
-    session = TestingSessionLocal()
-    try:
-        yield session
-    finally:
-        session.rollback()
-        session.close()
+    SessionLocal = sessionmaker(bind=connection, future=True)
+    session = SessionLocal()
+
+    yield session
+
+    session.close()
+    transaction.rollback()
+    connection.close()
 
 
 @pytest.fixture
-def sqlalchemy_repo(db_session: Session) -> SQLAlchemyUsersRepository:
+def sqlalchemy_users_repo(db_session: Session) -> SQLAlchemyUsersRepository:
     return SQLAlchemyUsersRepository(session=db_session)
+
+
+@pytest.fixture
+def sqlalchemy_vip_clients_repo(db_session: Session) -> SQLAlchemyVipClientsRepository:
+    return SQLAlchemyVipClientsRepository(session=db_session)
