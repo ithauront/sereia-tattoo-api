@@ -14,11 +14,11 @@ from app.domain.users.use_cases.prepare_send_forgot_password_email import (
 )
 
 
-def test_send_forgot_password_email_success(repo, make_user):
+def test_send_forgot_password_email_success(users_repo, make_user):
     user = make_user(email="jhon@doe.com")
-    repo.create(user)
+    users_repo.create(user)
 
-    use_case = PrepareSendForgotPasswordEmailUseCase(repo)
+    use_case = PrepareSendForgotPasswordEmailUseCase(users_repo)
     input_data = PrepareSendForgotPasswordEmailInput(user_email="jhon@doe.com")
 
     assert user.password_token_version == 0
@@ -35,19 +35,19 @@ def test_send_forgot_password_email_success(repo, make_user):
     assert user.id == result.id
 
 
-def test_send_forgot_password_email_user_not_found(repo, mocker):
-    use_case = PrepareSendForgotPasswordEmailUseCase(repo)
+def test_send_forgot_password_email_user_not_found(users_repo, mocker):
+    use_case = PrepareSendForgotPasswordEmailUseCase(users_repo)
     input_data = PrepareSendForgotPasswordEmailInput(user_email="jhon@doe.com")
 
     with pytest.raises(UserNotFoundError):
         use_case.execute(input_data)
 
 
-def test_send_forgot_password_email_user_inactive(repo, make_user, mocker):
+def test_send_forgot_password_email_user_inactive(users_repo, make_user, mocker):
     user = make_user(email="jhon@doe.com", is_active=False)
-    repo.create(user)
+    users_repo.create(user)
 
-    use_case = PrepareSendForgotPasswordEmailUseCase(repo)
+    use_case = PrepareSendForgotPasswordEmailUseCase(users_repo)
     input_data = PrepareSendForgotPasswordEmailInput(user_email="jhon@doe.com")
 
     with pytest.raises(UserInactiveError):

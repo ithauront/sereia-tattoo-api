@@ -6,11 +6,11 @@ from app.domain.users.use_cases.get_user import GetUserUseCase
 from app.domain.users.use_cases.DTO.user_output_dto import UserOutput
 
 
-def test_get_user_success(repo, make_user):
+def test_get_user_success(users_repo, make_user):
     user = make_user()
-    repo.create(user)
+    users_repo.create(user)
 
-    use_case = GetUserUseCase(repo)
+    use_case = GetUserUseCase(users_repo)
     dto = GetUserInput(user_id=user.id)
 
     result = use_case.execute(dto)
@@ -23,8 +23,8 @@ def test_get_user_success(repo, make_user):
     assert isinstance(result, UserOutput)
 
 
-def test_user_not_found(repo):
-    use_case = GetUserUseCase(repo)
+def test_user_not_found(users_repo):
+    use_case = GetUserUseCase(users_repo)
     fake_id = uuid4()
     dto = GetUserInput(user_id=fake_id)
 

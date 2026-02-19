@@ -6,12 +6,12 @@ from app.core.security.passwords import verify_password
 client = TestClient(app)
 
 
-def test_change_password_success(repo, make_user, make_token):
+def test_change_password_success(users_repo, make_user, make_token):
     user = make_user()
-    repo.create(user)
+    users_repo.create(user)
     token = make_token(user)
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     payload = {"old_password": "123456", "new_password": "StrongPassword1"}
 
@@ -28,12 +28,12 @@ def test_change_password_success(repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_change_password_invalid_old_password(repo, make_user, make_token):
+def test_change_password_invalid_old_password(users_repo, make_user, make_token):
     user = make_user()
-    repo.create(user)
+    users_repo.create(user)
     token = make_token(user)
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     payload = {"old_password": "wrong_password", "new_password": "StrongPassword1"}
 
@@ -50,12 +50,12 @@ def test_change_password_invalid_old_password(repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_inactive_user_change_password(repo, make_user, make_token):
+def test_inactive_user_change_password(users_repo, make_user, make_token):
     user = make_user(is_active=False)
-    repo.create(user)
+    users_repo.create(user)
     token = make_token(user)
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
     payload = {"old_password": "123456", "new_password": "abcdef"}
 
     response = client.patch(
@@ -70,11 +70,11 @@ def test_inactive_user_change_password(repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_not_user_change_password(repo, make_user, make_token):
+def test_not_user_change_password(users_repo, make_user, make_token):
     user = make_user()
     token = make_token(user)
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     payload = {"old_password": "123456", "new_password": "abcdef"}
 
@@ -90,12 +90,12 @@ def test_not_user_change_password(repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_wrong_token_type(repo, make_user, make_token):
+def test_wrong_token_type(users_repo, make_user, make_token):
     user = make_user()
-    repo.create(user)
+    users_repo.create(user)
     token = make_token(user, token_type="refresh")
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     payload = {"old_password": "123456", "new_password": "abcdef"}
 
@@ -111,13 +111,13 @@ def test_wrong_token_type(repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_invalid_payload_types(repo, make_user, make_token):
+def test_invalid_payload_types(users_repo, make_user, make_token):
     user = make_user()
-    repo.create(user)
+    users_repo.create(user)
 
     token = make_token(user)
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     payload = {"old_password": 123, "new_password": "abcdef"}
 

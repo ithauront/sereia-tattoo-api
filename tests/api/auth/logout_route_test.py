@@ -6,12 +6,12 @@ from fastapi.testclient import TestClient
 client = TestClient(app)
 
 
-def test_logout_success(repo, make_user, make_token):
+def test_logout_success(users_repo, make_user, make_token):
     user = make_user(access_token_version=0, refresh_token_version=0)
-    repo.create(user)
+    users_repo.create(user)
     token = make_token(user=user, version=0)
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.post(
         "/auth/logout/",
@@ -19,18 +19,18 @@ def test_logout_success(repo, make_user, make_token):
     )
 
     assert response.status_code == 204
-    user_in_repo = repo.find_by_id(user.id)
-    assert user_in_repo.access_token_version == 1
-    assert user_in_repo.refresh_token_version == 1
+    user_in_users_repo = users_repo.find_by_id(user.id)
+    assert user_in_users_repo.access_token_version == 1
+    assert user_in_users_repo.refresh_token_version == 1
 
     app.dependency_overrides = {}
 
 
-def test_logout_user_not_found(repo, make_user, make_token):
+def test_logout_user_not_found(users_repo, make_user, make_token):
     user = make_user(access_token_version=0, refresh_token_version=0)
     token = make_token(user=user, version=0)
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.post(
         "/auth/logout/",
@@ -45,13 +45,14 @@ def test_logout_user_not_found(repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_logout_with_revoked_token(repo, make_user, make_token):
+# TODO: Talvez fazer um teste em que fazemos o logout de um admin e depois tentamos fazer uma nova req com o token que ele tinha para ver se realmente deslogou
+def test_logout_with_revoked_token(users_repo, make_user, make_token):
     user = make_user(access_token_version=1, refresh_token_version=1)
-    repo.create(user)
+    users_repo.create(user)
 
     token = make_token(user=user, version=0)  # versão antiga
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.post(
         "/auth/logout/",
@@ -63,12 +64,12 @@ def test_logout_with_revoked_token(repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_logout_twice(repo, make_user, make_token):
+def test_logout_twice(users_repo, make_user, make_token):
     user = make_user(access_token_version=0, refresh_token_version=0)
-    repo.create(user)
+    users_repo.create(user)
     token = make_token(user=user, version=0)
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     first_try = client.post(
         "/auth/logout/",

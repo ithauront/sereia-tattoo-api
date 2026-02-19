@@ -5,11 +5,11 @@ from app.domain.users.use_cases.DTO.login_dto import LoginInput
 from app.domain.users.use_cases.login_user import LoginUserUseCase
 
 
-def test_login_sucess(repo, make_user, access_token_service, refresh_token_service):
+def test_login_sucess(users_repo, make_user, access_token_service, refresh_token_service):
     user = make_user(access_token_version=0, refresh_token_version=0)
-    repo.create(user)
+    users_repo.create(user)
 
-    use_case = LoginUserUseCase(repo, access_token_service, refresh_token_service)
+    use_case = LoginUserUseCase(users_repo, access_token_service, refresh_token_service)
     input_data = LoginInput(identifier="JhonDoe", password="123456")
 
     result = use_case.execute(input_data)
@@ -26,11 +26,11 @@ def test_login_sucess(repo, make_user, access_token_service, refresh_token_servi
     assert len(result.refresh_token) > 10
 
 
-def test_user_not_found(repo, make_user, access_token_service, refresh_token_service):
+def test_user_not_found(users_repo, make_user, access_token_service, refresh_token_service):
     user = make_user()
-    repo.create(user)
+    users_repo.create(user)
 
-    use_case = LoginUserUseCase(repo, access_token_service, refresh_token_service)
+    use_case = LoginUserUseCase(users_repo, access_token_service, refresh_token_service)
 
     input_data = LoginInput(identifier="invalidUser", password="123456")
 
@@ -38,22 +38,22 @@ def test_user_not_found(repo, make_user, access_token_service, refresh_token_ser
         use_case.execute(input_data)
 
 
-def test_wrong_password(repo, make_user, access_token_service, refresh_token_service):
+def test_wrong_password(users_repo, make_user, access_token_service, refresh_token_service):
     user = make_user()
-    repo.create(user)
+    users_repo.create(user)
 
-    use_case = LoginUserUseCase(repo, access_token_service, refresh_token_service)
+    use_case = LoginUserUseCase(users_repo, access_token_service, refresh_token_service)
     input_data = LoginInput(identifier="JhonDoe", password="wrong_password")
 
     with pytest.raises(AuthenticationFailedError):
         use_case.execute(input_data)
 
 
-def test_inactive_user(repo, make_user, access_token_service, refresh_token_service):
+def test_inactive_user(users_repo, make_user, access_token_service, refresh_token_service):
     user = make_user(is_active=False)
-    repo.create(user)
+    users_repo.create(user)
 
-    use_case = LoginUserUseCase(repo, access_token_service, refresh_token_service)
+    use_case = LoginUserUseCase(users_repo, access_token_service, refresh_token_service)
     input_data = LoginInput(identifier="JhonDoe", password="123456")
 
     with pytest.raises(UserInactiveError):

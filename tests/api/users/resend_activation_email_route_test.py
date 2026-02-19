@@ -8,18 +8,18 @@ from app.api.dependencies.notifications import get_email_service
 client = TestClient(app)
 
 
-def test_resend_activation_email_success(repo, make_user):
+def test_resend_activation_email_success(users_repo, make_user):
     user = make_user(
         email="jhon@doe.com",
     )
-    repo.create(user)
+    users_repo.create(user)
 
     payload = {"email": "jhon@doe.com"}
 
     fake_email_service = FakeEmailService()
 
     app.dependency_overrides[get_email_service] = lambda: fake_email_service
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.post(
         "/users/resend-email",
@@ -41,18 +41,18 @@ def test_resend_activation_email_success(repo, make_user):
     app.dependency_overrides.clear()
 
 
-def test_resend_user_already_activated_once(repo, make_user):
+def test_resend_user_already_activated_once(users_repo, make_user):
     user = make_user(
         email="jhon@doe.com", has_activated_once=True, activation_token_version=1
     )
-    repo.create(user)
+    users_repo.create(user)
 
     payload = {"email": "jhon@doe.com"}
 
     fake_email_service = FakeEmailService()
 
     app.dependency_overrides[get_email_service] = lambda: fake_email_service
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.post(
         "/users/resend-email",
@@ -68,13 +68,13 @@ def test_resend_user_already_activated_once(repo, make_user):
     app.dependency_overrides.clear()
 
 
-def test_resend_email_user_not_found(repo):
+def test_resend_email_user_not_found(users_repo):
     payload = {"email": "jhon@doe.com"}
 
     fake_email_service = FakeEmailService()
 
     app.dependency_overrides[get_email_service] = lambda: fake_email_service
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.post("/users/resend-email", json=payload)
 
@@ -85,18 +85,18 @@ def test_resend_email_user_not_found(repo):
     app.dependency_overrides.clear()
 
 
-def test_email_service_unavailable(repo, make_user):
+def test_email_service_unavailable(users_repo, make_user):
     user = make_user(
         email="jhon@doe.com",
     )
-    repo.create(user)
+    users_repo.create(user)
 
     payload = {"email": "jhon@doe.com"}
 
     fake_email_service = FakeEmailService(fail_with="email_service_unavailable")
 
     app.dependency_overrides[get_email_service] = lambda: fake_email_service
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.post("/users/resend-email", json=payload)
 
@@ -108,18 +108,18 @@ def test_email_service_unavailable(repo, make_user):
     app.dependency_overrides.clear()
 
 
-def test_email_send_failed(repo, make_user):
+def test_email_send_failed(users_repo, make_user):
     user = make_user(
         email="jhon@doe.com",
     )
-    repo.create(user)
+    users_repo.create(user)
 
     payload = {"email": "jhon@doe.com"}
 
     fake_email_service = FakeEmailService(fail_with="email_send_failed")
 
     app.dependency_overrides[get_email_service] = lambda: fake_email_service
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.post("/users/resend-email", json=payload)
 

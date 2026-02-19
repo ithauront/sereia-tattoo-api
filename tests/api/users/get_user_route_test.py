@@ -8,16 +8,16 @@ from app.main import app
 client = TestClient(app)
 
 
-def test_get_different_user_if_admin(repo, make_user, make_token):
+def test_get_different_user_if_admin(users_repo, make_user, make_token):
     admin = make_user(is_admin=True)
-    repo.create(admin)
+    users_repo.create(admin)
 
     user = make_user(is_admin=False, username="Fabio")
-    repo.create(user)
+    users_repo.create(user)
 
     token = make_token(admin)
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.get(
         f"/users/{user.id}",
@@ -41,13 +41,13 @@ def test_get_different_user_if_admin(repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_not_admin_get_himself(repo, make_user, make_token):
+def test_not_admin_get_himself(users_repo, make_user, make_token):
     user = make_user(is_admin=False, username="Fabio")
-    repo.create(user)
+    users_repo.create(user)
 
     token = make_token(user)
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.get(
         f"/users/{user.id}",
@@ -61,12 +61,12 @@ def test_not_admin_get_himself(repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_user_id_not_found(repo, make_user, make_token):
+def test_user_id_not_found(users_repo, make_user, make_token):
     admin = make_user(is_admin=True)
-    repo.create(admin)
+    users_repo.create(admin)
 
     token = make_token(admin)
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.get(
         f"/users/{uuid4()}",
@@ -78,16 +78,16 @@ def test_user_id_not_found(repo, make_user, make_token):
     assert data["detail"] == "user_not_found"
 
 
-def test_user_cannot_get_other_user(repo, make_user, make_token):
+def test_user_cannot_get_other_user(users_repo, make_user, make_token):
     user1 = make_user(is_admin=False, username="Fabio")
-    repo.create(user1)
+    users_repo.create(user1)
 
     user2 = make_user(is_admin=False, username="Alice")
-    repo.create(user2)
+    users_repo.create(user2)
 
     token = make_token(user1)
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.get(
         f"/users/{user2.id}",
@@ -100,13 +100,13 @@ def test_user_cannot_get_other_user(repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_inactive_user_cannot_get_himself(repo, make_user, make_token):
+def test_inactive_user_cannot_get_himself(users_repo, make_user, make_token):
     inactive_user = make_user(is_admin=False, username="Fabio", is_active=False)
-    repo.create(inactive_user)
+    users_repo.create(inactive_user)
 
     token = make_token(inactive_user)
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.get(
         f"/users/{inactive_user.id}",
@@ -119,13 +119,13 @@ def test_inactive_user_cannot_get_himself(repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_inactive_admin_cannot_get_himself(repo, make_user, make_token):
+def test_inactive_admin_cannot_get_himself(users_repo, make_user, make_token):
     inactive_admin = make_user(is_admin=True, username="Fabio", is_active=False)
-    repo.create(inactive_admin)
+    users_repo.create(inactive_admin)
 
     token = make_token(inactive_admin)
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.get(
         f"/users/{inactive_admin.id}",
@@ -138,16 +138,16 @@ def test_inactive_admin_cannot_get_himself(repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_inactive_admin_cannot_get_other_user(repo, make_user, make_token):
+def test_inactive_admin_cannot_get_other_user(users_repo, make_user, make_token):
     inactive_admin = make_user(is_admin=True, username="Fabio", is_active=False)
-    repo.create(inactive_admin)
+    users_repo.create(inactive_admin)
 
     user = make_user(is_admin=False, username="Alice")
-    repo.create(user)
+    users_repo.create(user)
 
     token = make_token(inactive_admin)
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.get(
         f"/users/{user.id}",
@@ -160,12 +160,12 @@ def test_inactive_admin_cannot_get_other_user(repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_not_user_cannot_get_user(repo, make_user, make_token):
+def test_not_user_cannot_get_user(users_repo, make_user, make_token):
     user = make_user(is_admin=False, username="Fabio")
 
     token = make_token(user)
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.get(
         f"/users/{user.id}",
@@ -178,13 +178,13 @@ def test_not_user_cannot_get_user(repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_wrong_toke_type(repo, make_user, make_token):
+def test_wrong_toke_type(users_repo, make_user, make_token):
     user = make_user(is_admin=False, username="Fabio")
-    repo.create(user)
+    users_repo.create(user)
 
     token = make_token(user, token_type="refresh")
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.get(
         f"/users/{user.id}",
@@ -197,10 +197,10 @@ def test_wrong_toke_type(repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_missing_authorization_header(repo, make_user):
+def test_missing_authorization_header(users_repo, make_user):
     user = make_user(is_admin=False, username="Fabio")
-    repo.create(user)
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    users_repo.create(user)
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.get(
         f"/users/{user.id}",
@@ -212,11 +212,11 @@ def test_missing_authorization_header(repo, make_user):
     app.dependency_overrides = {}
 
 
-def test_missing_bearer_prefix(repo, make_user):
+def test_missing_bearer_prefix(users_repo, make_user):
     user = make_user(is_admin=False, username="Fabio")
-    repo.create(user)
+    users_repo.create(user)
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.get(
         f"/users/{user.id}",
@@ -229,12 +229,12 @@ def test_missing_bearer_prefix(repo, make_user):
     app.dependency_overrides = {}
 
 
-def test_invalid_jwt_format(repo, make_user):
+def test_invalid_jwt_format(users_repo, make_user):
 
     user = make_user(is_admin=False, username="Fabio")
-    repo.create(user)
+    users_repo.create(user)
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.get(
         f"/users/{user.id}",
@@ -247,11 +247,11 @@ def test_invalid_jwt_format(repo, make_user):
     app.dependency_overrides = {}
 
 
-def test_invalid_token_sub(repo, make_user):
+def test_invalid_token_sub(users_repo, make_user):
     user = make_user(is_admin=False, username="Fabio")
-    repo.create(user)
+    users_repo.create(user)
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     token = jwt_service.create(subject="not-a-uuid", minutes=60, token_type="access")
 

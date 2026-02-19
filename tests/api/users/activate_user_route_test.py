@@ -7,16 +7,16 @@ from app.main import app
 client = TestClient(app)
 
 
-def test_activate_user(repo, make_user, make_token):
+def test_activate_user(users_repo, make_user, make_token):
     admin = make_user(is_admin=True)
     user = make_user(is_active=False)
 
-    repo.create(admin)
-    repo.create(user)
+    users_repo.create(admin)
+    users_repo.create(user)
 
     token = make_token(admin)
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.patch(
         f"/users/activate/{user.id}",
@@ -29,15 +29,15 @@ def test_activate_user(repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_activate_nonexistent_user(repo, make_user, make_token):
+def test_activate_nonexistent_user(users_repo, make_user, make_token):
     admin = make_user(is_admin=True)
     user = make_user(is_active=False)
 
-    repo.create(admin)
+    users_repo.create(admin)
 
     token = make_token(admin)
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.patch(
         f"/users/activate/{user.id}",
@@ -51,16 +51,16 @@ def test_activate_nonexistent_user(repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_activate_user_active(repo, make_user, make_token):
+def test_activate_user_active(users_repo, make_user, make_token):
     admin = make_user(is_admin=True)
     user = make_user(is_active=True)
 
-    repo.create(admin)
-    repo.create(user)
+    users_repo.create(admin)
+    users_repo.create(user)
 
     token = make_token(admin)
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.patch(
         f"/users/activate/{user.id}",
@@ -73,16 +73,16 @@ def test_activate_user_active(repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_not_admin_activate_user(repo, make_user, make_token):
+def test_not_admin_activate_user(users_repo, make_user, make_token):
     not_admin = make_user(is_admin=False)
     user = make_user(is_active=False)
 
-    repo.create(not_admin)
-    repo.create(user)
+    users_repo.create(not_admin)
+    users_repo.create(user)
 
     token = make_token(not_admin)
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.patch(
         f"/users/activate/{user.id}",
@@ -96,16 +96,16 @@ def test_not_admin_activate_user(repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_inactive_admin_activate_user(repo, make_user, make_token):
+def test_inactive_admin_activate_user(users_repo, make_user, make_token):
     inactive_admin = make_user(is_admin=True, is_active=False)
     user = make_user(is_active=False)
 
-    repo.create(inactive_admin)
-    repo.create(user)
+    users_repo.create(inactive_admin)
+    users_repo.create(user)
 
     token = make_token(inactive_admin)
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.patch(
         f"/users/activate/{user.id}",
@@ -119,15 +119,15 @@ def test_inactive_admin_activate_user(repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_nonexistent_user_activate_user(repo, make_user, make_token):
+def test_nonexistent_user_activate_user(users_repo, make_user, make_token):
     admin = make_user(is_admin=True)
     user = make_user(is_active=False)
 
-    repo.create(user)
+    users_repo.create(user)
 
     token = make_token(admin)
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.patch(
         f"/users/activate/{user.id}",
@@ -141,15 +141,15 @@ def test_nonexistent_user_activate_user(repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def wrong_token_type_activate_user(repo, make_user, make_token):
+def wrong_token_type_activate_user(users_repo, make_user, make_token):
     admin = make_user(is_admin=True)
     user = make_user(is_active=False)
 
-    repo.create(user)
+    users_repo.create(user)
 
     token = make_token(admin, token_type="refresh")
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.patch(
         f"/users/activate/{user.id}",
@@ -163,14 +163,14 @@ def wrong_token_type_activate_user(repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_missing_authorization_header(repo, make_user):
+def test_missing_authorization_header(users_repo, make_user):
     admin = make_user(is_admin=True)
     user = make_user(is_active=False)
 
-    repo.create(admin)
-    repo.create(user)
+    users_repo.create(admin)
+    users_repo.create(user)
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.patch(f"/users/activate/{user.id}")
 
@@ -181,16 +181,16 @@ def test_missing_authorization_header(repo, make_user):
     app.dependency_overrides = {}
 
 
-def test_missing_bearer_prefix(repo, make_user, make_token):
+def test_missing_bearer_prefix(users_repo, make_user, make_token):
     admin = make_user(is_admin=True)
     user = make_user(is_active=False)
 
-    repo.create(admin)
-    repo.create(user)
+    users_repo.create(admin)
+    users_repo.create(user)
 
     token = make_token(admin)
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.patch(
         f"/users/activate/{user.id}",
@@ -204,14 +204,14 @@ def test_missing_bearer_prefix(repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_invalid_jwt_format(repo, make_user):
+def test_invalid_jwt_format(users_repo, make_user):
     admin = make_user(is_admin=True)
     user = make_user(is_active=False)
 
-    repo.create(admin)
-    repo.create(user)
+    users_repo.create(admin)
+    users_repo.create(user)
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.patch(
         f"/users/activate/{user.id}",
@@ -225,14 +225,14 @@ def test_invalid_jwt_format(repo, make_user):
     app.dependency_overrides = {}
 
 
-def test_invalid_token_sub(repo, make_user):
+def test_invalid_token_sub(users_repo, make_user):
     user = make_user(is_active=False)
 
-    repo.create(user)
+    users_repo.create(user)
 
     token = jwt_service.create(subject="not-a-uuid", minutes=60, token_type="access")
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.patch(
         f"/users/deactivate/{user.id}",

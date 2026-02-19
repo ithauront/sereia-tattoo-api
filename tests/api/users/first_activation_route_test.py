@@ -12,7 +12,7 @@ from app.core.config import settings
 client = TestClient(app)
 
 
-def test_first_activation_user_success(repo, make_user):
+def test_first_activation_user_success(users_repo, make_user):
     user = make_user(
         username="",
         email="jhon@doe.com",
@@ -22,7 +22,7 @@ def test_first_activation_user_success(repo, make_user):
         activation_token_version=0,
         has_activated_once=False,
     )
-    repo.create(user)
+    users_repo.create(user)
     jwt_service = JWTService(
         secret_key=settings.SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM,
@@ -34,7 +34,7 @@ def test_first_activation_user_success(repo, make_user):
 
     payload = {"username": "JhonDoe", "password": "Password1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.post(
         "/me/first-activation",
@@ -42,20 +42,20 @@ def test_first_activation_user_success(repo, make_user):
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    user_in_repo = repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
 
     assert response.status_code == 204
-    assert user_in_repo.username == "JhonDoe"
-    assert verify_password("Password1", user_in_repo.hashed_password) is True
-    assert user_in_repo.is_active is True
-    assert user_in_repo.is_admin is False
-    assert user_in_repo.has_activated_once is True
-    assert user_in_repo.activation_token_version == 1
+    assert user_in_users_repo.username == "JhonDoe"
+    assert verify_password("Password1", user_in_users_repo.hashed_password) is True
+    assert user_in_users_repo.is_active is True
+    assert user_in_users_repo.is_admin is False
+    assert user_in_users_repo.has_activated_once is True
+    assert user_in_users_repo.activation_token_version == 1
 
     app.dependency_overrides.clear()
 
 
-def test_first_activation_admin_success(repo, make_user):
+def test_first_activation_admin_success(users_repo, make_user):
     admin = make_user(
         username="",
         email="jhon@doe.com",
@@ -65,7 +65,7 @@ def test_first_activation_admin_success(repo, make_user):
         activation_token_version=0,
         has_activated_once=False,
     )
-    repo.create(admin)
+    users_repo.create(admin)
     jwt_service = JWTService(
         secret_key=settings.SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM,
@@ -77,7 +77,7 @@ def test_first_activation_admin_success(repo, make_user):
 
     payload = {"username": "JhonDoe", "password": "Password1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.post(
         "/me/first-activation",
@@ -85,20 +85,20 @@ def test_first_activation_admin_success(repo, make_user):
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    user_in_repo = repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
 
     assert response.status_code == 204
-    assert user_in_repo.username == "JhonDoe"
-    assert verify_password("Password1", user_in_repo.hashed_password) is True
-    assert user_in_repo.is_active is True
-    assert user_in_repo.is_admin is True
-    assert user_in_repo.has_activated_once is True
-    assert user_in_repo.activation_token_version == 1
+    assert user_in_users_repo.username == "JhonDoe"
+    assert verify_password("Password1", user_in_users_repo.hashed_password) is True
+    assert user_in_users_repo.is_active is True
+    assert user_in_users_repo.is_admin is True
+    assert user_in_users_repo.has_activated_once is True
+    assert user_in_users_repo.activation_token_version == 1
 
     app.dependency_overrides.clear()
 
 
-def test_first_activation_user_not_found(repo):
+def test_first_activation_user_not_found(users_repo):
     fake_user_id = uuid4()
     jwt_service = JWTService(
         secret_key=settings.SECRET_KEY,
@@ -111,7 +111,7 @@ def test_first_activation_user_not_found(repo):
 
     payload = {"username": "JhonDoe", "password": "Password1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.post(
         "/me/first-activation",
@@ -119,16 +119,16 @@ def test_first_activation_user_not_found(repo):
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    user_in_repo = repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
 
     assert response.status_code == 404
     assert response.json()["detail"] == "user_not_found"
-    assert user_in_repo is None
+    assert user_in_users_repo is None
 
     app.dependency_overrides.clear()
 
 
-def test_first_activation_user_activated_before(repo, make_user):
+def test_first_activation_user_activated_before(users_repo, make_user):
     user = make_user(
         username="",
         email="jhon@doe.com",
@@ -138,7 +138,7 @@ def test_first_activation_user_activated_before(repo, make_user):
         activation_token_version=0,
         has_activated_once=True,
     )
-    repo.create(user)
+    users_repo.create(user)
     jwt_service = JWTService(
         secret_key=settings.SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM,
@@ -150,7 +150,7 @@ def test_first_activation_user_activated_before(repo, make_user):
 
     payload = {"username": "JhonDoe", "password": "Password1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.post(
         "/me/first-activation",
@@ -158,21 +158,21 @@ def test_first_activation_user_activated_before(repo, make_user):
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    user_in_repo = repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
 
     assert response.status_code == 409
     assert response.json()["detail"] == "user_was_activated_before"
-    assert user_in_repo.username == ""
-    assert user_in_repo.hashed_password == ""
-    assert user_in_repo.is_active is False
-    assert user_in_repo.is_admin is False
-    assert user_in_repo.has_activated_once is True
-    assert user_in_repo.activation_token_version == 0
+    assert user_in_users_repo.username == ""
+    assert user_in_users_repo.hashed_password == ""
+    assert user_in_users_repo.is_active is False
+    assert user_in_users_repo.is_admin is False
+    assert user_in_users_repo.has_activated_once is True
+    assert user_in_users_repo.activation_token_version == 0
 
     app.dependency_overrides.clear()
 
 
-def test_first_activation_second_call_route_same_token(repo, make_user):
+def test_first_activation_second_call_route_same_token(users_repo, make_user):
     user = make_user(
         username="",
         email="jhon@doe.com",
@@ -182,7 +182,7 @@ def test_first_activation_second_call_route_same_token(repo, make_user):
         activation_token_version=0,
         has_activated_once=False,
     )
-    repo.create(user)
+    users_repo.create(user)
     jwt_service = JWTService(
         secret_key=settings.SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM,
@@ -194,7 +194,7 @@ def test_first_activation_second_call_route_same_token(repo, make_user):
 
     payload = {"username": "JhonDoe", "password": "Password1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     first_call = client.post(
         "/me/first-activation",
@@ -206,23 +206,23 @@ def test_first_activation_second_call_route_same_token(repo, make_user):
         json=payload,
         headers={"Authorization": f"Bearer {token}"},
     )
-    user_in_repo = repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
 
     assert first_call.status_code == 204
 
     assert second_call.status_code == 409
     assert second_call.json()["detail"] == "user_was_activated_before"
-    assert user_in_repo.username == "JhonDoe"
-    assert verify_password("Password1", user_in_repo.hashed_password) is True
-    assert user_in_repo.is_active is True
-    assert user_in_repo.is_admin is False
-    assert user_in_repo.has_activated_once is True
-    assert user_in_repo.activation_token_version == 1
+    assert user_in_users_repo.username == "JhonDoe"
+    assert verify_password("Password1", user_in_users_repo.hashed_password) is True
+    assert user_in_users_repo.is_active is True
+    assert user_in_users_repo.is_admin is False
+    assert user_in_users_repo.has_activated_once is True
+    assert user_in_users_repo.activation_token_version == 1
 
     app.dependency_overrides.clear()
 
 
-def test_first_activation_user_token_version_greater_than_user(repo, make_user):
+def test_first_activation_user_token_version_greater_than_user(users_repo, make_user):
     user = make_user(
         username="",
         email="jhon@doe.com",
@@ -232,7 +232,7 @@ def test_first_activation_user_token_version_greater_than_user(repo, make_user):
         activation_token_version=0,
         has_activated_once=False,
     )
-    repo.create(user)
+    users_repo.create(user)
     jwt_service = JWTService(
         secret_key=settings.SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM,
@@ -244,7 +244,7 @@ def test_first_activation_user_token_version_greater_than_user(repo, make_user):
 
     payload = {"username": "JhonDoe", "password": "Password1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.post(
         "/me/first-activation",
@@ -252,21 +252,21 @@ def test_first_activation_user_token_version_greater_than_user(repo, make_user):
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    user_in_repo = repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
 
     assert response.status_code == 401
     assert response.json()["detail"] == "invalid_activation_token"
-    assert user_in_repo.username == ""
-    assert user_in_repo.hashed_password == ""
-    assert user_in_repo.is_active is False
-    assert user_in_repo.is_admin is False
-    assert user_in_repo.has_activated_once is False
-    assert user_in_repo.activation_token_version == 0
+    assert user_in_users_repo.username == ""
+    assert user_in_users_repo.hashed_password == ""
+    assert user_in_users_repo.is_active is False
+    assert user_in_users_repo.is_admin is False
+    assert user_in_users_repo.has_activated_once is False
+    assert user_in_users_repo.activation_token_version == 0
 
     app.dependency_overrides.clear()
 
 
-def test_first_activation_user_token_version_smaller_than_user(repo, make_user):
+def test_first_activation_user_token_version_smaller_than_user(users_repo, make_user):
     user = make_user(
         username="",
         email="jhon@doe.com",
@@ -276,7 +276,7 @@ def test_first_activation_user_token_version_smaller_than_user(repo, make_user):
         activation_token_version=1,
         has_activated_once=False,
     )
-    repo.create(user)
+    users_repo.create(user)
     jwt_service = JWTService(
         secret_key=settings.SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM,
@@ -288,7 +288,7 @@ def test_first_activation_user_token_version_smaller_than_user(repo, make_user):
 
     payload = {"username": "JhonDoe", "password": "Password1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.post(
         "/me/first-activation",
@@ -296,23 +296,23 @@ def test_first_activation_user_token_version_smaller_than_user(repo, make_user):
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    user_in_repo = repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
 
     assert response.status_code == 401
     assert response.json()["detail"] == "invalid_activation_token"
-    assert user_in_repo.username == ""
-    assert user_in_repo.hashed_password == ""
-    assert user_in_repo.is_active is False
-    assert user_in_repo.is_admin is False
-    assert user_in_repo.has_activated_once is False
-    assert user_in_repo.activation_token_version == 1
+    assert user_in_users_repo.username == ""
+    assert user_in_users_repo.hashed_password == ""
+    assert user_in_users_repo.is_active is False
+    assert user_in_users_repo.is_admin is False
+    assert user_in_users_repo.has_activated_once is False
+    assert user_in_users_repo.activation_token_version == 1
 
     app.dependency_overrides.clear()
 
 
-def test_first_activation_username_already_taken(repo, make_user):
+def test_first_activation_username_already_taken(users_repo, make_user):
     first_user = make_user(username="JhonDoe", email="firstjhon@doe.com")
-    repo.create(first_user)
+    users_repo.create(first_user)
     user = make_user(
         username="",
         email="jhon@doe.com",
@@ -322,7 +322,7 @@ def test_first_activation_username_already_taken(repo, make_user):
         activation_token_version=0,
         has_activated_once=False,
     )
-    repo.create(user)
+    users_repo.create(user)
     jwt_service = JWTService(
         secret_key=settings.SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM,
@@ -334,7 +334,7 @@ def test_first_activation_username_already_taken(repo, make_user):
 
     payload = {"username": "JhonDoe", "password": "Password1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.post(
         "/me/first-activation",
@@ -342,21 +342,21 @@ def test_first_activation_username_already_taken(repo, make_user):
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    user_in_repo = repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
 
     assert response.status_code == 409
     assert response.json()["detail"] == "username_already_taken"
-    assert user_in_repo.username == ""
-    assert user_in_repo.hashed_password == ""
-    assert user_in_repo.is_active is False
-    assert user_in_repo.is_admin is False
-    assert user_in_repo.has_activated_once is False
-    assert user_in_repo.activation_token_version == 0
+    assert user_in_users_repo.username == ""
+    assert user_in_users_repo.hashed_password == ""
+    assert user_in_users_repo.is_active is False
+    assert user_in_users_repo.is_admin is False
+    assert user_in_users_repo.has_activated_once is False
+    assert user_in_users_repo.activation_token_version == 0
 
     app.dependency_overrides.clear()
 
 
-def test_first_activation_username_against_validation_rules(repo, make_user):
+def test_first_activation_username_against_validation_rules(users_repo, make_user):
     user = make_user(
         username="",
         email="jhon@doe.com",
@@ -366,7 +366,7 @@ def test_first_activation_username_against_validation_rules(repo, make_user):
         activation_token_version=0,
         has_activated_once=False,
     )
-    repo.create(user)
+    users_repo.create(user)
     jwt_service = JWTService(
         secret_key=settings.SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM,
@@ -378,7 +378,7 @@ def test_first_activation_username_against_validation_rules(repo, make_user):
 
     payload = {"username": "Jh", "password": "Password1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.post(
         "/me/first-activation",
@@ -386,21 +386,21 @@ def test_first_activation_username_against_validation_rules(repo, make_user):
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    user_in_repo = repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
 
     assert response.status_code == 422
     assert response.json()["detail"] == "username_must_have_between_3_and_30_characters"
-    assert user_in_repo.username == ""
-    assert user_in_repo.hashed_password == ""
-    assert user_in_repo.is_active is False
-    assert user_in_repo.is_admin is False
-    assert user_in_repo.has_activated_once is False
-    assert user_in_repo.activation_token_version == 0
+    assert user_in_users_repo.username == ""
+    assert user_in_users_repo.hashed_password == ""
+    assert user_in_users_repo.is_active is False
+    assert user_in_users_repo.is_admin is False
+    assert user_in_users_repo.has_activated_once is False
+    assert user_in_users_repo.activation_token_version == 0
 
     app.dependency_overrides.clear()
 
 
-def test_first_activation_user_wrong_token_type(repo, make_user, make_token):
+def test_first_activation_user_wrong_token_type(users_repo, make_user, make_token):
     user = make_user(
         username="",
         email="jhon@doe.com",
@@ -410,12 +410,12 @@ def test_first_activation_user_wrong_token_type(repo, make_user, make_token):
         activation_token_version=0,
         has_activated_once=False,
     )
-    repo.create(user)
+    users_repo.create(user)
     token = make_token(user, token_type="refresh")
 
     payload = {"username": "JhonDoe", "password": "Password1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.post(
         "/me/first-activation",
@@ -423,21 +423,21 @@ def test_first_activation_user_wrong_token_type(repo, make_user, make_token):
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    user_in_repo = repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
 
     assert response.status_code == 401
     assert response.json()["detail"] == "invalid_credentials"
-    assert user_in_repo.username == ""
-    assert user_in_repo.hashed_password == ""
-    assert user_in_repo.is_active is False
-    assert user_in_repo.is_admin is False
-    assert user_in_repo.has_activated_once is False
-    assert user_in_repo.activation_token_version == 0
+    assert user_in_users_repo.username == ""
+    assert user_in_users_repo.hashed_password == ""
+    assert user_in_users_repo.is_active is False
+    assert user_in_users_repo.is_admin is False
+    assert user_in_users_repo.has_activated_once is False
+    assert user_in_users_repo.activation_token_version == 0
 
     app.dependency_overrides.clear()
 
 
-def test_first_activation_missing_header(repo, make_user):
+def test_first_activation_missing_header(users_repo, make_user):
     user = make_user(
         username="",
         email="jhon@doe.com",
@@ -447,32 +447,32 @@ def test_first_activation_missing_header(repo, make_user):
         activation_token_version=0,
         has_activated_once=False,
     )
-    repo.create(user)
+    users_repo.create(user)
 
     payload = {"username": "JhonDoe", "password": "Password1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.post(
         "/me/first-activation",
         json=payload,
     )
 
-    user_in_repo = repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
 
     assert response.status_code == 422
     assert response.json()["detail"][0]["loc"] == ["header", "authorization"]
-    assert user_in_repo.username == ""
-    assert user_in_repo.hashed_password == ""
-    assert user_in_repo.is_active is False
-    assert user_in_repo.is_admin is False
-    assert user_in_repo.has_activated_once is False
-    assert user_in_repo.activation_token_version == 0
+    assert user_in_users_repo.username == ""
+    assert user_in_users_repo.hashed_password == ""
+    assert user_in_users_repo.is_active is False
+    assert user_in_users_repo.is_admin is False
+    assert user_in_users_repo.has_activated_once is False
+    assert user_in_users_repo.activation_token_version == 0
 
     app.dependency_overrides.clear()
 
 
-def test_first_activation_missing_Bearer_prefix(repo, make_user):
+def test_first_activation_missing_Bearer_prefix(users_repo, make_user):
     user = make_user(
         username="",
         email="jhon@doe.com",
@@ -482,7 +482,7 @@ def test_first_activation_missing_Bearer_prefix(repo, make_user):
         activation_token_version=0,
         has_activated_once=False,
     )
-    repo.create(user)
+    users_repo.create(user)
 
     jwt_service = JWTService(
         secret_key=settings.SECRET_KEY,
@@ -495,7 +495,7 @@ def test_first_activation_missing_Bearer_prefix(repo, make_user):
 
     payload = {"username": "JhonDoe", "password": "Password1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.post(
         "/me/first-activation",
@@ -503,21 +503,21 @@ def test_first_activation_missing_Bearer_prefix(repo, make_user):
         headers={"Authorization": f" {token}"},
     )
 
-    user_in_repo = repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
 
     assert response.status_code == 401
     assert response.json()["detail"] == "invalid_credentials"
-    assert user_in_repo.username == ""
-    assert user_in_repo.hashed_password == ""
-    assert user_in_repo.is_active is False
-    assert user_in_repo.is_admin is False
-    assert user_in_repo.has_activated_once is False
-    assert user_in_repo.activation_token_version == 0
+    assert user_in_users_repo.username == ""
+    assert user_in_users_repo.hashed_password == ""
+    assert user_in_users_repo.is_active is False
+    assert user_in_users_repo.is_admin is False
+    assert user_in_users_repo.has_activated_once is False
+    assert user_in_users_repo.activation_token_version == 0
 
     app.dependency_overrides.clear()
 
 
-def test_first_activation_invalid_jwt_format(repo, make_user):
+def test_first_activation_invalid_jwt_format(users_repo, make_user):
     user = make_user(
         username="",
         email="jhon@doe.com",
@@ -527,11 +527,11 @@ def test_first_activation_invalid_jwt_format(repo, make_user):
         activation_token_version=0,
         has_activated_once=False,
     )
-    repo.create(user)
+    users_repo.create(user)
 
     payload = {"username": "JhonDoe", "password": "Password1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.post(
         "/me/first-activation",
@@ -539,21 +539,21 @@ def test_first_activation_invalid_jwt_format(repo, make_user):
         headers={"Authorization": "Bearer abc.def.ghi"},
     )
 
-    user_in_repo = repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
 
     assert response.status_code == 401
     assert response.json()["detail"] == "invalid_credentials"
-    assert user_in_repo.username == ""
-    assert user_in_repo.hashed_password == ""
-    assert user_in_repo.is_active is False
-    assert user_in_repo.is_admin is False
-    assert user_in_repo.has_activated_once is False
-    assert user_in_repo.activation_token_version == 0
+    assert user_in_users_repo.username == ""
+    assert user_in_users_repo.hashed_password == ""
+    assert user_in_users_repo.is_active is False
+    assert user_in_users_repo.is_admin is False
+    assert user_in_users_repo.has_activated_once is False
+    assert user_in_users_repo.activation_token_version == 0
 
     app.dependency_overrides.clear()
 
 
-def test_first_activation_invalid_token_sub(repo, make_user):
+def test_first_activation_invalid_token_sub(users_repo, make_user):
     user = make_user(
         username="",
         email="jhon@doe.com",
@@ -563,7 +563,7 @@ def test_first_activation_invalid_token_sub(repo, make_user):
         activation_token_version=0,
         has_activated_once=False,
     )
-    repo.create(user)
+    users_repo.create(user)
 
     jwt_service = JWTService(
         secret_key=settings.SECRET_KEY,
@@ -576,7 +576,7 @@ def test_first_activation_invalid_token_sub(repo, make_user):
 
     payload = {"username": "JhonDoe", "password": "Password1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.post(
         "/me/first-activation",
@@ -584,21 +584,21 @@ def test_first_activation_invalid_token_sub(repo, make_user):
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    user_in_repo = repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
 
     assert response.status_code == 401
     assert response.json()["detail"] == "invalid_credentials"
-    assert user_in_repo.username == ""
-    assert user_in_repo.hashed_password == ""
-    assert user_in_repo.is_active is False
-    assert user_in_repo.is_admin is False
-    assert user_in_repo.has_activated_once is False
-    assert user_in_repo.activation_token_version == 0
+    assert user_in_users_repo.username == ""
+    assert user_in_users_repo.hashed_password == ""
+    assert user_in_users_repo.is_active is False
+    assert user_in_users_repo.is_admin is False
+    assert user_in_users_repo.has_activated_once is False
+    assert user_in_users_repo.activation_token_version == 0
 
     app.dependency_overrides.clear()
 
 
-def test_first_activation_token_expired(repo, make_user):
+def test_first_activation_token_expired(users_repo, make_user):
     user = make_user(
         username="",
         email="jhon@doe.com",
@@ -608,7 +608,7 @@ def test_first_activation_token_expired(repo, make_user):
         activation_token_version=0,
         has_activated_once=False,
     )
-    repo.create(user)
+    users_repo.create(user)
     jwt_service = JWTService(
         secret_key=settings.SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM,
@@ -621,7 +621,7 @@ def test_first_activation_token_expired(repo, make_user):
 
     with freeze_time("2025-01-01 12:16:00"):
         payload = {"username": "JhonDoe", "password": "Password1"}
-        app.dependency_overrides[get_users_repository] = lambda: repo
+        app.dependency_overrides[get_users_repository] = lambda: users_repo
 
         response = client.post(
             "/me/first-activation",
@@ -629,15 +629,15 @@ def test_first_activation_token_expired(repo, make_user):
             headers={"Authorization": f"Bearer {token}"},
         )
 
-    user_in_repo = repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
 
     assert response.status_code == 401
     assert response.json()["detail"] == "invalid_credentials"
-    assert user_in_repo.username == ""
-    assert user_in_repo.hashed_password == ""
-    assert user_in_repo.is_active is False
-    assert user_in_repo.is_admin is False
-    assert user_in_repo.has_activated_once is False
-    assert user_in_repo.activation_token_version == 0
+    assert user_in_users_repo.username == ""
+    assert user_in_users_repo.hashed_password == ""
+    assert user_in_users_repo.is_active is False
+    assert user_in_users_repo.is_admin is False
+    assert user_in_users_repo.has_activated_once is False
+    assert user_in_users_repo.activation_token_version == 0
 
     app.dependency_overrides.clear()

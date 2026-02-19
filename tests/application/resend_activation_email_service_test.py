@@ -20,11 +20,11 @@ from app.domain.notifications.handlers.send_user_activation_email import (
 )
 
 
-async def test_resend_activation_email_service_success(repo, make_user):
+async def test_resend_activation_email_service_success(users_repo, make_user):
     user = make_user(email="jhon@doe.com")
-    repo.create(user)
+    users_repo.create(user)
 
-    prepare_use_case = PrepareResendActivationEmailUseCase(repo)
+    prepare_use_case = PrepareResendActivationEmailUseCase(users_repo)
     fake_email_service = FakeEmailService()
     fake_token_service = FakeVersionedTokenService()
 
@@ -34,7 +34,7 @@ async def test_resend_activation_email_service_success(repo, make_user):
     )
 
     service = ResendActivationEmailService(
-        repo=repo,
+        repo=users_repo,
         prepare_use_case=prepare_use_case,
         email_handler=email_handler,
     )
@@ -45,11 +45,11 @@ async def test_resend_activation_email_service_success(repo, make_user):
     assert user.activation_token_version == 1
 
 
-async def test_resend_activation_email_service_unavailable(repo, make_user):
+async def test_resend_activation_email_service_unavailable(users_repo, make_user):
     user = make_user(email="jhon@doe.com", activation_token_version=0)
-    repo.create(user)
+    users_repo.create(user)
 
-    prepare_use_case = PrepareResendActivationEmailUseCase(repo)
+    prepare_use_case = PrepareResendActivationEmailUseCase(users_repo)
     fake_email_service = FakeEmailService(fail_with="email_service_unavailable")
     fake_token_service = FakeVersionedTokenService()
 
@@ -59,7 +59,7 @@ async def test_resend_activation_email_service_unavailable(repo, make_user):
     )
 
     service = ResendActivationEmailService(
-        repo=repo,
+        repo=users_repo,
         prepare_use_case=prepare_use_case,
         email_handler=email_handler,
     )
@@ -71,11 +71,11 @@ async def test_resend_activation_email_service_unavailable(repo, make_user):
     assert fake_email_service.sent is False
 
 
-async def test_resend_activation_email_service_email_send_failed(repo, make_user):
+async def test_resend_activation_email_service_email_send_failed(users_repo, make_user):
     user = make_user(email="jhon@doe.com", activation_token_version=0)
-    repo.create(user)
+    users_repo.create(user)
 
-    prepare_use_case = PrepareResendActivationEmailUseCase(repo)
+    prepare_use_case = PrepareResendActivationEmailUseCase(users_repo)
 
     fake_email_service = FakeEmailService(fail_with="email_send_failed")
     fake_token_service = FakeVersionedTokenService()
@@ -86,7 +86,7 @@ async def test_resend_activation_email_service_email_send_failed(repo, make_user
     )
 
     service = ResendActivationEmailService(
-        repo=repo,
+        repo=users_repo,
         prepare_use_case=prepare_use_case,
         email_handler=email_handler,
     )

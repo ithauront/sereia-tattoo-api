@@ -7,7 +7,7 @@ from app.main import app
 client = TestClient(app)
 
 
-def test_list_users_default_success(repo, make_user, make_token):
+def test_list_users_default_success(users_repo, make_user, make_token):
     admin = make_user(is_admin=True, is_active=True, username="Admin")
 
     user1 = make_user(is_admin=True, is_active=True, username="Daniela")
@@ -15,16 +15,16 @@ def test_list_users_default_success(repo, make_user, make_token):
     user3 = make_user(is_admin=True, is_active=False, username="Bernard")
     user4 = make_user(is_admin=False, is_active=True, username="Adonis")
 
-    repo.create(admin)
+    users_repo.create(admin)
 
-    repo.create(user1)
-    repo.create(user2)
-    repo.create(user3)
-    repo.create(user4)
+    users_repo.create(user1)
+    users_repo.create(user2)
+    users_repo.create(user3)
+    users_repo.create(user4)
 
     token = make_token(admin)
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.get(
         "/users",
@@ -38,7 +38,7 @@ def test_list_users_default_success(repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_list_users_custom_queries_success(repo, make_user, make_token):
+def test_list_users_custom_queries_success(users_repo, make_user, make_token):
     admin = make_user(is_admin=True, is_active=True)
 
     user1 = make_user(is_admin=True, is_active=True, username="Daniela")
@@ -47,17 +47,17 @@ def test_list_users_custom_queries_success(repo, make_user, make_token):
     user4 = make_user(is_admin=False, is_active=True, username="Adonis")
     user5 = make_user(is_admin=False, is_active=False, username="William")
 
-    repo.create(admin)
+    users_repo.create(admin)
 
-    repo.create(user1)
-    repo.create(user2)
-    repo.create(user3)
-    repo.create(user4)
-    repo.create(user5)
+    users_repo.create(user1)
+    users_repo.create(user2)
+    users_repo.create(user3)
+    users_repo.create(user4)
+    users_repo.create(user5)
 
     token = make_token(admin)
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.get(
         "/users?is_active=false&direction=desc",
@@ -71,18 +71,18 @@ def test_list_users_custom_queries_success(repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_not_admin(repo, make_user, make_token):
+def test_not_admin(users_repo, make_user, make_token):
     not_admin = make_user(is_admin=False, is_active=True)
 
     user1 = make_user(is_admin=True, is_active=True, username="Daniela")
 
-    repo.create(not_admin)
+    users_repo.create(not_admin)
 
-    repo.create(user1)
+    users_repo.create(user1)
 
     token = make_token(not_admin)
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
     response = client.get(
         "/users",
         headers={"Authorization": f"Bearer {token}"},
@@ -94,18 +94,18 @@ def test_not_admin(repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_inactive_admin(repo, make_user, make_token):
+def test_inactive_admin(users_repo, make_user, make_token):
     inactive_admin = make_user(is_admin=True, is_active=False)
 
     user1 = make_user(is_admin=True, is_active=True, username="Daniela")
 
-    repo.create(inactive_admin)
+    users_repo.create(inactive_admin)
 
-    repo.create(user1)
+    users_repo.create(user1)
 
     token = make_token(inactive_admin)
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.get(
         "/users",
@@ -118,11 +118,11 @@ def test_inactive_admin(repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_not_user_list_users(repo, make_user, make_token):
+def test_not_user_list_users(users_repo, make_user, make_token):
     user = make_user()
     token = make_token(user)
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.get(
         "/users",
@@ -135,12 +135,12 @@ def test_not_user_list_users(repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_wrong_token_type_list_users(repo, make_user, make_token):
+def test_wrong_token_type_list_users(users_repo, make_user, make_token):
     admin = make_user(is_admin=True, is_active=True)
-    repo.create(admin)
+    users_repo.create(admin)
     token = make_token(admin, token_type="refresh")
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.get(
         "/users",
@@ -153,8 +153,8 @@ def test_wrong_token_type_list_users(repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_missing_authorization_header(repo):
-    app.dependency_overrides[get_users_repository] = lambda: repo
+def test_missing_authorization_header(users_repo):
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.get(
         "/users",
@@ -166,8 +166,8 @@ def test_missing_authorization_header(repo):
     app.dependency_overrides = {}
 
 
-def test_missing_bearer_prefix(repo):
-    app.dependency_overrides[get_users_repository] = lambda: repo
+def test_missing_bearer_prefix(users_repo):
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.get("/users", headers={"Authorization": "Token 123"})
 
@@ -177,8 +177,8 @@ def test_missing_bearer_prefix(repo):
     app.dependency_overrides = {}
 
 
-def test_invalid_jwt_format(repo):
-    app.dependency_overrides[get_users_repository] = lambda: repo
+def test_invalid_jwt_format(users_repo):
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.get(
         "/users",
@@ -191,8 +191,8 @@ def test_invalid_jwt_format(repo):
     app.dependency_overrides = {}
 
 
-def test_invalid_token_sub(repo):
-    app.dependency_overrides[get_users_repository] = lambda: repo
+def test_invalid_token_sub(users_repo):
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     token = jwt_service.create(subject="not-a-uuid", minutes=60, token_type="access")
 
@@ -207,11 +207,11 @@ def test_invalid_token_sub(repo):
     app.dependency_overrides = {}
 
 
-def test_list_users_negative_page(repo, make_user):
+def test_list_users_negative_page(users_repo, make_user):
     admin = make_user(is_admin=True, is_active=True)
-    repo.create(admin)
+    users_repo.create(admin)
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.get("/users?page=-1")
 
@@ -220,11 +220,11 @@ def test_list_users_negative_page(repo, make_user):
     app.dependency_overrides = {}
 
 
-def test_list_users_invalid_limit(repo, make_user):
+def test_list_users_invalid_limit(users_repo, make_user):
     admin = make_user(is_admin=True, is_active=True)
-    repo.create(admin)
+    users_repo.create(admin)
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.get("/users?limit=0")
 
@@ -233,11 +233,11 @@ def test_list_users_invalid_limit(repo, make_user):
     app.dependency_overrides = {}
 
 
-def test_list_users_invalid_order_by(repo, make_user):
+def test_list_users_invalid_order_by(users_repo, make_user):
     admin = make_user(is_admin=True, is_active=True)
-    repo.create(admin)
+    users_repo.create(admin)
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.get("/users?order_by=invalid_field")
 
@@ -246,11 +246,11 @@ def test_list_users_invalid_order_by(repo, make_user):
     app.dependency_overrides = {}
 
 
-def test_list_users_invalid_direction(repo, make_user):
+def test_list_users_invalid_direction(users_repo, make_user):
     admin = make_user(is_admin=True, is_active=True)
-    repo.create(admin)
+    users_repo.create(admin)
 
-    app.dependency_overrides[get_users_repository] = lambda: repo
+    app.dependency_overrides[get_users_repository] = lambda: users_repo
 
     response = client.get("/users?direction=sideways")
 
