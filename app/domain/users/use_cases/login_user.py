@@ -1,4 +1,5 @@
 from app.core.exceptions.users import AuthenticationFailedError, UserInactiveError
+from app.core.normalize.normalize_email import normalize_email
 from app.core.security.passwords import verify_password
 from app.core.security.versioned_token_service import VersionedTokenService
 from app.domain.users.repositories.users_repository import UsersRepository
@@ -18,7 +19,7 @@ class LoginUserUseCase:
 
     def execute(self, data: LoginInput) -> TokenOutput:
         if "@" in data.identifier:
-            email = data.identifier.strip().lower()
+            email = normalize_email(data.identifier)
             user = self.repo.find_by_email(email)
         else:
             user = self.repo.find_by_username(data.identifier)

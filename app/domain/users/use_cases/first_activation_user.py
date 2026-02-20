@@ -13,6 +13,7 @@ from app.domain.users.use_cases.DTO.first_activation_user_dto import (
 )
 
 
+# TODO: enviar um email para o usuario para confirmar para ele que a conta dele esta criada e ativa
 class FirstActivationUserUseCase:
     def __init__(self, repo: UsersRepository):
         self.repo = repo

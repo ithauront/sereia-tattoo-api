@@ -1,4 +1,5 @@
 from app.core.exceptions.users import UserAlreadyExistsError
+from app.core.normalize.normalize_email import normalize_email
 from app.domain.users.entities.user import User
 from app.domain.users.events.activation_email_requested import (
     ActivationEmailRequested,
@@ -12,7 +13,7 @@ class CreateUserUseCase:
         self.repo = repo
 
     def execute(self, data: CreateUserInput) -> ActivationEmailRequested:
-        email = data.user_email.strip().lower()
+        email = normalize_email(data.user_email)
         user_already_exists = self.repo.find_by_email(email)
         if user_already_exists:
             raise UserAlreadyExistsError()

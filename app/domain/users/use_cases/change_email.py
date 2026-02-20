@@ -1,4 +1,5 @@
 from app.core.exceptions.users import AuthenticationFailedError, EmailAlreadyTakenError
+from app.core.normalize.normalize_email import normalize_email
 from app.core.security.passwords import verify_password
 from app.domain.users.entities.user import User
 from app.domain.users.repositories.users_repository import UsersRepository
@@ -10,7 +11,7 @@ class ChangeEmailUseCase:
         self.repo = repo
 
     def execute(self, data: ChangeEmailInput, current_user: User):
-        new_email = data.new_email.strip().lower()
+        new_email = normalize_email(data.new_email)
 
         if new_email == current_user.email:
             return
