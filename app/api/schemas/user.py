@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 
 class ChangePasswordRequest(BaseModel):
@@ -8,11 +8,11 @@ class ChangePasswordRequest(BaseModel):
 
 class ChangeEmailRequest(BaseModel):
     password: str
-    new_email: str
+    new_email: EmailStr
 
 
 class ActivateUserRequest(BaseModel):
-    email: str
+    email: EmailStr
 
 
 class FirstActivationRequest(BaseModel):
@@ -21,8 +21,24 @@ class FirstActivationRequest(BaseModel):
 
 
 class ResetPasswordEmailRequest(BaseModel):
-    email: str
+    email: EmailStr
 
 
 class ResetPasswordRequest(BaseModel):
     new_password: str
+
+
+class ChangeVipClientEmailRequest(BaseModel):
+    new_email: EmailStr
+
+
+class GenerateVipClientCodeRequest(BaseModel):
+    name: str
+
+
+class CreateVipClientRequest(BaseModel):
+    first_name: str
+    last_name: str
+    phone: str
+    email: EmailStr
+    client_code: str

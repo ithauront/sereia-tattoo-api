@@ -81,4 +81,4 @@ htmlcov/
 .pyre/
 .pytype/
 .cache/
-todo.todo
+*.todo
