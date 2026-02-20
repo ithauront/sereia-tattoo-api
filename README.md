@@ -183,6 +183,26 @@ PASSWORD:
 - Deve ter numero
 - Pode ter mas não é obrigatorio de ter caracteres especiais
 
-### FRONTEND:
+## FRONTEND:
 
-Nos não usamos uma segurança para mudança de email em dois tempos (change pending) então o ideal é que em operação de atualização de email o frontend faça doublecheck do input digitado
+### Atualização de e-mail de user
+
+Não há um mecanismo de "change pending" para alterações de e-mail. Portanto, recomenda-se que o frontend faça uma validação dupla do input do usuário antes de enviar a atualização para o backend.
+
+### Criação de cliente vip
+
+No fluxo de criação de um cliente VIP, o frontend precisa preencher um formulário e obter clientcodes antes de criar o usuário. O processo é o seguinte:
+
+1. O frontend faz uma requisição POST para /users/vip-client/generate-client-codes com um token de admin autenticado.
+
+2. O backend retorna até 3 clientcodes disponíveis.
+
+3 O frontend escolhe 1 clientcode e, no momento de criar o usuário, envia esse código junto com as demais informações do cliente.
+
+**Detalhes importantes sobre os clientcodes:**
+
+- Cada clientcode será gerado com: name + color + número (opcional).
+- Color e número são gerenciados pelo backend.
+- O name deve ser enviado pelo frontend. A convenção do sistema recomenda (inicialmente) enviar o firstname do cliente.
+- Caso o backend retorne o erro 409: "please_try_creating_client_code_with_last_name", o frontend deve tentar enviar o lastname.
+- A decisão de automatizar o envio do firstname e, no retry enviar o lastname, ou de deixar o usuário escolher, fica a cargo do frontend. O importante é sugerir enviar o firstname inicialmente e o lastname apenas em caso de erro.
