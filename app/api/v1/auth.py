@@ -6,20 +6,24 @@ from app.api.dependencies.security import (
 )
 from app.api.dependencies.users import get_users_repository
 from app.api.schemas.auth import LoginRequest, RefreshRequest, TokenPair
+from app.application.studio.use_cases.DTO.login_dto import (
+    LoginInput,
+    LogoutInput,
+    RefreshInput,
+)
+from app.application.studio.use_cases.users_use_cases.login_user import LoginUserUseCase
+from app.application.studio.use_cases.users_use_cases.logout_user import (
+    LogoutUserUseCase,
+)
+from app.application.studio.use_cases.users_use_cases.refresh_user import (
+    RefreshUserUseCase,
+)
 from app.core.exceptions.security import TokenError
 from app.core.exceptions.users import (
     AuthenticationFailedError,
     UserInactiveError,
 )
 from app.core.security.versioned_token_service import VersionedTokenService
-from app.domain.users.use_cases.DTO.login_dto import (
-    LoginInput,
-    LogoutInput,
-    RefreshInput,
-)
-from app.domain.users.use_cases.login_user import LoginUserUseCase
-from app.domain.users.use_cases.logout_user import LogoutUserUseCase
-from app.domain.users.use_cases.refresh_user import RefreshUserUseCase
 
 
 router = APIRouter(prefix="/auth")

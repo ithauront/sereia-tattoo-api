@@ -3,14 +3,16 @@ from fastapi import Depends, HTTPException, Header, status
 
 from app.api.dependencies.security import get_access_token_service
 from app.api.dependencies.users import get_users_repository
+from app.application.studio.repositories.users_repository import UsersRepository
+from app.application.studio.use_cases.DTO.login_dto import VerifyInput
+from app.application.studio.use_cases.users_use_cases.verify_user import (
+    VerifyUserUseCase,
+)
 from app.core.exceptions.security import TokenError
 from app.core.security.versioned_token_service import VersionedTokenService
-from app.domain.users.repositories.users_repository import UsersRepository
-from app.domain.users.use_cases.verify_user import VerifyUserUseCase
-
-from app.domain.users.use_cases.DTO.login_dto import VerifyInput
 
 
+# TODO fazer teste de todas as dependencias mas talvez não seja necessario porque elas são indiretamente testadas pelas rotas.
 def get_current_user(
     authorization: str = Header(...),
     repo: UsersRepository = Depends(get_users_repository),

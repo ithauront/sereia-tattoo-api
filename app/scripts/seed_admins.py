@@ -1,5 +1,5 @@
 from app.core.security.passwords import hash_password
-from app.domain.users.entities.user import User
+from app.domain.studio.users.entities.user import User
 from app.infrastructure.sqlalchemy.repositories.users_repository_sqlalchemy import (
     SQLAlchemyUsersRepository,
 )
@@ -12,6 +12,7 @@ ADMINS = [
 ]
 
 
+# TODO esse script ja esta deprecated
 def seed_admins():
     db = SessionLocal()
 

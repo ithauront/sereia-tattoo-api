@@ -1,8 +1,9 @@
 from datetime import datetime, timezone
 from typing import List, Optional
 from uuid import UUID
-from app.domain.users.entities.user import User
-from app.domain.users.repositories.users_repository import UsersRepository
+
+from app.application.studio.repositories.users_repository import UsersRepository
+from app.domain.studio.users.entities.user import User
 
 
 class FakeUsersRepository(UsersRepository):

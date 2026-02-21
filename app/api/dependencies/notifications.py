@@ -1,4 +1,4 @@
-from app.domain.notifications.ports.email_service import EmailService
+from app.application.notifications.ports.email_service import EmailService
 from app.infrastructure.email.brevo_email_service import BrevoEmailService
 
 

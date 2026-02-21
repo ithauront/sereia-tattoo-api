@@ -4,9 +4,9 @@ from app.core.security import jwt_service
 from app.core.security.jwt_service import JWTService
 from app.core.security.passwords import hash_password
 from app.core.security.versioned_token_service import VersionedTokenService
-from app.domain.users.entities.user import User
-from app.domain.users.entities.value_objects.client_code import ClientCode
-from app.domain.users.entities.vip_client import VipClient
+from app.domain.studio.users.entities.user import User
+from app.domain.studio.users.entities.value_objects.client_code import ClientCode
+from app.domain.studio.users.entities.vip_client import VipClient
 from tests.fakes.fake_users_repository import FakeUsersRepository
 from app.core.config import settings
 from tests.fakes.fake_vip_clients_repository import FakeVipClientsRepository

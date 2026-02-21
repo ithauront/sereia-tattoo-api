@@ -1,0 +1,53 @@
+from uuid import UUID
+import pytest
+from app.application.studio.use_cases.DTO.prepare_send_forgot_password_email_dto import (
+    PrepareSendForgotPasswordEmailInput,
+)
+from app.application.studio.use_cases.users_use_cases.prepare_send_forgot_password_email import (
+    PrepareSendForgotPasswordEmailUseCase,
+)
+from app.core.exceptions.users import (
+    UserInactiveError,
+    UserNotFoundError,
+)
+from app.domain.studio.users.entities.user import User
+
+
+def test_send_forgot_password_email_success(users_repo, make_user):
+    user = make_user(email="jhon@doe.com")
+    users_repo.create(user)
+
+    use_case = PrepareSendForgotPasswordEmailUseCase(users_repo)
+    input_data = PrepareSendForgotPasswordEmailInput(user_email="jhon@doe.com")
+
+    assert user.password_token_version == 0
+
+    result = use_case.execute(input_data)
+
+    assert result is not None
+    assert isinstance(result, User)
+    assert result.email == "jhon@doe.com"
+    assert type(result.id) is UUID
+    assert type(result.activation_token_version) is int
+    assert result.activation_token_version == 0
+    assert user.activation_token_version == 0
+    assert user.id == result.id
+
+
+def test_send_forgot_password_email_user_not_found(users_repo, mocker):
+    use_case = PrepareSendForgotPasswordEmailUseCase(users_repo)
+    input_data = PrepareSendForgotPasswordEmailInput(user_email="jhon@doe.com")
+
+    with pytest.raises(UserNotFoundError):
+        use_case.execute(input_data)
+
+
+def test_send_forgot_password_email_user_inactive(users_repo, make_user, mocker):
+    user = make_user(email="jhon@doe.com", is_active=False)
+    users_repo.create(user)
+
+    use_case = PrepareSendForgotPasswordEmailUseCase(users_repo)
+    input_data = PrepareSendForgotPasswordEmailInput(user_email="jhon@doe.com")
+
+    with pytest.raises(UserInactiveError):
+        use_case.execute(input_data)

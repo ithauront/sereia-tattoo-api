@@ -1,11 +1,11 @@
 import logging
 import httpx
+from app.application.notifications.ports.email_service import EmailService
 from app.core.config import settings
 from app.core.exceptions.services import (
     EmailSentFailedError,
     EmailServiceUnavailableError,
 )
-from app.domain.notifications.ports.email_service import EmailService
 
 logger = logging.getLogger(__name__)
 

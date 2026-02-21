@@ -24,8 +24,67 @@ from app.api.schemas.user import (
     CreateVipClientRequest,
     GenerateVipClientCodeRequest,
 )
-from app.application.users.services.resend_activation_email_service import (
+from app.application.notifications.handlers.send_user_activation_email import (
+    SendUserActivationHandler,
+)
+from app.application.notifications.handlers.send_vip_client_creation_notification_email import (
+    SendVipClientCreationNotificationEmailHandler,
+)
+from app.application.studio.services.resend_activation_email_service import (
     ResendActivationEmailService,
+)
+from app.application.studio.use_cases.DTO.change_email_dto import (
+    ChangeVipClientEmailInput,
+)
+from app.application.studio.use_cases.DTO.create_user_dto import CreateUserInput
+from app.application.studio.use_cases.DTO.create_vip_client_dto import (
+    CreateVipClientInput,
+)
+from app.application.studio.use_cases.DTO.get_users_dto import (
+    Direction,
+    GetUserInput,
+    ListUsersInput,
+    ListUsersOutput,
+    OrderBy,
+)
+from app.application.studio.use_cases.DTO.prepare_resend_activation_email_dto import (
+    PrepareResendActivationEmailInput,
+)
+from app.application.studio.use_cases.DTO.user_output_dto import UserOutput
+from app.application.studio.use_cases.DTO.user_status_dto import (
+    ActivateUserInput,
+    DeactivateUserInput,
+    DemoteUserInput,
+    PromoteUserInput,
+)
+from app.application.studio.use_cases.users_use_cases.activate_user import (
+    ActivateUserUseCase,
+)
+from app.application.studio.use_cases.users_use_cases.change_vip_client_email import (
+    ChangeVipClientEmailUseCase,
+)
+from app.application.studio.use_cases.users_use_cases.create_user import (
+    CreateUserUseCase,
+)
+from app.application.studio.use_cases.users_use_cases.create_vip_client import (
+    CreateVipClientUseCase,
+)
+from app.application.studio.use_cases.users_use_cases.deactivate_user import (
+    DeactivateUserUseCase,
+)
+from app.application.studio.use_cases.users_use_cases.demote_user_from_admin import (
+    DemoteUserFromAdminUseCase,
+)
+from app.application.studio.use_cases.users_use_cases.generate_vip_client_code import (
+    GenerateVipClientCodeUseCase,
+)
+from app.application.studio.use_cases.users_use_cases.get_user import GetUserUseCase
+from app.application.studio.use_cases.users_use_cases.list_users import ListUsersUseCase
+from app.application.studio.use_cases.users_use_cases.prepare_resend_activation_email import (
+    PrepareResendActivationEmailUseCase,
+)
+from app.application.studio.use_cases.users_use_cases.promote_user_to_admin import (
+    PromoteUserToAdminUseCase,
 )
 from app.core.exceptions.services import (
     EmailSentFailedError,
@@ -46,50 +105,7 @@ from app.core.exceptions.users import (
     VipClientNotFoundError,
 )
 from app.core.exceptions.validation import ValidationError
-from app.domain.notifications.handlers.send_user_activation_email import (
-    SendUserActivationHandler,
-)
-from app.domain.notifications.handlers.send_vip_client_creation_notification_email import (
-    SendVipClientCreationNotificationEmailHandler,
-)
-from app.domain.users.services.client_code_generator import ClientCodeGenerator
-from app.domain.users.use_cases.DTO.change_email_dto import ChangeVipClientEmailInput
-from app.domain.users.use_cases.DTO.create_user_dto import CreateUserInput
-from app.domain.users.use_cases.DTO.create_vip_client_dto import CreateVipClientInput
-from app.domain.users.use_cases.DTO.get_users_dto import (
-    GetUserInput,
-    ListUsersInput,
-    ListUsersOutput,
-    OrderBy,
-    Direction,
-)
-from app.domain.users.use_cases.DTO.prepare_resend_activation_email_dto import (
-    PrepareResendActivationEmailInput,
-)
-from app.domain.users.use_cases.DTO.user_output_dto import UserOutput
-from app.domain.users.use_cases.DTO.user_status_dto import (
-    ActivateUserInput,
-    DeactivateUserInput,
-    DemoteUserInput,
-    PromoteUserInput,
-)
-from app.domain.users.use_cases.activate_user import ActivateUserUseCase
-from app.domain.users.use_cases.change_vip_client_email import (
-    ChangeVipClientEmailUseCase,
-)
-from app.domain.users.use_cases.create_user import CreateUserUseCase
-from app.domain.users.use_cases.create_vip_client import CreateVipClientUseCase
-from app.domain.users.use_cases.deactivate_user import DeactivateUserUseCase
-from app.domain.users.use_cases.demote_user_from_admin import DemoteUserFromAdminUseCase
-from app.domain.users.use_cases.generate_vip_client_code import (
-    GenerateVipClientCodeUseCase,
-)
-from app.domain.users.use_cases.get_user import GetUserUseCase
-from app.domain.users.use_cases.list_users import ListUsersUseCase
-from app.domain.users.use_cases.promote_user_to_admin import PromoteUserToAdminUseCase
-from app.domain.users.use_cases.prepare_resend_activation_email import (
-    PrepareResendActivationEmailUseCase,
-)
+from app.application.studio.services.client_code_generator import ClientCodeGenerator
 
 
 router = APIRouter(prefix="/users")

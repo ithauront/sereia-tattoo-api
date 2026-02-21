@@ -1,8 +1,10 @@
 from typing import List, Optional
 from uuid import UUID
 
-from app.domain.users.entities.vip_client import VipClient
-from app.domain.users.repositories.vip_clients_repository import VipClientsRepository
+from app.application.studio.repositories.vip_clients_repository import (
+    VipClientsRepository,
+)
+from app.domain.studio.users.entities.vip_client import VipClient
 
 
 class FakeVipClientsRepository(VipClientsRepository):

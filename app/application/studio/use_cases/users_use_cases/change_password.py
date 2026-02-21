@@ -1,0 +1,24 @@
+from app.application.studio.repositories.users_repository import UsersRepository
+from app.application.studio.use_cases.DTO.password_dto import ChangePasswordInput
+from app.core.exceptions.users import AuthenticationFailedError
+from app.core.security.passwords import hash_password, verify_password
+from app.core.validations.password import validate_password
+from app.domain.studio.users.entities.user import User
+
+
+class ChangePasswordUseCase:
+    def __init__(self, repo: UsersRepository):
+        self.repo = repo
+
+    def execute(self, data: ChangePasswordInput, current_user: User) -> None:
+
+        if not verify_password(data.old_password, current_user.hashed_password):
+            raise AuthenticationFailedError()
+
+        validate_password(data.new_password)
+
+        hashed_password = hash_password(data.new_password)
+
+        current_user.change_password(hashed_password)
+
+        self.repo.update(current_user)

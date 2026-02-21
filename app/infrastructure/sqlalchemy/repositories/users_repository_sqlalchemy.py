@@ -1,11 +1,9 @@
 from typing import List, Optional
 from uuid import UUID
 from sqlalchemy import select
-from app.domain.users.repositories.users_repository import UsersRepository
 from sqlalchemy.orm import Session
-
-from app.domain.users.entities.user import User
-
+from app.application.studio.repositories.users_repository import UsersRepository
+from app.domain.studio.users.entities.user import User
 from app.infrastructure.sqlalchemy.models.users import UserModel
 
 

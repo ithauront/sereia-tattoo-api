@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     API: str = ""
     DATABASE_URL: str
 
-    ##jwt
+    # jwt
     SECRET_KEY: SecretStr
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30

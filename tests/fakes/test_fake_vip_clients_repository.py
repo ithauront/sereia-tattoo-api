@@ -1,5 +1,4 @@
 import pytest
-
 from tests.fakes.fake_vip_clients_repository import FakeVipClientsRepository
 
 

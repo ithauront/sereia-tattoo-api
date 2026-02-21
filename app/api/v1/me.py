@@ -1,5 +1,37 @@
 from app.api.dependencies.notifications import get_email_service
 from app.api.dependencies.users import get_users_repository
+from app.application.notifications.handlers.send_password_reset_email import (
+    SendPasswordResetEmailHandler,
+)
+from app.application.studio.services.send_password_reset_email_service import (
+    SendPasswordResetEmailService,
+)
+from app.application.studio.use_cases.DTO.change_email_dto import ChangeEmailInput
+from app.application.studio.use_cases.DTO.first_activation_user_dto import (
+    FirstActivationInput,
+)
+from app.application.studio.use_cases.DTO.password_dto import (
+    ChangePasswordInput,
+    ResetPasswordInput,
+)
+from app.application.studio.use_cases.DTO.prepare_send_forgot_password_email_dto import (
+    PrepareSendForgotPasswordEmailInput,
+)
+from app.application.studio.use_cases.users_use_cases.change_email import (
+    ChangeEmailUseCase,
+)
+from app.application.studio.use_cases.users_use_cases.change_password import (
+    ChangePasswordUseCase,
+)
+from app.application.studio.use_cases.users_use_cases.first_activation_user import (
+    FirstActivationUserUseCase,
+)
+from app.application.studio.use_cases.users_use_cases.prepare_send_forgot_password_email import (
+    PrepareSendForgotPasswordEmailUseCase,
+)
+from app.application.studio.use_cases.users_use_cases.reset_password import (
+    ResetPasswordUseCase,
+)
 from app.core.exceptions.services import (
     EmailSentFailedError,
     EmailServiceUnavailableError,
@@ -17,15 +49,8 @@ from app.core.exceptions.users import (
 )
 from app.core.security.activation_context import ActivationContext
 from app.core.security.password_context import PasswordContext
-from app.domain.users.use_cases.DTO.change_email_dto import ChangeEmailInput
-from app.domain.users.use_cases.DTO.first_activation_user_dto import (
-    FirstActivationInput,
-)
-from app.domain.users.use_cases.change_email import ChangeEmailUseCase
-from app.domain.users.use_cases.first_activation_user import FirstActivationUserUseCase
-from app.domain.users.use_cases.prepare_send_forgot_password_email import (
-    PrepareSendForgotPasswordEmailUseCase,
-)
+
+
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from app.api.dependencies.token_context import (
     get_current_activation_context,
@@ -41,24 +66,10 @@ from app.api.schemas.user import (
     ResetPasswordEmailRequest,
     ResetPasswordRequest,
 )
-from app.domain.users.use_cases.change_password import ChangePasswordUseCase
-from app.domain.users.use_cases.DTO.prepare_send_forgot_password_email_dto import (
-    PrepareSendForgotPasswordEmailInput,
-)
-from app.domain.users.use_cases.DTO.password_dto import (
-    ChangePasswordInput,
-    ResetPasswordInput,
-)
-from app.application.users.services.send_password_reset_email_service import (
-    SendPasswordResetEmailService,
-)
-from app.domain.notifications.handlers.send_password_reset_email import (
-    SendPasswordResetEmailHandler,
-)
+
 from app.api.dependencies.auth import (
     get_current_active_user,
 )
-from app.domain.users.use_cases.reset_password import ResetPasswordUseCase
 
 router = APIRouter(prefix="/me")
 

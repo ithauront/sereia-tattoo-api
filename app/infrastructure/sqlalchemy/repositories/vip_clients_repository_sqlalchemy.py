@@ -1,11 +1,13 @@
 from typing import List, Optional
 from uuid import UUID
 from sqlalchemy import select
-from app.domain.users.entities.value_objects.client_code import ClientCode
-from app.domain.users.entities.vip_client import VipClient
-from app.domain.users.repositories.vip_clients_repository import VipClientsRepository
 from sqlalchemy.orm import Session
 
+from app.application.studio.repositories.vip_clients_repository import (
+    VipClientsRepository,
+)
+from app.domain.studio.users.entities.value_objects.client_code import ClientCode
+from app.domain.studio.users.entities.vip_client import VipClient
 from app.infrastructure.sqlalchemy.models.vip_client import VipClientModel
 
 
