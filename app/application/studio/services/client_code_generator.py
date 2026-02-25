@@ -1,33 +1,30 @@
 import random
-from app.application.studio.repositories.vip_clients_repository import (
-    VipClientsRepository,
-)
+from app.application.studio.unit_of_work.read_unit_of_work import ReadUnitOfWork
 from app.core.exceptions.users import AllClientCodesTakenError
 from app.domain.studio.users.constants.client_code_colors import VIP_CLIENT_CODE_COLORS
 from app.domain.studio.users.entities.value_objects.client_code import ClientCode
 
 
-# TODO: acho que isso não é service de domain porque ele precisa do vipclientRepository
 class ClientCodeGenerator:
-    def __init__(self, repo: VipClientsRepository):
-        self.repo = repo
+    def __init__(self, uow: ReadUnitOfWork):
+        self.uow = uow
 
-    def generate(self, first_name: str) -> ClientCode:
-        first_name = first_name.strip().upper()
+    def generate(self, name: str) -> ClientCode:
+        name = name.strip().upper()
 
         colors_shuffled = VIP_CLIENT_CODE_COLORS.copy()
         random.shuffle(colors_shuffled)
 
         for color in colors_shuffled:
-            candidate = f"{first_name}-{color}"
+            candidate = f"{name}-{color}"
 
-            if not self.repo.find_by_client_code(candidate):
+            if not self.uow.vip_clients.find_by_client_code(candidate):
                 return ClientCode(candidate)
 
         for color in colors_shuffled:
             for i in range(1, 100):
-                candidate = f"{first_name}-{color}-{i:02d}"
-                if not self.repo.find_by_client_code(candidate):
+                candidate = f"{name}-{color}-{i:02d}"
+                if not self.uow.vip_clients.find_by_client_code(candidate):
                     return ClientCode(candidate)
 
         raise AllClientCodesTakenError("please_try_creating_client_code_with_last_name")
