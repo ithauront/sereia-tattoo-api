@@ -1,6 +1,10 @@
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
+from app.domain.studio.users.events.activation_email_requested import (
+    ActivationEmailRequested,
+)
+
 
 class User:
     def __init__(
@@ -43,6 +47,15 @@ class User:
             has_activated_once=False,
             activation_token_version=0,
             password_token_version=0,
+        )
+
+    def request_activation_email(self) -> ActivationEmailRequested:
+        self.bump_activation_token()
+        self._touch()
+        return ActivationEmailRequested(
+            user_id=self.id,
+            email=self.email,
+            activation_token_version=self.activation_token_version,
         )
 
     def logout(self):
