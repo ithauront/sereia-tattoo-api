@@ -6,6 +6,6 @@ from app.infrastructure.sqlalchemy.repositories.vip_clients_repository_sqlalchem
     SQLAlchemyVipClientsRepository,
 )
 
-
+#TODO Essa dependency esta marcada para ser excluida quando a refatoração para uow for completa.
 def get_vip_clients_repository(db: Session = Depends(get_db)):
     return SQLAlchemyVipClientsRepository(db)

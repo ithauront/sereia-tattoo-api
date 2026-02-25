@@ -7,5 +7,6 @@ from app.infrastructure.sqlalchemy.repositories.users_repository_sqlalchemy impo
 )
 
 
+# TODO Essa dependency esta marcada para ser excluida quando a refatoração para uow for completa.
 def get_users_repository(db: Session = Depends(get_db)):
     return SQLAlchemyUsersRepository(db)

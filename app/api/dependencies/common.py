@@ -4,6 +4,9 @@ from app.infrastructure.sqlalchemy.session import SessionLocal
 
 # TODO: aparentemente o db assim é ruim para sideeffects, estudar isso e ver como resolver.
 # TODO: talvez criar um getbd read e get db write assim a gente não faz commit nas operações de read e economizamos um pouco de prcessamento
+
+
+# TODO Essa dependency esta marcada para ser excluida quando a refatoração para uow for completa.
 def get_db() -> Generator:
     db = SessionLocal()
     try:
