@@ -1,7 +1,7 @@
 from app.application.notifications.handlers.send_password_reset_email import (
     SendPasswordResetEmailHandler,
 )
-from app.application.studio.repositories.users_repository import UsersRepository
+from app.application.studio.unit_of_work.write_unit_of_work import WriteUnitOfWork
 from app.application.studio.use_cases.DTO.prepare_send_forgot_password_email_dto import (
     PrepareSendForgotPasswordEmailInput,
 )
@@ -27,25 +27,26 @@ from app.domain.studio.users.events.password_reset_email_requested import (
 class SendPasswordResetEmailService:
     def __init__(
         self,
-        repo: UsersRepository,
+        uow: WriteUnitOfWork,
         prepare_use_case: PrepareSendForgotPasswordEmailUseCase,
         email_handler: SendPasswordResetEmailHandler,
     ):
-        self.repo = repo
+        self.uow = uow
         self.prepare_use_case = prepare_use_case
         self.email_handler = email_handler
 
     async def execute(self, data: PrepareSendForgotPasswordEmailInput) -> None:
-        user = self.prepare_use_case.execute(data)
+        with self.uow:
+            user = self.prepare_use_case.execute(data)
 
-        event = PasswordResetEmailRequested(
-            user_id=user.id,
-            email=user.email,
-            password_token_version=user.password_token_version + 1,
-        )
+            event = PasswordResetEmailRequested(
+                user_id=user.id,
+                email=user.email,
+                password_token_version=user.password_token_version + 1,
+            )
 
-        await self.email_handler.handle(event)
+            await self.email_handler.handle(event)
 
-        user.bump_password_token()
-        user._touch()
-        self.repo.update(user)
+            user.bump_password_token()
+            user._touch()
+            self.uow.users.update(user)

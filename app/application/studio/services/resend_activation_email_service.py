@@ -1,7 +1,7 @@
 from app.application.notifications.handlers.send_user_activation_email import (
     SendUserActivationHandler,
 )
-from app.application.studio.repositories.users_repository import UsersRepository
+from app.application.studio.unit_of_work.write_unit_of_work import WriteUnitOfWork
 from app.application.studio.use_cases.DTO.prepare_resend_activation_email_dto import (
     PrepareResendActivationEmailInput,
 )
@@ -27,11 +27,11 @@ from app.domain.studio.users.events.activation_email_requested import (
 class ResendActivationEmailService:
     def __init__(
         self,
-        repo: UsersRepository,
+        uow: WriteUnitOfWork,
         prepare_use_case: PrepareResendActivationEmailUseCase,
         email_handler: SendUserActivationHandler,
     ):
-        self.repo = repo
+        self.uow = uow
         self.prepare_use_case = prepare_use_case
         self.email_handler = email_handler
 
@@ -43,10 +43,10 @@ class ResendActivationEmailService:
             email=user.email,
             activation_token_version=user.activation_token_version + 1,
         )
+        with self.uow:
+            user._touch()
+            self.uow.users.update(user)
 
-        user._touch()
-        self.repo.update(user)
+            await self.email_handler.handle(event)
 
-        await self.email_handler.handle(event)
-
-        user.bump_activation_token()
+            user.bump_activation_token()
