@@ -1,4 +1,4 @@
-from app.application.studio.repositories.users_repository import UsersRepository
+from app.application.studio.unit_of_work.read_unit_of_work import ReadUnitOfWork
 from app.application.studio.use_cases.DTO.login_dto import LoginInput, TokenOutput
 from app.core.exceptions.users import AuthenticationFailedError, UserInactiveError
 from app.core.normalize.normalize_email import normalize_email
@@ -9,20 +9,21 @@ from app.core.security.versioned_token_service import VersionedTokenService
 class LoginUserUseCase:
     def __init__(
         self,
-        repo: UsersRepository,
+        uow: ReadUnitOfWork,
         access_tokens: VersionedTokenService,
         refresh_tokens: VersionedTokenService,
     ):
-        self.repo = repo
+        self.uow = uow
         self.access_tokens = access_tokens
         self.refresh_tokens = refresh_tokens
 
     def execute(self, data: LoginInput) -> TokenOutput:
-        if "@" in data.identifier:
-            email = normalize_email(data.identifier)
-            user = self.repo.find_by_email(email)
-        else:
-            user = self.repo.find_by_username(data.identifier)
+        with self.uow:
+            if "@" in data.identifier:
+                email = normalize_email(data.identifier)
+                user = self.uow.users.find_by_email(email)
+            else:
+                user = self.uow.users.find_by_username(data.identifier)
 
         if not user:
             raise AuthenticationFailedError()

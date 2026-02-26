@@ -1,6 +1,4 @@
-from app.application.studio.repositories.vip_clients_repository import (
-    VipClientsRepository,
-)
+from app.application.studio.unit_of_work.write_unit_of_work import WriteUnitOfWork
 from app.application.studio.use_cases.DTO.create_vip_client_dto import (
     CreateVipClientInput,
 )
@@ -20,37 +18,42 @@ from app.domain.studio.users.events.create_vip_client_email_requested import (
 )
 
 
-# TODO: Fazer teste desse use_case inclusive se ele envia email sem persistir o usuario (não deveria)
+# TODO: Fazer teste desse use_case inclusive se ele envia email sem persistir o usuario (não deveria) Mudar o evento para ser chamado mais parecido com o create user
 class CreateVipClientUseCase:
-    def __init__(self, repo: VipClientsRepository):
-        self.repo = repo
+    def __init__(self, uow: WriteUnitOfWork):
+        self.uow = uow
 
     def execute(self, data: CreateVipClientInput) -> CreateVipClientEmailRequested:
         email = normalize_email(data.email)
         phone = normalize_phone(data.phone)
-        email_exists = self.repo.find_by_email(email)
-        try:
-            validate_phone_number(phone)
-        except ValidationError:
-            raise
-        phone_exists = self.repo.find_by_phone(phone)
-        client_code_exists = self.repo.find_by_client_code(data.client_code)
 
-        if email_exists:
-            raise EmailAlreadyTakenError()
-        if phone_exists:
-            raise PhoneAlreadyTakenError()
-        if client_code_exists:
-            raise ClientCodeAlreadyTakenError()
+        with self.uow:
+            email_exists = self.uow.vip_clients.find_by_email(email)
+            if email_exists:
+                raise EmailAlreadyTakenError()
+            try:
+                validate_phone_number(phone)
+            except ValidationError:
+                raise
 
-        vip_client = VipClient.create(
-            first_name=data.first_name,
-            last_name=data.last_name,
-            email=email,
-            phone=phone,
-            client_code=ClientCode(data.client_code),
-        )
-        self.repo.create(vip_client)
-        return CreateVipClientEmailRequested(
-            email=vip_client.email, client_code=str(vip_client.client_code)
-        )
+            phone_exists = self.uow.vip_clients.find_by_phone(phone)
+            if phone_exists:
+                raise PhoneAlreadyTakenError()
+
+            client_code_exists = self.uow.vip_clients.find_by_client_code(
+                data.client_code
+            )
+            if client_code_exists:
+                raise ClientCodeAlreadyTakenError()
+
+            vip_client = VipClient.create(
+                first_name=data.first_name,
+                last_name=data.last_name,
+                email=email,
+                phone=phone,
+                client_code=ClientCode(data.client_code),
+            )
+            self.uow.vip_clients.create(vip_client)
+            return CreateVipClientEmailRequested(
+                email=vip_client.email, client_code=str(vip_client.client_code)
+            )

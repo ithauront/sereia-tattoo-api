@@ -1,5 +1,5 @@
 from uuid import UUID
-from app.application.studio.repositories.users_repository import UsersRepository
+from app.application.studio.unit_of_work.read_unit_of_work import ReadUnitOfWork
 from app.application.studio.use_cases.DTO.login_dto import RefreshInput, TokenOutput
 from app.core.exceptions.security import TokenError
 from app.core.exceptions.users import AuthenticationFailedError
@@ -9,11 +9,11 @@ from app.core.security.versioned_token_service import VersionedTokenService
 class RefreshUserUseCase:
     def __init__(
         self,
-        repo: UsersRepository,
+        uow: ReadUnitOfWork,
         refresh_tokens: VersionedTokenService,
         access_tokens: VersionedTokenService,
     ):
-        self.repo = repo
+        self.uow = uow
         self.refresh_tokens = refresh_tokens
         self.access_tokens = access_tokens
 
@@ -28,8 +28,9 @@ class RefreshUserUseCase:
             user_id = UUID(payload["sub"])
         except Exception:
             raise TokenError("invalid_token")
-
-        user = self.repo.find_by_id(user_id)
+        
+        with self.uow:
+            user = self.uow.users.find_by_id(user_id)
 
         if not user or not user.is_active:
             raise AuthenticationFailedError("user_not_found_or_inactive")

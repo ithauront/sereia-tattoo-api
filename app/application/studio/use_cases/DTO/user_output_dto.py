@@ -15,3 +15,9 @@ class UserOutput(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class UserVerifyDTO(BaseModel):
+    id: UUID
+    is_active: bool
+    is_admin: bool

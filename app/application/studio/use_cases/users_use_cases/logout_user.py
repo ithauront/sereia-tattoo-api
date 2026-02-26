@@ -1,17 +1,19 @@
 from app.application.studio.repositories.users_repository import UsersRepository
+from app.application.studio.unit_of_work.read_unit_of_work import ReadUnitOfWork
 from app.application.studio.use_cases.DTO.login_dto import LogoutInput
 from app.core.exceptions.users import UserNotFoundError
 
 
 class LogoutUserUseCase:
-    def __init__(self, repo: UsersRepository):
-        self.repo = repo
+    def __init__(self, uow: ReadUnitOfWork):
+        self.uow = uow
 
     def execute(self, data: LogoutInput):
-        user = self.repo.find_by_id(data.user_id)
-        if not user:
-            raise UserNotFoundError()
+        with self.uow:
+            user = self.uow.users.find_by_id(data.user_id)
+            if not user:
+                raise UserNotFoundError()
 
-        user.logout()
+            user.logout()
 
-        self.repo.update(user)
+            self.uow.users.update(user)

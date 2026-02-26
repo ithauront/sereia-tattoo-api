@@ -3,6 +3,7 @@ from pydantic import BaseModel
 
 
 class ChangePasswordInput(BaseModel):
+    user_id: UUID
     old_password: str
     new_password: str
 

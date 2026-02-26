@@ -1,4 +1,4 @@
-from app.application.studio.repositories.users_repository import UsersRepository
+from app.application.studio.unit_of_work.write_unit_of_work import WriteUnitOfWork
 from app.application.studio.use_cases.DTO.user_status_dto import DeactivateUserInput
 from app.core.exceptions.users import (
     CannotDeactivateYourselfError,
@@ -8,25 +8,25 @@ from app.core.exceptions.users import (
 
 
 class DeactivateUserUseCase:
-
-    def __init__(self, repo: UsersRepository):
-        self.repo = repo
+    def __init__(self, uow: WriteUnitOfWork):
+        self.uow = uow
 
     def execute(self, data: DeactivateUserInput):
-        user = self.repo.find_by_id(data.user_id)
+        with self.uow:
+            user = self.uow.users.find_by_id(data.user_id)
 
-        if not user:
-            raise UserNotFoundError()
+            if not user:
+                raise UserNotFoundError()
 
-        if data.actor_id == user.id:
-            raise CannotDeactivateYourselfError()
+            if data.actor_id == user.id:
+                raise CannotDeactivateYourselfError()
 
-        if user.is_admin and user.is_active:
-            admins = self.repo.find_many(is_admin=True, is_active=True)
-            if len(admins) == 1:
-                raise LastAdminCannotBeDeactivatedError()
+            if user.is_admin and user.is_active:
+                admins = self.uow.users.find_many(is_admin=True, is_active=True)
+                if len(admins) == 1:
+                    raise LastAdminCannotBeDeactivatedError()
 
-        changed = user.deactivate()
+            changed = user.deactivate()
 
-        if changed:
-            self.repo.update(user)
+            if changed:
+                self.uow.users.update(user)

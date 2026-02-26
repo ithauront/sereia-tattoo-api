@@ -2,6 +2,8 @@ import enum
 from uuid import UUID
 from pydantic import BaseModel
 
+from app.application.studio.use_cases.DTO.user_output_dto import UserVerifyDTO
+
 
 class LoginInput(BaseModel):
     identifier: str
@@ -34,3 +36,4 @@ class VerifyOutput(BaseModel):
     valid: bool
     sub: str
     type: TokenType
+    user: UserVerifyDTO

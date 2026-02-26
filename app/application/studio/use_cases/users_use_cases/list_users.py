@@ -1,4 +1,4 @@
-from app.application.studio.repositories.users_repository import UsersRepository
+from app.application.studio.unit_of_work.read_unit_of_work import ReadUnitOfWork
 from app.application.studio.use_cases.DTO.get_users_dto import (
     ListUsersInput,
     ListUsersOutput,
@@ -7,11 +7,14 @@ from app.application.studio.use_cases.DTO.user_output_dto import UserOutput
 
 
 class ListUsersUseCase:
-    def __init__(self, repo: UsersRepository):
-        self.repo = repo
+    def __init__(self, uow: ReadUnitOfWork):
+        self.uow = uow
 
     def execute(self, data: ListUsersInput) -> ListUsersOutput:
-        users = self.repo.find_many(is_active=data.is_active, is_admin=data.is_admin)
+        with self.uow:
+            users = self.uow.users.find_many(
+                is_active=data.is_active, is_admin=data.is_admin
+            )
 
         admins = [user for user in users if user.is_admin]
         non_admins = [user for user in users if not user.is_admin]
