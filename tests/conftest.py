@@ -7,19 +7,37 @@ from app.core.security.versioned_token_service import VersionedTokenService
 from app.domain.studio.users.entities.user import User
 from app.domain.studio.users.entities.value_objects.client_code import ClientCode
 from app.domain.studio.users.entities.vip_client import VipClient
+from tests.fakes.fake_read_unit_of_work import FakeReadUnitOfWork
 from tests.fakes.fake_users_repository import FakeUsersRepository
 from app.core.config import settings
 from tests.fakes.fake_vip_clients_repository import FakeVipClientsRepository
+from tests.fakes.fake_write_unit_of_work import FakeWriteUnitOfWork
 
 
 @pytest.fixture
-def users_repo():
+def shared_users_repo():
     return FakeUsersRepository()
 
 
 @pytest.fixture
-def vip_clients_repo():
+def shared_vip_clients_repo():
     return FakeVipClientsRepository()
+
+
+@pytest.fixture
+def read_uow(shared_users_repo, shared_vip_clients_repo):
+    uow = FakeReadUnitOfWork()
+    uow.users = shared_users_repo
+    uow.vip_clients = shared_vip_clients_repo
+    return uow
+
+
+@pytest.fixture
+def write_uow(shared_users_repo, shared_vip_clients_repo):
+    uow = FakeWriteUnitOfWork()
+    uow.users = shared_users_repo
+    uow.vip_clients = shared_vip_clients_repo
+    return uow
 
 
 @pytest.fixture
