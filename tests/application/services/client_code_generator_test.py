@@ -6,8 +6,8 @@ from app.domain.studio.users.constants.client_code_colors import VIP_CLIENT_CODE
 from app.domain.studio.users.entities.value_objects.client_code import ClientCode
 
 
-def test_client_code_generation(vip_clients_repo):
-    service = ClientCodeGenerator(vip_clients_repo)
+def test_client_code_generation(read_uow):
+    service = ClientCodeGenerator(read_uow)
     name = "  Jhon   "  # name not normalized
     code = service.generate(name)
 
@@ -20,14 +20,14 @@ def test_client_code_generation(vip_clients_repo):
     assert color_in_code in VIP_CLIENT_CODE_COLORS
 
 
-def test_client_code_generate_number_if_colors_taken(vip_clients_repo, mocker):
-    service = ClientCodeGenerator(vip_clients_repo)
+def test_client_code_generate_number_if_colors_taken(read_uow, mocker):
+    service = ClientCodeGenerator(read_uow)
 
     def fake_exists(code: str) -> bool:
         return len(code.split("-")) == 2
 
     mocker.patch.object(
-        vip_clients_repo, "find_by_client_code", side_effect=fake_exists
+        read_uow.vip_clients, "find_by_client_code", side_effect=fake_exists
     )
 
     code = service.generate("JHON")
@@ -35,10 +35,10 @@ def test_client_code_generate_number_if_colors_taken(vip_clients_repo, mocker):
     assert re.match(r"JHON-[A-Z]+-\d{2}", code.value)
 
 
-def test_client_code_all_taken(vip_clients_repo, mocker):
-    service = ClientCodeGenerator(vip_clients_repo)
+def test_client_code_all_taken(read_uow, mocker):
+    service = ClientCodeGenerator(read_uow)
 
-    mocker.patch.object(vip_clients_repo, "find_by_client_code", return_value=True)
+    mocker.patch.object(read_uow.vip_clients, "find_by_client_code", return_value=True)
 
     with pytest.raises(AllClientCodesTakenError):
         service.generate("JHON")
