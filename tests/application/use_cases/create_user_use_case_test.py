@@ -11,13 +11,13 @@ from app.domain.studio.users.events.activation_email_requested import (
 )
 
 
-def test_create_user_success(users_repo):
-    use_case = CreateUserUseCase(users_repo)
+def test_create_user_success(write_uow, read_uow):
+    use_case = CreateUserUseCase(write_uow)
     input_data = CreateUserInput(user_email="jhon@doe.com")
 
     result = use_case.execute(input_data)
 
-    saved_user = users_repo.find_by_email("jhon@doe.com")
+    saved_user = read_uow.users.find_by_email("jhon@doe.com")
     assert saved_user is not None
     assert saved_user.email == "jhon@doe.com"
     assert saved_user.has_activated_once is False
@@ -27,16 +27,16 @@ def test_create_user_success(users_repo):
     assert result.email == "jhon@doe.com"
     assert type(result.user_id) is UUID
     assert type(result.activation_token_version) is int
-    assert result.activation_token_version == 0
+    assert result.activation_token_version == 1
     assert saved_user.id == result.user_id
 
 
-def test_user_already_exists(users_repo, make_user, mocker):
+def test_user_already_exists(write_uow, make_user, mocker):
     user = make_user(email="jhon@doe.com")
-    users_repo.create(user)
+    write_uow.users.create(user)
 
-    spy = mocker.spy(users_repo, "create")
-    use_case = CreateUserUseCase(users_repo)
+    spy = mocker.spy(write_uow.users, "create")
+    use_case = CreateUserUseCase(write_uow)
     input_data = CreateUserInput(user_email="jhon@doe.com")
 
     with pytest.raises(UserAlreadyExistsError):
@@ -45,21 +45,21 @@ def test_user_already_exists(users_repo, make_user, mocker):
     spy.assert_not_called()
 
 
-def test_user_email_not_valid(users_repo, mocker):
-    spy = mocker.spy(users_repo, "create")
+def test_user_email_not_valid(write_uow, read_uow, mocker):
+    spy = mocker.spy(write_uow.users, "create")
 
     with pytest.raises(ValidationError):
         CreateUserInput(user_email="not_an_email")
 
-    saved_user = users_repo.find_by_email("not_an_email")
+    saved_user = read_uow.users.find_by_email("not_an_email")
     assert saved_user is None
     spy.assert_not_called()
 
 
-def test_find_by_email_called_before_create(mocker, users_repo):
-    spy = mocker.spy(users_repo, "find_by_email")
+def test_find_by_email_called_before_create(mocker, write_uow):
+    spy = mocker.spy(write_uow.users, "find_by_email")
 
-    use_case = CreateUserUseCase(users_repo)
+    use_case = CreateUserUseCase(write_uow)
     use_case.execute(CreateUserInput(user_email="jhon@doe.com"))
 
     spy.assert_called_once_with("jhon@doe.com")

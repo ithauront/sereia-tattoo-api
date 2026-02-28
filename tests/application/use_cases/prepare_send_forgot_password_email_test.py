@@ -10,14 +10,16 @@ from app.core.exceptions.users import (
     UserInactiveError,
     UserNotFoundError,
 )
-from app.domain.studio.users.entities.user import User
+from app.domain.studio.users.events.password_reset_email_requested import (
+    PasswordResetEmailRequested,
+)
 
 
-def test_send_forgot_password_email_success(users_repo, make_user):
+def test_send_forgot_password_email_success(write_uow, make_user):
     user = make_user(email="jhon@doe.com")
-    users_repo.create(user)
+    write_uow.users.create(user)
 
-    use_case = PrepareSendForgotPasswordEmailUseCase(users_repo)
+    use_case = PrepareSendForgotPasswordEmailUseCase(write_uow)
     input_data = PrepareSendForgotPasswordEmailInput(user_email="jhon@doe.com")
 
     assert user.password_token_version == 0
@@ -25,28 +27,29 @@ def test_send_forgot_password_email_success(users_repo, make_user):
     result = use_case.execute(input_data)
 
     assert result is not None
-    assert isinstance(result, User)
+    assert isinstance(result, PasswordResetEmailRequested)
     assert result.email == "jhon@doe.com"
-    assert type(result.id) is UUID
-    assert type(result.activation_token_version) is int
-    assert result.activation_token_version == 0
+    assert type(result.user_id) is UUID
+    assert type(result.password_token_version) is int
+    assert result.password_token_version == 1
+    assert user.password_token_version == 1
     assert user.activation_token_version == 0
-    assert user.id == result.id
+    assert user.id == result.user_id
 
 
-def test_send_forgot_password_email_user_not_found(users_repo, mocker):
-    use_case = PrepareSendForgotPasswordEmailUseCase(users_repo)
+def test_send_forgot_password_email_user_not_found(write_uow):
+    use_case = PrepareSendForgotPasswordEmailUseCase(write_uow)
     input_data = PrepareSendForgotPasswordEmailInput(user_email="jhon@doe.com")
 
     with pytest.raises(UserNotFoundError):
         use_case.execute(input_data)
 
 
-def test_send_forgot_password_email_user_inactive(users_repo, make_user, mocker):
+def test_send_forgot_password_email_user_inactive(write_uow, read_uow, make_user):
     user = make_user(email="jhon@doe.com", is_active=False)
-    users_repo.create(user)
+    write_uow.users.create(user)
 
-    use_case = PrepareSendForgotPasswordEmailUseCase(users_repo)
+    use_case = PrepareSendForgotPasswordEmailUseCase(read_uow)
     input_data = PrepareSendForgotPasswordEmailInput(user_email="jhon@doe.com")
 
     with pytest.raises(UserInactiveError):

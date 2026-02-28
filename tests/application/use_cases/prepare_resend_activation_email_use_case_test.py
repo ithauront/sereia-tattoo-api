@@ -7,14 +7,16 @@ from app.application.studio.use_cases.users_use_cases.prepare_resend_activation_
     PrepareResendActivationEmailUseCase,
 )
 from app.core.exceptions.users import UserActivatedBeforeError, UserNotFoundError
-from app.domain.studio.users.entities.user import User
+from app.domain.studio.users.events.activation_email_requested import (
+    ActivationEmailRequested,
+)
 
 
-def test_resend_activation_email_success(users_repo, make_user):
+def test_resend_activation_email_success(write_uow, make_user):
     user = make_user(email="jhon@doe.com")
-    users_repo.create(user)
+    write_uow.users.create(user)
 
-    use_case = PrepareResendActivationEmailUseCase(users_repo)
+    use_case = PrepareResendActivationEmailUseCase(write_uow)
     input_data = PrepareResendActivationEmailInput(user_email="jhon@doe.com")
 
     assert user.activation_token_version == 0
@@ -22,40 +24,40 @@ def test_resend_activation_email_success(users_repo, make_user):
     result = use_case.execute(input_data)
 
     assert result is not None
-    assert isinstance(result, User)
+    assert isinstance(result, ActivationEmailRequested)
     assert result.email == "jhon@doe.com"
-    assert type(result.id) is UUID
+    assert type(result.user_id) is UUID
     assert type(result.activation_token_version) is int
-    assert result.activation_token_version == 0
-    assert user.activation_token_version == 0
-    assert user.id == result.id
+    assert result.activation_token_version == 1
+    assert user.activation_token_version == 1
+    assert user.id == result.user_id
 
 
-def test_resend_activation_email_user_not_found(users_repo, mocker):
-    use_case = PrepareResendActivationEmailUseCase(users_repo)
+def test_resend_activation_email_user_not_found(write_uow):
+    use_case = PrepareResendActivationEmailUseCase(write_uow)
     input_data = PrepareResendActivationEmailInput(user_email="jhon@doe.com")
 
     with pytest.raises(UserNotFoundError):
         use_case.execute(input_data)
 
 
-def test_user_already_activated_once(users_repo, make_user, mocker):
+def test_user_already_activated_once(write_uow, make_user):
     user = make_user(email="jhon@doe.com", has_activated_once=True)
-    users_repo.create(user)
+    write_uow.users.create(user)
 
-    use_case = PrepareResendActivationEmailUseCase(users_repo)
+    use_case = PrepareResendActivationEmailUseCase(write_uow)
     input_data = PrepareResendActivationEmailInput(user_email="jhon@doe.com")
 
     with pytest.raises(UserActivatedBeforeError):
         use_case.execute(input_data)
 
 
-def test_find_by_email_called_before_resend(mocker, make_user, users_repo):
+def test_find_by_email_called_before_resend(mocker, make_user, write_uow):
     user = make_user(email="jhon@doe.com", has_activated_once=False)
-    users_repo.create(user)
-    spy = mocker.spy(users_repo, "find_by_email")
+    write_uow.users.create(user)
+    spy = mocker.spy(write_uow.users, "find_by_email")
 
-    use_case = PrepareResendActivationEmailUseCase(users_repo)
+    use_case = PrepareResendActivationEmailUseCase(write_uow)
     input_data = PrepareResendActivationEmailInput(user_email="jhon@doe.com")
     use_case.execute(input_data)
 

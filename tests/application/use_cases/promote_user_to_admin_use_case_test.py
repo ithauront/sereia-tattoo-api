@@ -7,12 +7,12 @@ from app.application.studio.use_cases.users_use_cases.promote_user_to_admin impo
 from app.core.exceptions.users import UserNotFoundError
 
 
-def test_promote_user_success(users_repo, make_user):
+def test_promote_user_success(write_uow, make_user):
     user = make_user(is_active=True, is_admin=False)
 
-    users_repo.create(user)
+    write_uow.users.create(user)
 
-    use_case = PromoteUserToAdminUseCase(users_repo)
+    use_case = PromoteUserToAdminUseCase(write_uow)
     input_data = PromoteUserInput(user_id=user.id)
 
     use_case.execute(input_data)
@@ -20,22 +20,22 @@ def test_promote_user_success(users_repo, make_user):
     assert user.is_admin is True
 
 
-def test_user_not_found_to_promote(users_repo):
+def test_user_not_found_to_promote(write_uow):
     not_user_id = uuid4()
 
-    use_case = PromoteUserToAdminUseCase(users_repo)
+    use_case = PromoteUserToAdminUseCase(write_uow)
     input_data = PromoteUserInput(user_id=not_user_id)
 
     with pytest.raises(UserNotFoundError):
         use_case.execute(input_data)
 
 
-def test_user_already_axmin(users_repo, make_user):
+def test_user_already_axmin(write_uow, make_user):
     user = make_user(is_active=True, is_admin=True)
 
-    users_repo.create(user)
+    write_uow.users.create(user)
 
-    use_case = PromoteUserToAdminUseCase(users_repo)
+    use_case = PromoteUserToAdminUseCase(write_uow)
     input_data = PromoteUserInput(user_id=user.id)
 
     use_case.execute(input_data)

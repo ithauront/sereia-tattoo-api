@@ -8,8 +8,8 @@ from app.domain.studio.users.constants.client_code_colors import VIP_CLIENT_CODE
 from app.domain.studio.users.entities.value_objects.client_code import ClientCode
 
 
-def test_generate_vip_client_code(vip_clients_repo):
-    generator = ClientCodeGenerator(vip_clients_repo)
+def test_generate_vip_client_code(read_uow):
+    generator = ClientCodeGenerator(read_uow)
     use_case = GenerateVipClientCodeUseCase(generator=generator)
 
     name_input = "jhon"

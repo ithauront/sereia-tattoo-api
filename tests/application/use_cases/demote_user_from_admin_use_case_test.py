@@ -11,15 +11,15 @@ from app.core.exceptions.users import (
 )
 
 
-def test_demote_user_success(users_repo, make_user):
+def test_demote_user_success(write_uow, make_user):
     admin = make_user(
         is_active=True, is_admin=True, access_token_version=0, refresh_token_version=0
     )  # admin is verify in route but I prefer to explicit admin here
     user = make_user(is_active=True, is_admin=True)
-    users_repo.create(admin)
-    users_repo.create(user)
+    write_uow.users.create(admin)
+    write_uow.users.create(user)
 
-    use_case = DemoteUserFromAdminUseCase(users_repo)
+    use_case = DemoteUserFromAdminUseCase(write_uow)
     input_data = DemoteUserInput(user_id=user.id, actor_id=admin.id)
 
     use_case.execute(input_data)
@@ -30,14 +30,14 @@ def test_demote_user_success(users_repo, make_user):
     assert user.refresh_token_version == 0
 
 
-def test_cannot_demote_yourself(users_repo, make_user):
+def test_cannot_demote_yourself(write_uow, make_user):
     admin1 = make_user(is_admin=True, access_token_version=0, refresh_token_version=0)
     admin2 = make_user(is_admin=True)  # 2 admins to not mistake with last admin rule.
 
-    users_repo.create(admin1)
-    users_repo.create(admin2)
+    write_uow.users.create(admin1)
+    write_uow.users.create(admin2)
 
-    use_case = DemoteUserFromAdminUseCase(users_repo)
+    use_case = DemoteUserFromAdminUseCase(write_uow)
     input_data = DemoteUserInput(user_id=admin1.id, actor_id=admin1.id)
 
     with pytest.raises(CannotDemoteYourselfError):
@@ -47,41 +47,41 @@ def test_cannot_demote_yourself(users_repo, make_user):
     assert admin1.refresh_token_version == 0
 
 
-def test_last_active_admin_cannot_be_demoted(users_repo, make_user):
+def test_last_active_admin_cannot_be_demoted(write_uow, make_user):
     inactive_admin = make_user(
         is_admin=True, is_active=False
     )  # actor active verification is made in controller
     last_active_admin = make_user(is_admin=True)
-    users_repo.create(inactive_admin)
-    users_repo.create(last_active_admin)
+    write_uow.users.create(inactive_admin)
+    write_uow.users.create(last_active_admin)
 
-    use_case = DemoteUserFromAdminUseCase(users_repo)
+    use_case = DemoteUserFromAdminUseCase(write_uow)
     input_data = DemoteUserInput(
         user_id=last_active_admin.id, actor_id=inactive_admin.id
     )
 
-    with pytest.raises(LastAdminCannotBeDemotedError) as exception:
+    with pytest.raises(LastAdminCannotBeDemotedError):
         use_case.execute(input_data)
 
 
-def test_user_not_found_to_demote(users_repo, make_user):
+def test_user_not_found_to_demote(write_uow, make_user):
     admin = make_user(is_active=True, is_admin=True)
     not_user_id = uuid4()
-    users_repo.create(admin)
-    use_case = DemoteUserFromAdminUseCase(users_repo)
+    write_uow.users.create(admin)
+    use_case = DemoteUserFromAdminUseCase(write_uow)
     input_data = DemoteUserInput(user_id=not_user_id, actor_id=admin.id)
 
     with pytest.raises(UserNotFoundError):
         use_case.execute(input_data)
 
 
-def test_user_already_non_admin(users_repo, make_user):
+def test_user_already_non_admin(write_uow, make_user):
     admin = make_user(is_active=True, is_admin=True)
     user = make_user(is_admin=False)
-    users_repo.create(admin)
-    users_repo.create(user)
+    write_uow.users.create(admin)
+    write_uow.users.create(user)
 
-    use_case = DemoteUserFromAdminUseCase(users_repo)
+    use_case = DemoteUserFromAdminUseCase(write_uow)
     input_data = DemoteUserInput(user_id=user.id, actor_id=admin.id)
 
     use_case.execute(input_data)

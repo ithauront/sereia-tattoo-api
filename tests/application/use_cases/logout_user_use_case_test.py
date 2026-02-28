@@ -8,20 +8,20 @@ from app.application.studio.use_cases.users_use_cases.logout_user import (
 from app.core.exceptions.users import UserNotFoundError
 
 
-def test_logout_success(users_repo, make_user):
+def test_logout_success(write_uow, read_uow, make_user):
     user = make_user(
         access_token_version=0, refresh_token_version=0, email="jhon@doe.com"
     )
-    users_repo.create(user)
+    write_uow.users.create(user)
 
     old_updated_at = user.updated_at
 
-    use_case = LogoutUserUseCase(users_repo)
+    use_case = LogoutUserUseCase(read_uow)
     input_data = LogoutInput(user_id=user.id)
 
     use_case.execute(input_data)
 
-    user_in_users_repo = users_repo.find_by_id(user.id)
+    user_in_users_repo = read_uow.users.find_by_id(user.id)
 
     assert user_in_users_repo.access_token_version == 1
     assert user_in_users_repo.refresh_token_version == 1
@@ -29,27 +29,27 @@ def test_logout_success(users_repo, make_user):
     assert user_in_users_repo.email == "jhon@doe.com"
 
 
-def test_logout_user_not_found(users_repo):
+def test_logout_user_not_found(read_uow):
     fake_user_id = uuid4()
 
-    use_case = LogoutUserUseCase(users_repo)
+    use_case = LogoutUserUseCase(read_uow)
     input_data = LogoutInput(user_id=fake_user_id)
 
     with pytest.raises(UserNotFoundError):
         use_case.execute(input_data)
 
 
-def test_logout_twice_bumps_tokens_twice(users_repo, make_user):
+def test_logout_twice_bumps_tokens_twice(write_uow, read_uow, make_user):
     # isso dificilmente vai acontecer, mas testamos para saber que se ocorrer ele não quebra nada
     user = make_user()
-    users_repo.create(user)
+    write_uow.users.create(user)
 
-    use_case = LogoutUserUseCase(users_repo)
+    use_case = LogoutUserUseCase(read_uow)
     input_data = LogoutInput(user_id=user.id)
     use_case.execute(input_data)
     use_case.execute(input_data)
 
-    user_in_users_repo = users_repo.find_by_id(user.id)
+    user_in_users_repo = read_uow.users.find_by_id(user.id)
 
     assert user_in_users_repo.access_token_version == 2
     assert user_in_users_repo.refresh_token_version == 2

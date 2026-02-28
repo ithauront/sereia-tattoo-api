@@ -6,17 +6,17 @@ from app.application.studio.use_cases.DTO.get_users_dto import ListUsersInput
 from app.application.studio.use_cases.users_use_cases.list_users import ListUsersUseCase
 
 
-def test_list_users_default_success(users_repo, make_user):
+def test_list_users_default_success(read_uow, write_uow, make_user):
     user1 = make_user(is_admin=True, is_active=True, username="Daniela")
     user2 = make_user(is_admin=False, is_active=False, username="Carla")
     user3 = make_user(is_admin=True, is_active=False, username="Bernard")
     user4 = make_user(is_admin=False, is_active=True, username="Adonis")
 
-    users_repo.create(user1)
-    users_repo.create(user2)
-    users_repo.create(user3)
-    users_repo.create(user4)
-    use_case = ListUsersUseCase(users_repo)
+    write_uow.users.create(user1)
+    write_uow.users.create(user2)
+    write_uow.users.create(user3)
+    write_uow.users.create(user4)
+    use_case = ListUsersUseCase(read_uow)
     input_data = ListUsersInput()
 
     result = use_case.execute(input_data)
@@ -28,17 +28,17 @@ def test_list_users_default_success(users_repo, make_user):
     assert result.users[3].username == "Carla"
 
 
-def test_list_users_descendent_success(users_repo, make_user):
+def test_list_users_descendent_success(read_uow, write_uow, make_user):
     user1 = make_user(is_admin=True, is_active=True, username="Daniela")
     user2 = make_user(is_admin=False, is_active=False, username="Carla")
     user3 = make_user(is_admin=True, is_active=False, username="Bernard")
     user4 = make_user(is_admin=False, is_active=True, username="Adonis")
 
-    users_repo.create(user1)
-    users_repo.create(user2)
-    users_repo.create(user3)
-    users_repo.create(user4)
-    use_case = ListUsersUseCase(users_repo)
+    write_uow.users.create(user1)
+    write_uow.users.create(user2)
+    write_uow.users.create(user3)
+    write_uow.users.create(user4)
+    use_case = ListUsersUseCase(read_uow)
     input_data = ListUsersInput(direction="desc")
 
     result = use_case.execute(input_data)
@@ -52,17 +52,17 @@ def test_list_users_descendent_success(users_repo, make_user):
     assert result.users[3].username == "Adonis"
 
 
-def test_list_admins_success(users_repo, make_user):
+def test_list_admins_success(read_uow, write_uow, make_user):
     user1 = make_user(is_admin=True, is_active=True, username="Daniela")
     user2 = make_user(is_admin=False, is_active=False, username="Carla")
     user3 = make_user(is_admin=True, is_active=False, username="Bernard")
     user4 = make_user(is_admin=False, is_active=True, username="Adonis")
 
-    users_repo.create(user1)
-    users_repo.create(user2)
-    users_repo.create(user3)
-    users_repo.create(user4)
-    use_case = ListUsersUseCase(users_repo)
+    write_uow.users.create(user1)
+    write_uow.users.create(user2)
+    write_uow.users.create(user3)
+    write_uow.users.create(user4)
+    use_case = ListUsersUseCase(read_uow)
     input_data = ListUsersInput(is_admin=True)
 
     result = use_case.execute(input_data)
@@ -73,17 +73,17 @@ def test_list_admins_success(users_repo, make_user):
     assert result.users[1].username == "Daniela"
 
 
-def test_list_active_users_success(users_repo, make_user):
+def test_list_active_users_success(read_uow, write_uow, make_user):
     user1 = make_user(is_admin=True, is_active=True, username="Daniela")
     user2 = make_user(is_admin=False, is_active=False, username="Carla")
     user3 = make_user(is_admin=True, is_active=False, username="Bernard")
     user4 = make_user(is_admin=False, is_active=True, username="Adonis")
 
-    users_repo.create(user1)
-    users_repo.create(user2)
-    users_repo.create(user3)
-    users_repo.create(user4)
-    use_case = ListUsersUseCase(users_repo)
+    write_uow.users.create(user1)
+    write_uow.users.create(user2)
+    write_uow.users.create(user3)
+    write_uow.users.create(user4)
+    use_case = ListUsersUseCase(read_uow)
     input_data = ListUsersInput(is_active=True)
 
     result = use_case.execute(input_data)
@@ -94,17 +94,17 @@ def test_list_active_users_success(users_repo, make_user):
     assert result.users[1].username == "Adonis"
 
 
-def test_list_combine_active_admins_success(users_repo, make_user):
+def test_list_combine_active_admins_success(read_uow, write_uow, make_user):
     user1 = make_user(is_admin=True, is_active=True, username="Daniela")
     user2 = make_user(is_admin=False, is_active=False, username="Carla")
     user3 = make_user(is_admin=True, is_active=False, username="Bernard")
     user4 = make_user(is_admin=False, is_active=True, username="Adonis")
 
-    users_repo.create(user1)
-    users_repo.create(user2)
-    users_repo.create(user3)
-    users_repo.create(user4)
-    use_case = ListUsersUseCase(users_repo)
+    write_uow.users.create(user1)
+    write_uow.users.create(user2)
+    write_uow.users.create(user3)
+    write_uow.users.create(user4)
+    use_case = ListUsersUseCase(read_uow)
     input_data = ListUsersInput(is_active=True, is_admin=True)
 
     result = use_case.execute(input_data)
@@ -115,23 +115,23 @@ def test_list_combine_active_admins_success(users_repo, make_user):
 
 
 @freeze_time("2025-01-01")
-def test_list_by_created_at_success(users_repo, make_user):
+def test_list_by_created_at_success(read_uow, write_uow, make_user):
     user1 = make_user(is_admin=True, is_active=True, username="Daniela")
-    users_repo.create(user1)
+    write_uow.users.create(user1)
 
     with freeze_time("2025-01-02"):
         user2 = make_user(is_admin=False, is_active=False, username="Carla")
-        users_repo.create(user2)
+        write_uow.users.create(user2)
 
     with freeze_time("2025-01-03"):
         user3 = make_user(is_admin=True, is_active=False, username="Bernard")
-        users_repo.create(user3)
+        write_uow.users.create(user3)
 
     with freeze_time("2025-01-04"):
         user4 = make_user(is_admin=False, is_active=True, username="Adonis")
-        users_repo.create(user4)
+        write_uow.users.create(user4)
 
-    use_case = ListUsersUseCase(users_repo)
+    use_case = ListUsersUseCase(read_uow)
     input_data = ListUsersInput(order_by="created_at")
 
     result = use_case.execute(input_data)
@@ -143,13 +143,13 @@ def test_list_by_created_at_success(users_repo, make_user):
     assert result.users[3].username == "Adonis"
 
 
-def test_pagination_and_limit_success(users_repo, make_user):
+def test_pagination_and_limit_success(read_uow, write_uow, make_user):
     for i in range(16):
         letter = chr(ord("a") + i)
         user = make_user(username=f"user{letter}")
-        users_repo.create(user)
+        write_uow.users.create(user)
 
-    use_case = ListUsersUseCase(users_repo)
+    use_case = ListUsersUseCase(read_uow)
     input_data = ListUsersInput(page=2, limit=10)
 
     result = use_case.execute(input_data)
@@ -160,9 +160,9 @@ def test_pagination_and_limit_success(users_repo, make_user):
     assert result.users[-1].username == "userp"  # 16th letter
 
 
-def test_empty_db(users_repo):
+def test_empty_db(read_uow):
 
-    use_case = ListUsersUseCase(users_repo)
+    use_case = ListUsersUseCase(read_uow)
     input_data = ListUsersInput()
 
     result = use_case.execute(input_data)
@@ -172,7 +172,7 @@ def test_empty_db(users_repo):
 
 
 # DTO for listUsersUseCase tests
-def test_page_cannot_be_less_than_one(users_repo):
+def test_page_cannot_be_less_than_one():
     with pytest.raises(ValidationError):
         ListUsersInput(page=0)
 

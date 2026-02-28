@@ -9,14 +9,12 @@ from app.core.exceptions.users import AuthenticationFailedError
 
 
 def test_refresh_user(
-    users_repo, make_user, refresh_token_service, access_token_service
+    read_uow, write_uow, make_user, refresh_token_service, access_token_service
 ):
     user = make_user(access_token_version=1, refresh_token_version=0)
-    users_repo.create(user)
+    write_uow.users.create(user)
 
-    use_case = RefreshUserUseCase(
-        users_repo, refresh_token_service, access_token_service
-    )
+    use_case = RefreshUserUseCase(read_uow, refresh_token_service, access_token_service)
     refresh_token = refresh_token_service.create(user_id=str(user.id), version=0)
     refresh_input = RefreshInput(refresh_token=refresh_token)
     result = use_case.execute(refresh_input)
@@ -26,20 +24,18 @@ def test_refresh_user(
     assert len(result.access_token) > 10
     assert len(result.refresh_token) > 10
     assert refresh_token != result.refresh_token
-    saved = users_repo.find_by_id(user.id)
+    saved = read_uow.users.find_by_id(user.id)
     assert saved.access_token_version == 1
     assert saved.refresh_token_version == 0
 
 
 def test_refresh_user_wrong_token_version(
-    users_repo, make_user, refresh_token_service, access_token_service
+    read_uow, write_uow, make_user, refresh_token_service, access_token_service
 ):
     user = make_user(refresh_token_version=0)
-    users_repo.create(user)
+    write_uow.users.create(user)
 
-    use_case = RefreshUserUseCase(
-        users_repo, refresh_token_service, access_token_service
-    )
+    use_case = RefreshUserUseCase(read_uow, refresh_token_service, access_token_service)
     refresh_token = refresh_token_service.create(user_id=str(user.id), version=1)
     refresh_input = RefreshInput(refresh_token=refresh_token)
 
@@ -50,20 +46,18 @@ def test_refresh_user_wrong_token_version(
 
 
 def test_refresh_after_logout(
-    users_repo, make_user, refresh_token_service, access_token_service
+    read_uow, write_uow, make_user, refresh_token_service, access_token_service
 ):
     user = make_user(refresh_token_version=0)
-    users_repo.create(user)
+    write_uow.users.create(user)
 
     stolen = refresh_token_service.create(user_id=str(user.id), version=0)
 
     # incrementamos o refresh para simular um logout
     user.refresh_token_version = 1
-    users_repo.update(user)
+    write_uow.users.update(user)
 
-    use_case = RefreshUserUseCase(
-        users_repo, refresh_token_service, access_token_service
-    )
+    use_case = RefreshUserUseCase(read_uow, refresh_token_service, access_token_service)
 
     with pytest.raises(TokenError) as exception:
         use_case.execute(RefreshInput(refresh_token=stolen))
@@ -72,13 +66,11 @@ def test_refresh_after_logout(
 
 
 def test_wrong_token(
-    users_repo, make_user, refresh_token_service, access_token_service
+    read_uow, write_uow, make_user, refresh_token_service, access_token_service
 ):
     user = make_user()
-    users_repo.create(user)
-    use_case = RefreshUserUseCase(
-        users_repo, refresh_token_service, access_token_service
-    )
+    write_uow.users.create(user)
+    use_case = RefreshUserUseCase(read_uow, refresh_token_service, access_token_service)
     refresh_input = RefreshInput(refresh_token="wrong_token")
 
     with pytest.raises(TokenError) as exception:
@@ -88,14 +80,12 @@ def test_wrong_token(
 
 
 def test_wrong_token_type(
-    users_repo, make_user, refresh_token_service, access_token_service
+    read_uow, write_uow, make_user, refresh_token_service, access_token_service
 ):
     user = make_user()
-    users_repo.create(user)
+    write_uow.users.create(user)
 
-    use_case = RefreshUserUseCase(
-        users_repo, refresh_token_service, access_token_service
-    )
+    use_case = RefreshUserUseCase(read_uow, refresh_token_service, access_token_service)
     access_token = access_token_service.create(user_id=str(user.id), version=0)
     refresh_input = RefreshInput(refresh_token=access_token)
 
@@ -106,14 +96,12 @@ def test_wrong_token_type(
 
 
 def test_expired_token(
-    users_repo, make_user, refresh_token_service, access_token_service
+    write_uow, read_uow, make_user, refresh_token_service, access_token_service
 ):
     user = make_user()
-    users_repo.create(user)
+    write_uow.users.create(user)
 
-    use_case = RefreshUserUseCase(
-        users_repo, refresh_token_service, access_token_service
-    )
+    use_case = RefreshUserUseCase(read_uow, refresh_token_service, access_token_service)
     refresh_token = refresh_token_service.jwt.create(
         subject=str(user.id), minutes=-1, token_type="refresh", extra_claims={"ver": 0}
     )
@@ -126,10 +114,8 @@ def test_expired_token(
     assert str(exception.value) == "invalid_token"
 
 
-def test_wrong_user(users_repo, refresh_token_service, access_token_service):
-    use_case = RefreshUserUseCase(
-        users_repo, refresh_token_service, access_token_service
-    )
+def test_wrong_user(write_uow, read_uow, refresh_token_service, access_token_service):
+    use_case = RefreshUserUseCase(read_uow, refresh_token_service, access_token_service)
     fake_id = uuid4()
     refresh_token = refresh_token_service.create(user_id=str(fake_id), version=0)
     refresh_input = RefreshInput(refresh_token=refresh_token)

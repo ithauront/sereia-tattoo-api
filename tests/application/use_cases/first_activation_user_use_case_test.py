@@ -15,15 +15,15 @@ from app.core.exceptions.validation import ValidationError
 from app.core.security.passwords import verify_password
 
 
-def test_first_activation_of_user_success(users_repo, make_user):
+def test_first_activation_of_user_success(write_uow, make_user):
     user = make_user(
         has_activated_once=False,
         is_active=False,
         activation_token_version=0,
         username="",
     )
-    users_repo.create(user)
-    use_case = FirstActivationUserUseCase(users_repo)
+    write_uow.users.create(user)
+    use_case = FirstActivationUserUseCase(write_uow)
     dto = FirstActivationInput(
         user_id=user.id, token_version=0, username="JhonDoe", password="JhonDoe1"
     )
@@ -37,14 +37,14 @@ def test_first_activation_of_user_success(users_repo, make_user):
     assert user.activation_token_version == 1
 
 
-def test_not_user_cannot_be_activated(users_repo, make_user):
+def test_not_user_cannot_be_activated(write_uow, make_user):
     user = make_user(
         has_activated_once=False,
         is_active=False,
         activation_token_version=0,
         username="",
     )
-    use_case = FirstActivationUserUseCase(users_repo)
+    use_case = FirstActivationUserUseCase(write_uow)
     dto = FirstActivationInput(
         user_id=user.id, token_version=0, username="JhonDoe", password="JhonDoe1"
     )
@@ -57,15 +57,15 @@ def test_not_user_cannot_be_activated(users_repo, make_user):
     assert user.activation_token_version == 0
 
 
-def test_user_activated_before_cannot_be_first_activated(users_repo, make_user):
+def test_user_activated_before_cannot_be_first_activated(write_uow, make_user):
     user = make_user(
         has_activated_once=True,
         is_active=False,
         activation_token_version=1,
         username="",
     )
-    users_repo.create(user)
-    use_case = FirstActivationUserUseCase(users_repo)
+    write_uow.users.create(user)
+    use_case = FirstActivationUserUseCase(write_uow)
     dto = FirstActivationInput(
         user_id=user.id, token_version=1, username="JhonDoe", password="JhonDoe1"
     )
@@ -78,15 +78,15 @@ def test_user_activated_before_cannot_be_first_activated(users_repo, make_user):
     assert user.activation_token_version == 1
 
 
-def test_invalid_token_version(users_repo, make_user):
+def test_invalid_token_version(write_uow, make_user):
     user = make_user(
         has_activated_once=False,
         is_active=False,
         activation_token_version=0,
         username="",
     )
-    users_repo.create(user)
-    use_case = FirstActivationUserUseCase(users_repo)
+    write_uow.users.create(user)
+    use_case = FirstActivationUserUseCase(write_uow)
     dto = FirstActivationInput(
         user_id=user.id, token_version=1, username="JhonDoe", password="JhonDoe1"
     )
@@ -99,15 +99,15 @@ def test_invalid_token_version(users_repo, make_user):
     assert user.activation_token_version == 0
 
 
-def test_invalid_username(users_repo, make_user):
+def test_invalid_username(write_uow, make_user):
     user = make_user(
         has_activated_once=False,
         is_active=False,
         activation_token_version=0,
         username="",
     )
-    users_repo.create(user)
-    use_case = FirstActivationUserUseCase(users_repo)
+    write_uow.users.create(user)
+    use_case = FirstActivationUserUseCase(write_uow)
     dto = FirstActivationInput(
         user_id=user.id, token_version=0, username="jh", password="JhonDoe1"
     )
@@ -121,18 +121,18 @@ def test_invalid_username(users_repo, make_user):
     assert user.activation_token_version == 0
 
 
-def test_username_already_taken(users_repo, make_user):
+def test_username_already_taken(write_uow, make_user):
     first_user = make_user(username="JhonDoe")
-    users_repo.create(first_user)
+    write_uow.users.create(first_user)
     user = make_user(
         has_activated_once=False,
         is_active=False,
         activation_token_version=0,
         username="",
     )
-    users_repo.create(user)
+    write_uow.users.create(user)
 
-    use_case = FirstActivationUserUseCase(users_repo)
+    use_case = FirstActivationUserUseCase(write_uow)
     dto = FirstActivationInput(
         user_id=user.id, token_version=0, username="JhonDoe", password="JhonDoe1"
     )
@@ -145,7 +145,7 @@ def test_username_already_taken(users_repo, make_user):
     assert user.activation_token_version == 0
 
 
-def test_invalid_password(users_repo, make_user):
+def test_invalid_password(write_uow, make_user):
 
     user = make_user(
         has_activated_once=False,
@@ -153,9 +153,9 @@ def test_invalid_password(users_repo, make_user):
         activation_token_version=0,
         username="",
     )
-    users_repo.create(user)
+    write_uow.users.create(user)
 
-    use_case = FirstActivationUserUseCase(users_repo)
+    use_case = FirstActivationUserUseCase(write_uow)
     dto = FirstActivationInput(
         user_id=user.id, token_version=0, username="JhonDoe", password="Jhon Doe 1"
     )

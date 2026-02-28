@@ -9,42 +9,44 @@ from app.application.studio.use_cases.users_use_cases.change_vip_client_email im
 from app.core.exceptions.users import EmailAlreadyTakenError, VipClientNotFoundError
 
 
-def test_vip_client_change_email_success(vip_clients_repo, make_vip_client):
+def test_vip_client_change_email_success(write_uow, read_uow, make_vip_client):
     vip_client = make_vip_client(email="jhon@doe.com")
-    vip_clients_repo.create(vip_client)
+    write_uow.vip_clients.create(vip_client)
 
-    use_case = ChangeVipClientEmailUseCase(vip_clients_repo)
+    use_case = ChangeVipClientEmailUseCase(write_uow)
     input_data = ChangeVipClientEmailInput(
         new_email="new@email.com", vip_client_id=vip_client.id
     )
 
     use_case.execute(input_data)
 
-    saved = vip_clients_repo.find_by_id(vip_client.id)
+    saved = read_uow.vip_clients.find_by_id(vip_client.id)
     assert saved.email == "new@email.com"
-    assert vip_clients_repo.find_by_email("jhon@doe.com") is None
+    assert read_uow.vip_clients.find_by_email("jhon@doe.com") is None
 
 
-def test_vip_client_change_to_same_email_should_pass(vip_clients_repo, make_vip_client):
+def test_vip_client_change_to_same_email_should_pass(
+    write_uow, read_uow, make_vip_client
+):
     vip_client = make_vip_client(email="jhon@doe.com")
-    vip_clients_repo.create(vip_client)
+    write_uow.vip_clients.create(vip_client)
 
-    use_case = ChangeVipClientEmailUseCase(vip_clients_repo)
+    use_case = ChangeVipClientEmailUseCase(write_uow)
     input_data = ChangeVipClientEmailInput(
         new_email="jhon@doe.com", vip_client_id=vip_client.id
     )
 
     use_case.execute(input_data)
 
-    saved = vip_clients_repo.find_by_id(vip_client.id)
+    saved = read_uow.vip_clients.find_by_id(vip_client.id)
     assert saved.email == "jhon@doe.com"
 
 
-def test_email_is_normalized(vip_clients_repo, make_vip_client):
+def test_email_is_normalized(write_uow, read_uow, make_vip_client):
     vip_client = make_vip_client(email="jhon@doe.com")
-    vip_clients_repo.create(vip_client)
+    write_uow.vip_clients.create(vip_client)
 
-    use_case = ChangeVipClientEmailUseCase(vip_clients_repo)
+    use_case = ChangeVipClientEmailUseCase(write_uow)
     input_data = ChangeVipClientEmailInput(
         new_email="  New@Email.COM  ",
         vip_client_id=vip_client.id,
@@ -52,15 +54,15 @@ def test_email_is_normalized(vip_clients_repo, make_vip_client):
 
     use_case.execute(input_data)
 
-    saved = vip_clients_repo.find_by_id(vip_client.id)
+    saved = read_uow.vip_clients.find_by_id(vip_client.id)
     assert saved.email == "new@email.com"
 
 
-def test_vip_client_not_exists_change_email(vip_clients_repo, make_vip_client):
+def test_vip_client_not_exists_change_email(write_uow, make_vip_client):
     vip_client = make_vip_client(email="jhon@doe.com")
     # vip_client not created in repo
 
-    use_case = ChangeVipClientEmailUseCase(vip_clients_repo)
+    use_case = ChangeVipClientEmailUseCase(write_uow)
     input_data = ChangeVipClientEmailInput(
         new_email="jhon@doe.com", vip_client_id=vip_client.id
     )
@@ -69,20 +71,20 @@ def test_vip_client_not_exists_change_email(vip_clients_repo, make_vip_client):
         use_case.execute(input_data)
 
 
-def test_vip_client_email_already_in_use(vip_clients_repo, make_vip_client):
+def test_vip_client_email_already_in_use(write_uow, read_uow, make_vip_client):
     vip_client_1 = make_vip_client(email="jhon@doe.com")
     vip_client_2 = make_vip_client(email="jane@doe.com")
-    vip_clients_repo.create(vip_client_1)
-    vip_clients_repo.create(vip_client_2)
+    write_uow.vip_clients.create(vip_client_1)
+    write_uow.vip_clients.create(vip_client_2)
 
-    use_case = ChangeVipClientEmailUseCase(vip_clients_repo)
+    use_case = ChangeVipClientEmailUseCase(write_uow)
     input_data = ChangeVipClientEmailInput(
         new_email="jane@doe.com", vip_client_id=vip_client_1.id
     )
     with pytest.raises(EmailAlreadyTakenError):
         use_case.execute(input_data)
 
-    saved = vip_clients_repo.find_by_id(vip_client_1.id)
+    saved = read_uow.vip_clients.find_by_id(vip_client_1.id)
     assert saved.email == "jhon@doe.com"
 
 

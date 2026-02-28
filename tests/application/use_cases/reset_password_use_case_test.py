@@ -13,14 +13,14 @@ from app.core.exceptions.users import (
 from app.core.security.passwords import verify_password
 
 
-def test_reset_password_success(users_repo, make_user):
+def test_reset_password_success(read_uow, write_uow, make_user):
     user = make_user(
         password_token_version=0, access_token_version=0, refresh_token_version=0
     )
-    users_repo.create(user)
+    write_uow.users.create(user)
     old_hash = user.hashed_password
 
-    use_case = ResetPasswordUseCase(users_repo)
+    use_case = ResetPasswordUseCase(write_uow)
 
     input_data = ResetPasswordInput(
         password="StrongPassword1", user_id=user.id, password_token_version=0
@@ -29,19 +29,19 @@ def test_reset_password_success(users_repo, make_user):
     use_case.execute(input_data)
 
     assert old_hash != user.hashed_password
-    saved = users_repo.find_by_id(user.id)
+    saved = read_uow.users.find_by_id(user.id)
     assert verify_password("StrongPassword1", saved.hashed_password)
     assert saved.password_token_version == 1
     assert saved.access_token_version == 1
     assert saved.refresh_token_version == 1
 
 
-def test_reset_password_wrong_user_id(users_repo, make_user):
+def test_reset_password_wrong_user_id(read_uow, write_uow, make_user):
     user = make_user(password_token_version=0)
-    users_repo.create(user)
+    write_uow.users.create(user)
     wrong_id = uuid4()
 
-    use_case = ResetPasswordUseCase(users_repo)
+    use_case = ResetPasswordUseCase(write_uow)
 
     input_data = ResetPasswordInput(
         password="StrongPassword1", user_id=wrong_id, password_token_version=0
@@ -50,15 +50,15 @@ def test_reset_password_wrong_user_id(users_repo, make_user):
     with pytest.raises(UserNotFoundError):
         use_case.execute(input_data)
 
-    saved = users_repo.find_by_id(user.id)
+    saved = read_uow.users.find_by_id(user.id)
     assert saved.password_token_version == 0
 
 
-def test_reset_password_wrong_token_version(users_repo, make_user):
+def test_reset_password_wrong_token_version(write_uow, read_uow, make_user):
     user = make_user(password_token_version=1)
-    users_repo.create(user)
+    write_uow.users.create(user)
 
-    use_case = ResetPasswordUseCase(users_repo)
+    use_case = ResetPasswordUseCase(write_uow)
 
     input_data = ResetPasswordInput(
         password="StrongPassword1", user_id=user.id, password_token_version=0
@@ -67,15 +67,15 @@ def test_reset_password_wrong_token_version(users_repo, make_user):
     with pytest.raises(InvalidPasswordTokenError):
         use_case.execute(input_data)
 
-    saved = users_repo.find_by_id(user.id)
+    saved = read_uow.users.find_by_id(user.id)
     assert saved.password_token_version == 1
 
 
-def test_reset_password_user_inactive(users_repo, make_user):
+def test_reset_password_user_inactive(write_uow, read_uow, make_user):
     user = make_user(password_token_version=0, is_active=False)
-    users_repo.create(user)
+    write_uow.users.create(user)
 
-    use_case = ResetPasswordUseCase(users_repo)
+    use_case = ResetPasswordUseCase(write_uow)
 
     input_data = ResetPasswordInput(
         password="StrongPassword1", user_id=user.id, password_token_version=0
@@ -84,5 +84,5 @@ def test_reset_password_user_inactive(users_repo, make_user):
     with pytest.raises(UserInactiveError):
         use_case.execute(input_data)
 
-    saved = users_repo.find_by_id(user.id)
+    saved = read_uow.users.find_by_id(user.id)
     assert saved.password_token_version == 0

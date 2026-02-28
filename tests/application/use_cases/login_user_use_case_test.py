@@ -6,12 +6,12 @@ from app.core.security import jwt_service
 
 
 def test_login_sucess(
-    users_repo, make_user, access_token_service, refresh_token_service
+    read_uow, write_uow, make_user, access_token_service, refresh_token_service
 ):
     user = make_user(access_token_version=0, refresh_token_version=0)
-    users_repo.create(user)
+    write_uow.users.create(user)
 
-    use_case = LoginUserUseCase(users_repo, access_token_service, refresh_token_service)
+    use_case = LoginUserUseCase(read_uow, access_token_service, refresh_token_service)
     input_data = LoginInput(identifier="JhonDoe", password="123456")
 
     result = use_case.execute(input_data)
@@ -29,12 +29,12 @@ def test_login_sucess(
 
 
 def test_user_not_found(
-    users_repo, make_user, access_token_service, refresh_token_service
+    read_uow, write_uow, make_user, access_token_service, refresh_token_service
 ):
     user = make_user()
-    users_repo.create(user)
+    write_uow.users.create(user)
 
-    use_case = LoginUserUseCase(users_repo, access_token_service, refresh_token_service)
+    use_case = LoginUserUseCase(read_uow, access_token_service, refresh_token_service)
 
     input_data = LoginInput(identifier="invalidUser", password="123456")
 
@@ -43,12 +43,12 @@ def test_user_not_found(
 
 
 def test_wrong_password(
-    users_repo, make_user, access_token_service, refresh_token_service
+    read_uow, write_uow, make_user, access_token_service, refresh_token_service
 ):
     user = make_user()
-    users_repo.create(user)
+    write_uow.users.create(user)
 
-    use_case = LoginUserUseCase(users_repo, access_token_service, refresh_token_service)
+    use_case = LoginUserUseCase(read_uow, access_token_service, refresh_token_service)
     input_data = LoginInput(identifier="JhonDoe", password="wrong_password")
 
     with pytest.raises(AuthenticationFailedError):
@@ -56,12 +56,12 @@ def test_wrong_password(
 
 
 def test_inactive_user(
-    users_repo, make_user, access_token_service, refresh_token_service
+    read_uow, write_uow, make_user, access_token_service, refresh_token_service
 ):
     user = make_user(is_active=False)
-    users_repo.create(user)
+    write_uow.users.create(user)
 
-    use_case = LoginUserUseCase(users_repo, access_token_service, refresh_token_service)
+    use_case = LoginUserUseCase(read_uow, access_token_service, refresh_token_service)
     input_data = LoginInput(identifier="JhonDoe", password="123456")
 
     with pytest.raises(UserInactiveError):
