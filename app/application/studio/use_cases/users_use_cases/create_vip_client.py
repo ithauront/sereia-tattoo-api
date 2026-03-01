@@ -18,7 +18,8 @@ from app.domain.studio.users.events.create_vip_client_email_requested import (
 )
 
 
-# TODO: Fazer teste desse use_case inclusive se ele envia email sem persistir o usuario (não deveria) Mudar o evento para ser chamado mais parecido com o create user
+# TODO: testar esse use_case inclusive que ele não deve envia email sem persistir o user
+# acho que o email vai ser testado em um teste de integração porque é efeito coleteral
 class CreateVipClientUseCase:
     def __init__(self, uow: WriteUnitOfWork):
         self.uow = uow
@@ -54,6 +55,7 @@ class CreateVipClientUseCase:
                 client_code=ClientCode(data.client_code),
             )
             self.uow.vip_clients.create(vip_client)
-            return CreateVipClientEmailRequested(
-                email=vip_client.email, client_code=str(vip_client.client_code)
-            )
+
+            event = vip_client.create_vip_client_email_request()
+
+            return event
