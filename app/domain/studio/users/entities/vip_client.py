@@ -2,6 +2,9 @@ from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
 from app.domain.studio.users.entities.value_objects.client_code import ClientCode
+from app.domain.studio.users.events.create_vip_client_email_requested import (
+    CreateVipClientEmailRequested,
+)
 
 
 class VipClient:
@@ -51,6 +54,12 @@ class VipClient:
     def change_phone(self, new_phone: str):
         self.phone = new_phone
         self._touch()
+
+    def create_vip_client_email_request(self) -> CreateVipClientEmailRequested:
+        self._touch()
+        return CreateVipClientEmailRequested(
+            email=self.email, client_code=str(self.client_code)
+        )
 
     @property
     def updated_at(self):

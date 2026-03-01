@@ -4,6 +4,9 @@ from uuid import UUID, uuid4
 from app.domain.studio.users.events.activation_email_requested import (
     ActivationEmailRequested,
 )
+from app.domain.studio.users.events.password_reset_email_requested import (
+    PasswordResetEmailRequested,
+)
 
 
 class User:
@@ -56,6 +59,15 @@ class User:
             user_id=self.id,
             email=self.email,
             activation_token_version=self.activation_token_version,
+        )
+
+    def request_password_reset_email(self) -> PasswordResetEmailRequested:
+        self.bump_password_token()
+        self._touch()
+        return PasswordResetEmailRequested(
+            user_id=self.id,
+            email=self.email,
+            password_token_version=self.password_token_version,
         )
 
     def logout(self):
