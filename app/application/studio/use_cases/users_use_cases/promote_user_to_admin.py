@@ -3,6 +3,7 @@ from app.application.studio.use_cases.DTO.user_status_dto import PromoteUserInpu
 from app.core.exceptions.users import UserNotFoundError
 
 
+# TODO: verificar com o nosso commit automatico no uow se a gente precisa do self.users.update aqui
 class PromoteUserToAdminUseCase:
 
     def __init__(self, uow: WriteUnitOfWork):
