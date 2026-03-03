@@ -5,7 +5,6 @@ from fastapi import (
     Depends,
     HTTPException,
     Query,
-    Response,
     status,
 )
 from app.api.dependencies.auth import (
@@ -13,14 +12,17 @@ from app.api.dependencies.auth import (
     get_current_admin_user,
 )
 from app.api.dependencies.notifications import get_email_service
+from app.api.dependencies.read_unit_of_work import get_read_unit_of_work
 from app.api.dependencies.security import (
     get_activation_token_service,
 )
-from app.api.dependencies.users import get_users_repository
-from app.api.dependencies.vip_clients import get_vip_clients_repository
+from app.api.dependencies.write_unit_of_work import (
+    get_write_unit_of_work,
+)
 from app.api.schemas.user import (
     ActivateUserRequest,
     ChangeVipClientEmailRequest,
+    CreateUserRequest,
     CreateVipClientRequest,
     GenerateVipClientCodeRequest,
 )
@@ -30,8 +32,9 @@ from app.application.notifications.handlers.send_user_activation_email import (
 from app.application.notifications.handlers.send_vip_client_creation_notification_email import (
     SendVipClientCreationNotificationEmailHandler,
 )
-from app.application.studio.services.resend_activation_email_service import (
-    ResendActivationEmailService,
+from app.application.studio.unit_of_work.read_unit_of_work import ReadUnitOfWork
+from app.application.studio.unit_of_work.write_unit_of_work import (
+    WriteUnitOfWork,
 )
 from app.application.studio.use_cases.DTO.change_email_dto import (
     ChangeVipClientEmailInput,
@@ -86,10 +89,6 @@ from app.application.studio.use_cases.users_use_cases.prepare_resend_activation_
 from app.application.studio.use_cases.users_use_cases.promote_user_to_admin import (
     PromoteUserToAdminUseCase,
 )
-from app.core.exceptions.services import (
-    EmailSentFailedError,
-    EmailServiceUnavailableError,
-)
 from app.core.exceptions.users import (
     AllClientCodesTakenError,
     CannotDeactivateYourselfError,
@@ -106,71 +105,65 @@ from app.core.exceptions.users import (
 )
 from app.core.exceptions.validation import ValidationError
 from app.application.studio.services.client_code_generator import ClientCodeGenerator
+from fastapi.concurrency import run_in_threadpool
 
 
 router = APIRouter(prefix="/users")
 
 
-# TODO: verificar e padronizar os status e os retornos no caso de sucesso de todas as rotas.
-@router.post("")
+@router.post("", status_code=status.HTTP_201_CREATED)
 async def create_user(
-    data: ActivateUserRequest,
+    background_tasks: BackgroundTasks,
+    data: CreateUserRequest,
     current_user=Depends(get_current_admin_user),
-    repo=Depends(get_users_repository),
+    uow: WriteUnitOfWork = Depends(get_write_unit_of_work),
     email_service=Depends(get_email_service),
     token_service=Depends(get_activation_token_service),
 ):
     try:
-        use_case = CreateUserUseCase(repo)
+        use_case = CreateUserUseCase(uow)
         dto = CreateUserInput(user_email=data.email)
-        event = use_case.execute(dto)
+
+        event = await run_in_threadpool(use_case.execute, dto)
 
         handler = SendUserActivationHandler(
             email_service=email_service, token_service=token_service
         )
-        await handler.handle(event)
+
+        background_tasks.add_task(handler.handle, event)
+
     except UserAlreadyExistsError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="user_already_exists"
         )
-    except EmailServiceUnavailableError:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY, detail="email_service_unavailable"
-        )
-    except EmailSentFailedError:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="email_send_failed",
-        )
 
-    return {"message": "User created and activation mail sent"}
+    return {
+        "message": "User created if you dont recive an email please try resend email option"
+    }
 
 
-@router.post("/resend-email")
+@router.post("/resend-email", status_code=status.HTTP_200_OK)
 async def resend_email(
+    background_tasks: BackgroundTasks,
     data: ActivateUserRequest,
-    repo=Depends(get_users_repository),
+    write_uow: WriteUnitOfWork = Depends(get_write_unit_of_work),
     email_service=Depends(get_email_service),
     token_service=Depends(get_activation_token_service),
 ):
     # Escolhi deixar essa rota publica porque a segurança vai estar no
     # email do usuario que foi cadastrado pelo ADMIN"
     try:
-        prepare_use_case = PrepareResendActivationEmailUseCase(repo)
+        prepare_use_case = PrepareResendActivationEmailUseCase(write_uow)
+        dto = PrepareResendActivationEmailInput(user_email=data.email)
+
+        event = await run_in_threadpool(prepare_use_case.execute, dto)
 
         email_handler = SendUserActivationHandler(
             email_service=email_service,
             token_service=token_service,
         )
 
-        service = ResendActivationEmailService(
-            repo=repo,
-            prepare_use_case=prepare_use_case,
-            email_handler=email_handler,
-        )
-        dto = PrepareResendActivationEmailInput(user_email=data.email)
-
-        await service.execute(dto)
+        background_tasks.add_task(email_handler.handle, event)
 
     except UserNotFoundError:
         raise HTTPException(
@@ -181,20 +174,11 @@ async def resend_email(
             status_code=status.HTTP_409_CONFLICT,
             detail="user_has_been_activated_before",
         )
-    except EmailServiceUnavailableError:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY, detail="email_service_unavailable"
-        )
-    except EmailSentFailedError:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="email_send_failed",
-        )
 
     return {"message": "Activation mail sent"}
 
 
-@router.get("", response_model=ListUsersOutput)
+@router.get("", status_code=status.HTTP_200_OK, response_model=ListUsersOutput)
 def list_users(
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
@@ -203,9 +187,9 @@ def list_users(
     order_by: OrderBy = OrderBy.username,
     direction: Direction = Direction.asc,
     current_user=Depends(get_current_admin_user),
-    repo=Depends(get_users_repository),
+    uow: ReadUnitOfWork = Depends(get_read_unit_of_work),
 ):
-    use_case = ListUsersUseCase(repo)
+    use_case = ListUsersUseCase(uow)
     dto = ListUsersInput(
         is_active=is_active,
         is_admin=is_admin,
@@ -220,16 +204,16 @@ def list_users(
     return result
 
 
-@router.get("/{user_id}", response_model=UserOutput)
+@router.get("/{user_id}", status_code=status.HTTP_200_OK, response_model=UserOutput)
 def get_user(
     user_id: UUID,
     current_user=Depends(get_current_active_user),
-    repo=Depends(get_users_repository),
+    uow: ReadUnitOfWork = Depends(get_read_unit_of_work),
 ):
     if not current_user.is_admin and current_user.id != user_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="forbidden")
 
-    use_case = GetUserUseCase(repo)
+    use_case = GetUserUseCase(uow)
     dto = GetUserInput(user_id=user_id)
 
     try:
@@ -240,17 +224,17 @@ def get_user(
         )
 
 
-@router.patch("/deactivate/{user_id}", status_code=204)
+@router.patch("/deactivate/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 def deactivate_user(
     user_id: UUID,
     current_user=Depends(get_current_admin_user),
-    repo=Depends(get_users_repository),
+    uow: WriteUnitOfWork = Depends(get_write_unit_of_work),
 ):
-    use_case = DeactivateUserUseCase(repo)
+    use_case = DeactivateUserUseCase(uow)
     dto = DeactivateUserInput(user_id=user_id, actor_id=current_user.id)
 
     try:
-        return use_case.execute(dto)
+        use_case.execute(dto)
     except UserNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="user_not_found"
@@ -266,34 +250,34 @@ def deactivate_user(
         )
 
 
-@router.patch("/activate/{user_id}", status_code=204)
+@router.patch("/activate/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 def activate_user(
     user_id: UUID,
     current_user=Depends(get_current_admin_user),
-    repo=Depends(get_users_repository),
+    uow: WriteUnitOfWork = Depends(get_write_unit_of_work),
 ):
-    use_case = ActivateUserUseCase(repo)
+    use_case = ActivateUserUseCase(uow)
     dto = ActivateUserInput(user_id=user_id)
 
     try:
-        return use_case.execute(dto)
+        use_case.execute(dto)
     except UserNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="user_not_found"
         )
 
 
-@router.patch("/demote/{user_id}", status_code=204)
+@router.patch("/demote/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 def demote_user(
     user_id: UUID,
     current_user=Depends(get_current_admin_user),
-    repo=Depends(get_users_repository),
+    uow: WriteUnitOfWork = Depends(get_write_unit_of_work),
 ):
-    use_case = DemoteUserFromAdminUseCase(repo)
+    use_case = DemoteUserFromAdminUseCase(uow)
     dto = DemoteUserInput(user_id=user_id, actor_id=current_user.id)
 
     try:
-        return use_case.execute(dto)
+        use_case.execute(dto)
     except UserNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="user_not_found"
@@ -308,17 +292,17 @@ def demote_user(
         )
 
 
-@router.patch("/promote/{user_id}", status_code=204)
+@router.patch("/promote/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 def promote_user(
     user_id: UUID,
     current_user=Depends(get_current_admin_user),
-    repo=Depends(get_users_repository),
+    uow: WriteUnitOfWork = Depends(get_write_unit_of_work),
 ):
-    use_case = PromoteUserToAdminUseCase(repo)
+    use_case = PromoteUserToAdminUseCase(uow)
     dto = PromoteUserInput(user_id=user_id)
 
     try:
-        return use_case.execute(dto)
+        use_case.execute(dto)
     except UserNotFoundError:
 
         raise HTTPException(
@@ -326,14 +310,16 @@ def promote_user(
         )
 
 
-@router.patch("/vip-client/change-email/{vip_client_id}")
+@router.patch(
+    "/vip-client/change-email/{vip_client_id}", status_code=status.HTTP_204_NO_CONTENT
+)
 def change_vip_client_email(
     data: ChangeVipClientEmailRequest,
     vip_client_id: UUID,
     current_user=Depends(get_current_admin_user),
-    repo=Depends(get_vip_clients_repository),
+    uow: WriteUnitOfWork = Depends(get_write_unit_of_work),
 ):
-    use_case = ChangeVipClientEmailUseCase(repo)
+    use_case = ChangeVipClientEmailUseCase(uow)
     dto = ChangeVipClientEmailInput(
         vip_client_id=vip_client_id, new_email=data.new_email
     )
@@ -348,16 +334,15 @@ def change_vip_client_email(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="email_chosen_is_already_taken"
         )
-    return Response(status_code=204)
 
 
 @router.post("/vip-client/generate-client-codes", status_code=status.HTTP_200_OK)
 def generate_vip_client_code_suggestions(
     data: GenerateVipClientCodeRequest,
     current_user=Depends(get_current_admin_user),
-    repo=Depends(get_vip_clients_repository),
+    uow: ReadUnitOfWork = Depends(get_read_unit_of_work),
 ):
-    generator = ClientCodeGenerator(repo)
+    generator = ClientCodeGenerator(uow)
     use_case = GenerateVipClientCodeUseCase(generator=generator)
 
     try:
@@ -370,17 +355,17 @@ def generate_vip_client_code_suggestions(
         )
 
 
-# fazer testes dessa rota inclusive verificar se a criação falhar o email não deve ir
-@router.post("/vip-client")
+# TODO: fazer testes dessa rota inclusive verificar se a criação falhar o email não deve ir
+@router.post("/vip-client", status_code=status.HTTP_201_CREATED)
 async def create_vip_client(
     background_tasks: BackgroundTasks,
     data: CreateVipClientRequest,
     current_user=Depends(get_current_admin_user),
-    repo=Depends(get_vip_clients_repository),
+    uow: WriteUnitOfWork = Depends(get_write_unit_of_work),
     email_service=Depends(get_email_service),
 ):
     try:
-        use_case = CreateVipClientUseCase(repo)
+        use_case = CreateVipClientUseCase(uow)
         dto = CreateVipClientInput(
             first_name=data.first_name,
             last_name=data.last_name,
@@ -389,7 +374,7 @@ async def create_vip_client(
             client_code=data.client_code,
         )
 
-        event = use_case.execute(dto)
+        event = await run_in_threadpool(use_case.execute, dto)
 
         handler = SendVipClientCreationNotificationEmailHandler(email_service)
 

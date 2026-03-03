@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from pydantic import BaseModel, EmailStr
 
 
@@ -11,8 +13,18 @@ class ChangeEmailRequest(BaseModel):
     new_email: EmailStr
 
 
+class CreateUserRequest(BaseModel):
+    email: EmailStr
+
+
 class ActivateUserRequest(BaseModel):
     email: EmailStr
+
+
+class SendActivationEmailRequest(BaseModel):
+    user_id: UUID
+    email: str
+    activation_token_version: int
 
 
 class FirstActivationRequest(BaseModel):
