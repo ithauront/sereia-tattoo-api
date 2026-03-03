@@ -1,11 +1,10 @@
+from fastapi.concurrency import run_in_threadpool
 from app.api.dependencies.notifications import get_email_service
-from app.api.dependencies.users import get_users_repository
+from app.api.dependencies.write_unit_of_work import get_write_unit_of_work
 from app.application.notifications.handlers.send_password_reset_email import (
     SendPasswordResetEmailHandler,
 )
-from app.application.studio.services.send_password_reset_email_service import (
-    SendPasswordResetEmailService,
-)
+from app.application.studio.unit_of_work.write_unit_of_work import WriteUnitOfWork
 from app.application.studio.use_cases.DTO.change_email_dto import ChangeEmailInput
 from app.application.studio.use_cases.DTO.first_activation_user_dto import (
     FirstActivationInput,
@@ -32,10 +31,6 @@ from app.application.studio.use_cases.users_use_cases.prepare_send_forgot_passwo
 from app.application.studio.use_cases.users_use_cases.reset_password import (
     ResetPasswordUseCase,
 )
-from app.core.exceptions.services import (
-    EmailSentFailedError,
-    EmailServiceUnavailableError,
-)
 from app.core.exceptions.validation import ValidationError
 from app.core.exceptions.users import (
     AuthenticationFailedError,
@@ -49,9 +44,7 @@ from app.core.exceptions.users import (
 )
 from app.core.security.activation_context import ActivationContext
 from app.core.security.password_context import PasswordContext
-
-
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from app.api.dependencies.token_context import (
     get_current_activation_context,
     get_current_reset_password_context,
@@ -66,7 +59,6 @@ from app.api.schemas.user import (
     ResetPasswordEmailRequest,
     ResetPasswordRequest,
 )
-
 from app.api.dependencies.auth import (
     get_current_active_user,
 )
@@ -74,15 +66,15 @@ from app.api.dependencies.auth import (
 router = APIRouter(prefix="/me")
 
 
-@router.post("/first-activation")
+@router.post("/first-activation", status_code=status.HTTP_204_NO_CONTENT)
 def first_activation(
     data: FirstActivationRequest,
     current_activation_context: ActivationContext = Depends(
         get_current_activation_context
     ),
-    repo=Depends(get_users_repository),
+    uow: WriteUnitOfWork = Depends(get_write_unit_of_work),
 ):
-    use_case = FirstActivationUserUseCase(repo)
+    use_case = FirstActivationUserUseCase(uow)
     dto = FirstActivationInput(
         user_id=current_activation_context.user_id,
         token_version=current_activation_context.token_version,
@@ -115,41 +107,59 @@ def first_activation(
             detail=str(exc),
         )
 
-    return Response(status_code=204)
 
-
-@router.patch("/change-password")
+@router.patch("/change-password", status_code=status.HTTP_204_NO_CONTENT)
 def change_password(
     data: ChangePasswordRequest,
     current_user=Depends(get_current_active_user),
-    repo=Depends(get_users_repository),
+    uow: WriteUnitOfWork = Depends(get_write_unit_of_work),
 ):
-    use_case = ChangePasswordUseCase(repo)
+    use_case = ChangePasswordUseCase(uow)
     dto = ChangePasswordInput(
-        old_password=data.old_password, new_password=data.new_password
+        old_password=data.old_password,
+        new_password=data.new_password,
+        user_id=current_user.id,
     )
+    """
+    In use_case we have an exception for user_not_found that is untreated in route.
+    This is expected because the userid in this route is already validate in dependency.
+    We kept the user_not_found error in use_case as a placeholder for a business rule.
+    """
 
     try:
-        use_case.execute(dto, current_user)
+        use_case.execute(dto)
+    except UserNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_credentials"
+        )
     except AuthenticationFailedError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_credentials"
         )
 
-    return Response(status_code=204)
 
-
-@router.patch("/change-email")
+@router.patch("/change-email", status_code=status.HTTP_204_NO_CONTENT)
 def change_email(
     data: ChangeEmailRequest,
     current_user=Depends(get_current_active_user),
-    repo=Depends(get_users_repository),
+    uow: WriteUnitOfWork = Depends(get_write_unit_of_work),
 ):
-    use_case = ChangeEmailUseCase(repo)
-    dto = ChangeEmailInput(password=data.password, new_email=data.new_email)
+    use_case = ChangeEmailUseCase(uow)
+    dto = ChangeEmailInput(
+        password=data.password, new_email=data.new_email, user_id=current_user.id
+    )
+    """
+    In use_case we have an exception for user_not_found that is untreated in route.
+    This is expected because the userid in this route is already validate in dependency.
+    We kept the user_not_found error in use_case as a placeholder for a business rule.
+    """
 
     try:
-        use_case.execute(dto, current_user)
+        use_case.execute(dto)
+    except UserNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="invalid_credentials"
+        )
     except AuthenticationFailedError:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="invalid_credentials"
@@ -159,59 +169,46 @@ def change_email(
             status_code=status.HTTP_409_CONFLICT, detail="email_chosen_is_already_taken"
         )
 
-    return Response(status_code=204)
 
-
-@router.post("/reset-password-request")
+@router.post("/reset-password-request", status_code=status.HTTP_200_OK)
 async def send_reset_password(
+    background_tasks: BackgroundTasks,
     data: ResetPasswordEmailRequest,
-    repo=Depends(get_users_repository),
+    write_uow: WriteUnitOfWork = Depends(get_write_unit_of_work),
     email_service=Depends(get_email_service),
     token_service=Depends(get_reset_password_token_service),
 ):
     try:
-        prepare_use_case = PrepareSendForgotPasswordEmailUseCase(repo)
+        prepare_use_case = PrepareSendForgotPasswordEmailUseCase(write_uow)
+        dto = PrepareSendForgotPasswordEmailInput(user_email=data.email)
+
+        event = await run_in_threadpool(prepare_use_case.execute, dto)
 
         email_handler = SendPasswordResetEmailHandler(
             email_service=email_service,
             token_service=token_service,
         )
 
-        service = SendPasswordResetEmailService(
-            repo=repo, prepare_use_case=prepare_use_case, email_handler=email_handler
-        )
-
-        dto = PrepareSendForgotPasswordEmailInput(user_email=data.email)
-
-        await service.execute(dto)
+        background_tasks.add_task(email_handler.handle, event)
 
     except (UserNotFoundError, UserInactiveError):
         # retornamos 200 com uma msg generica para não dar info
         return {
             "message": "if user exists and is active a link was sent to reset password"
         }
-    except EmailServiceUnavailableError:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY, detail="email_service_unavailable"
-        )
-    except EmailSentFailedError:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="email_send_failed",
-        )
 
     return {"message": "if user exists and is active a link was sent to reset password"}
 
 
-@router.post("/reset-password")
+@router.post("/reset-password", status_code=status.HTTP_204_NO_CONTENT)
 def reset_password(
     data: ResetPasswordRequest,
     current_password_context: PasswordContext = Depends(
         get_current_reset_password_context
     ),
-    repo=Depends(get_users_repository),
+    uow: WriteUnitOfWork = Depends(get_write_unit_of_work),
 ):
-    use_case = ResetPasswordUseCase(repo)
+    use_case = ResetPasswordUseCase(uow)
     dto = ResetPasswordInput(
         user_id=current_password_context.user_id,
         password_token_version=current_password_context.token_version,
@@ -237,5 +234,3 @@ def reset_password(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(exc),
         )
-
-    return Response(status_code=204)
