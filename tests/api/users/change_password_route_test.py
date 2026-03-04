@@ -1,17 +1,19 @@
 from fastapi.testclient import TestClient
-from app.api.dependencies.users import get_users_repository
+from app.api.dependencies.read_unit_of_work import get_read_unit_of_work
+from app.api.dependencies.write_unit_of_work import get_write_unit_of_work
 from app.main import app
 from app.core.security.passwords import verify_password
 
 client = TestClient(app)
 
 
-def test_change_password_success(users_repo, make_user, make_token):
+def test_change_password_success(write_uow, read_uow, make_user, make_token):
     user = make_user()
-    users_repo.create(user)
+    write_uow.users.create(user)
     token = make_token(user)
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     payload = {"old_password": "123456", "new_password": "StrongPassword1"}
 
@@ -28,12 +30,15 @@ def test_change_password_success(users_repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_change_password_invalid_old_password(users_repo, make_user, make_token):
+def test_change_password_invalid_old_password(
+    write_uow, read_uow, make_user, make_token
+):
     user = make_user()
-    users_repo.create(user)
+    write_uow.users.create(user)
     token = make_token(user)
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     payload = {"old_password": "wrong_password", "new_password": "StrongPassword1"}
 
@@ -50,12 +55,14 @@ def test_change_password_invalid_old_password(users_repo, make_user, make_token)
     app.dependency_overrides = {}
 
 
-def test_inactive_user_change_password(users_repo, make_user, make_token):
+def test_inactive_user_change_password(write_uow, read_uow, make_user, make_token):
     user = make_user(is_active=False)
-    users_repo.create(user)
+    write_uow.users.create(user)
     token = make_token(user)
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
+
     payload = {"old_password": "123456", "new_password": "abcdef"}
 
     response = client.patch(
@@ -70,11 +77,12 @@ def test_inactive_user_change_password(users_repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_not_user_change_password(users_repo, make_user, make_token):
+def test_not_user_change_password(write_uow, read_uow, make_user, make_token):
     user = make_user()
     token = make_token(user)
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     payload = {"old_password": "123456", "new_password": "abcdef"}
 
@@ -90,12 +98,13 @@ def test_not_user_change_password(users_repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_wrong_token_type(users_repo, make_user, make_token):
+def test_wrong_token_type(write_uow, read_uow, make_user, make_token):
     user = make_user()
-    users_repo.create(user)
+    write_uow.users.create(user)
     token = make_token(user, token_type="refresh")
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     payload = {"old_password": "123456", "new_password": "abcdef"}
 
@@ -111,13 +120,14 @@ def test_wrong_token_type(users_repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_invalid_payload_types(users_repo, make_user, make_token):
+def test_invalid_payload_types(write_uow, read_uow, make_user, make_token):
     user = make_user()
-    users_repo.create(user)
+    write_uow.users.create(user)
 
     token = make_token(user)
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     payload = {"old_password": 123, "new_password": "abcdef"}
 

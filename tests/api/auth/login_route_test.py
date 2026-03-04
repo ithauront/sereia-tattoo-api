@@ -1,5 +1,5 @@
 from fastapi.testclient import TestClient
-from app.api.dependencies.users import get_users_repository
+from app.api.dependencies.read_unit_of_work import get_read_unit_of_work
 from app.core.security import jwt_service
 from app.main import app
 
@@ -7,11 +7,11 @@ from app.main import app
 client = TestClient(app)
 
 
-def test_login_success_with_username(users_repo, make_user):
+def test_login_success_with_username(write_uow, read_uow, make_user):
     user = make_user()
-    users_repo.create(user)
+    write_uow.users.create(user)
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     payload = {"identifier": user.username, "password": "123456"}
 
@@ -34,11 +34,11 @@ def test_login_success_with_username(users_repo, make_user):
     app.dependency_overrides = {}
 
 
-def test_login_success_with_email(users_repo, make_user):
+def test_login_success_with_email(write_uow, read_uow, make_user):
     user = make_user()
-    users_repo.create(user)
+    write_uow.users.create(user)
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     payload = {"identifier": user.email, "password": "123456"}
 
@@ -61,11 +61,11 @@ def test_login_success_with_email(users_repo, make_user):
     app.dependency_overrides = {}
 
 
-def test_wrong_identifier(users_repo, make_user):
+def test_wrong_identifier(write_uow, read_uow, make_user):
     user = make_user()
-    users_repo.create(user)
+    write_uow.users.create(user)
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     payload = {"identifier": "wrong-user", "password": "123456"}
 
@@ -77,9 +77,9 @@ def test_wrong_identifier(users_repo, make_user):
     app.dependency_overrides = {}
 
 
-def test_not_user(users_repo):
+def test_not_user(read_uow):
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     payload = {"identifier": "user", "password": "123456"}
 
@@ -91,11 +91,11 @@ def test_not_user(users_repo):
     app.dependency_overrides = {}
 
 
-def test_inactive_user(users_repo, make_user):
+def test_inactive_user(write_uow, read_uow, make_user):
     user = make_user(is_active=False)
-    users_repo.create(user)
+    write_uow.users.create(user)
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     payload = {"identifier": user.email, "password": "123456"}
 
@@ -107,11 +107,11 @@ def test_inactive_user(users_repo, make_user):
     app.dependency_overrides = {}
 
 
-def test_wrong_password(users_repo, make_user):
+def test_wrong_password(write_uow, read_uow, make_user):
     user = make_user()
-    users_repo.create(user)
+    write_uow.users.create(user)
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     payload = {"identifier": user.username, "password": "abcde"}
 
@@ -123,11 +123,11 @@ def test_wrong_password(users_repo, make_user):
     app.dependency_overrides = {}
 
 
-def test_missing_user(users_repo, make_user):
+def test_missing_user(write_uow, read_uow, make_user):
     user = make_user()
-    users_repo.create(user)
+    write_uow.users.create(user)
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     payload = {"password": "123456"}
 
@@ -139,11 +139,11 @@ def test_missing_user(users_repo, make_user):
     app.dependency_overrides = {}
 
 
-def test_missing_password(users_repo, make_user):
+def test_missing_password(write_uow, read_uow, make_user):
     user = make_user()
-    users_repo.create(user)
+    write_uow.users.create(user)
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     payload = {"identifier": user.username}
 
@@ -155,11 +155,11 @@ def test_missing_password(users_repo, make_user):
     app.dependency_overrides = {}
 
 
-def test_missing_payload(users_repo, make_user):
+def test_missing_payload(write_uow, read_uow, make_user):
     user = make_user()
-    users_repo.create(user)
+    write_uow.users.create(user)
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post("/auth/login")
 
@@ -169,8 +169,8 @@ def test_missing_payload(users_repo, make_user):
     app.dependency_overrides = {}
 
 
-def test_login_invalid_payload_types(users_repo):
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+def test_login_invalid_payload_types(read_uow):
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     payload = {"identifier": 123, "password": "123456"}
 

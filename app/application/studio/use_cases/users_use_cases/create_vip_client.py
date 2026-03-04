@@ -18,8 +18,6 @@ from app.domain.studio.users.events.create_vip_client_email_requested import (
 )
 
 
-# TODO: testar esse use_case inclusive que ele não deve envia email sem persistir o user
-# acho que o email vai ser testado em um teste de integração porque é efeito coleteral
 class CreateVipClientUseCase:
     def __init__(self, uow: WriteUnitOfWork):
         self.uow = uow

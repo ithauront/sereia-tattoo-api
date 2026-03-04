@@ -159,7 +159,7 @@ enviando no header um bearer token com o seu access token.
 
 ## LOGOUT
 
-Estamos usando um sistema de tokens para autentificação totalmente stateless com versionamento de access e refresh token. o tradeoff disso é que no momento de logout o access token com a versão antiga ainda fica valido até sua expiração (tempo curto, porem existente). Para mitigar isso na experiencia para usuario é ecensial que o frontend remova os cookies de access e refresh token no momento de logout confirmado.
+Estamos usando um sistema de tokens para autentificação totalmente stateless com versionamento de access e refresh token. o tradeoff disso é que no momento de logout o access token com a versão antiga ainda fica valido até sua expiração (tempo curto, porem existente). Para mitigar isso na experiencia para usuario é essencial que o frontend remova os cookies de access e refresh token no momento de logout confirmado.
 
 ## Validações
 

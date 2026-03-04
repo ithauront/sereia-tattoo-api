@@ -1,16 +1,18 @@
 from fastapi.testclient import TestClient
-from app.api.dependencies.users import get_users_repository
+from app.api.dependencies.read_unit_of_work import get_read_unit_of_work
+from app.api.dependencies.write_unit_of_work import get_write_unit_of_work
 from app.main import app
 
 client = TestClient(app)
 
 
-def test_change_email_success(users_repo, make_user, make_token):
+def test_change_email_success(write_uow, read_uow, make_user, make_token):
     user = make_user(email="jhon@doe.com")
-    users_repo.create(user)
+    write_uow.users.create(user)
     token = make_token(user)
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     payload = {"password": "123456", "new_email": "new@email.com"}
 
@@ -26,12 +28,13 @@ def test_change_email_success(users_repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_change_email_same_email_idempotent(users_repo, make_user, make_token):
+def test_change_email_same_email_idempotent(write_uow, read_uow, make_user, make_token):
     user = make_user(email="jhon@doe.com")
-    users_repo.create(user)
+    write_uow.users.create(user)
     token = make_token(user)
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     payload = {"password": "123456", "new_email": "jhon@doe.com"}
 
@@ -45,12 +48,13 @@ def test_change_email_same_email_idempotent(users_repo, make_user, make_token):
     assert user.email == "jhon@doe.com"
 
 
-def test_change_email_normalization(users_repo, make_user, make_token):
+def test_change_email_normalization(write_uow, read_uow, make_user, make_token):
     user = make_user(email="jhon@doe.com")
-    users_repo.create(user)
+    write_uow.users.create(user)
     token = make_token(user)
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     payload = {"password": "123456", "new_email": " New@Email.COM "}
 
@@ -64,12 +68,13 @@ def test_change_email_normalization(users_repo, make_user, make_token):
     assert user.email == "new@email.com"
 
 
-def test_change_email_wrong_password(users_repo, make_user, make_token):
+def test_change_email_wrong_password(write_uow, read_uow, make_user, make_token):
     user = make_user(email="jhon@doe.com")
-    users_repo.create(user)
+    write_uow.users.create(user)
     token = make_token(user)
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     payload = {"password": "wrong_password", "new_email": "new@email.com"}
 
@@ -86,14 +91,15 @@ def test_change_email_wrong_password(users_repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_change_email_already_taken(users_repo, make_user, make_token):
+def test_change_email_already_taken(write_uow, read_uow, make_user, make_token):
     user1 = make_user(email="jhon@doe.com")
-    users_repo.create(user1)
+    write_uow.users.create(user1)
     token = make_token(user1)
     user2 = make_user(email="already@taken.com")
-    users_repo.create(user2)
+    write_uow.users.create(user2)
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     payload = {"password": "123456", "new_email": "already@taken.com"}
 
@@ -110,12 +116,14 @@ def test_change_email_already_taken(users_repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_inactive_user_change_email(users_repo, make_user, make_token):
+def test_inactive_user_change_email(write_uow, read_uow, make_user, make_token):
     user = make_user(is_active=False, email="jhon@doe.com")
-    users_repo.create(user)
+    write_uow.users.create(user)
     token = make_token(user)
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
+
     payload = {"password": "123456", "new_email": "new@email.com"}
 
     response = client.patch(
@@ -130,11 +138,12 @@ def test_inactive_user_change_email(users_repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_not_user_change_email(users_repo, make_user, make_token):
+def test_not_user_change_email(write_uow, read_uow, make_user, make_token):
     user = make_user()
     token = make_token(user)
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     payload = {"password": "123456", "new_email": "new@email.com"}
 
@@ -150,12 +159,13 @@ def test_not_user_change_email(users_repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_wrong_token_type(users_repo, make_user, make_token):
+def test_wrong_token_type(write_uow, read_uow, make_user, make_token):
     user = make_user()
-    users_repo.create(user)
+    write_uow.users.create(user)
     token = make_token(user, token_type="refresh")
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     payload = {"password": "123456", "new_email": "new@email.com"}
 
@@ -171,13 +181,14 @@ def test_wrong_token_type(users_repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_invalid_payload_types(users_repo, make_user, make_token):
+def test_invalid_payload_types(write_uow, read_uow, make_user, make_token):
     user = make_user()
-    users_repo.create(user)
+    write_uow.users.create(user)
 
     token = make_token(user)
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     payload = {"password": "123456", "new_email": 123456}
 

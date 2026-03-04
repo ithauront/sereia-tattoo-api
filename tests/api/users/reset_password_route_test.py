@@ -2,7 +2,8 @@ from uuid import uuid4
 from fastapi.testclient import TestClient
 from freezegun import freeze_time
 from pydantic import SecretStr
-from app.api.dependencies.users import get_users_repository
+from app.api.dependencies.read_unit_of_work import get_read_unit_of_work
+from app.api.dependencies.write_unit_of_work import get_write_unit_of_work
 from app.core.security.jwt_service import JWTService
 from app.core.security.passwords import hash_password, verify_password
 from app.core.security.versioned_token_service import VersionedTokenService
@@ -12,7 +13,7 @@ from app.core.config import settings
 client = TestClient(app)
 
 
-def test_reset_password_success(users_repo, make_user):
+def test_reset_password_success(write_uow, read_uow, make_user):
     user = make_user(
         username="JhonDoe",
         email="jhon@doe.com",
@@ -22,7 +23,7 @@ def test_reset_password_success(users_repo, make_user):
         password_token_version=0,
         has_activated_once=True,
     )
-    users_repo.create(user)
+    write_uow.users.create(user)
     jwt_service = JWTService(
         secret_key=settings.SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM,
@@ -34,7 +35,8 @@ def test_reset_password_success(users_repo, make_user):
 
     payload = {"new_password": "NewPassword1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
         "/me/reset-password",
@@ -42,7 +44,7 @@ def test_reset_password_success(users_repo, make_user):
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = read_uow.users.find_by_email("jhon@doe.com")
 
     assert response.status_code == 204
     assert user_in_users_repo.username == "JhonDoe"
@@ -55,7 +57,7 @@ def test_reset_password_success(users_repo, make_user):
     app.dependency_overrides.clear()
 
 
-def test_reset_password_admin_success(users_repo, make_user):
+def test_reset_password_admin_success(write_uow, read_uow, make_user):
     user = make_user(
         username="JhonDoe",
         email="jhon@doe.com",
@@ -65,7 +67,7 @@ def test_reset_password_admin_success(users_repo, make_user):
         password_token_version=0,
         has_activated_once=True,
     )
-    users_repo.create(user)
+    write_uow.users.create(user)
     jwt_service = JWTService(
         secret_key=settings.SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM,
@@ -77,7 +79,8 @@ def test_reset_password_admin_success(users_repo, make_user):
 
     payload = {"new_password": "NewPassword1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
         "/me/reset-password",
@@ -85,7 +88,7 @@ def test_reset_password_admin_success(users_repo, make_user):
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = read_uow.users.find_by_email("jhon@doe.com")
 
     assert response.status_code == 204
     assert user_in_users_repo.username == "JhonDoe"
@@ -98,7 +101,7 @@ def test_reset_password_admin_success(users_repo, make_user):
     app.dependency_overrides.clear()
 
 
-def test_reset_password_user_not_found(users_repo):
+def test_reset_password_user_not_found(write_uow, read_uow):
     not_user_id = uuid4()
     jwt_service = JWTService(
         secret_key=settings.SECRET_KEY,
@@ -111,7 +114,8 @@ def test_reset_password_user_not_found(users_repo):
 
     payload = {"new_password": "NewPassword1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
         "/me/reset-password",
@@ -119,7 +123,7 @@ def test_reset_password_user_not_found(users_repo):
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = read_uow.users.find_by_email("jhon@doe.com")
 
     assert response.status_code == 404
     assert response.json()["detail"] == "user_not_found"
@@ -128,7 +132,7 @@ def test_reset_password_user_not_found(users_repo):
     app.dependency_overrides.clear()
 
 
-def test_reset_password_user_inactive(users_repo, make_user):
+def test_reset_password_user_inactive(write_uow, read_uow, make_user):
     user = make_user(
         username="JhonDoe",
         email="jhon@doe.com",
@@ -138,7 +142,7 @@ def test_reset_password_user_inactive(users_repo, make_user):
         password_token_version=0,
         has_activated_once=True,
     )
-    users_repo.create(user)
+    write_uow.users.create(user)
     jwt_service = JWTService(
         secret_key=settings.SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM,
@@ -150,7 +154,8 @@ def test_reset_password_user_inactive(users_repo, make_user):
 
     payload = {"new_password": "NewPassword1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
         "/me/reset-password",
@@ -158,7 +163,7 @@ def test_reset_password_user_inactive(users_repo, make_user):
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = read_uow.users.find_by_email("jhon@doe.com")
 
     assert response.status_code == 409
     assert response.json()["detail"] == "user_inactive"
@@ -172,7 +177,7 @@ def test_reset_password_user_inactive(users_repo, make_user):
     app.dependency_overrides.clear()
 
 
-def test_reset_password_second_call_route_same_token(users_repo, make_user):
+def test_reset_password_second_call_route_same_token(write_uow, read_uow, make_user):
     user = make_user(
         username="JhonDoe",
         email="jhon@doe.com",
@@ -182,7 +187,7 @@ def test_reset_password_second_call_route_same_token(users_repo, make_user):
         password_token_version=0,
         has_activated_once=True,
     )
-    users_repo.create(user)
+    write_uow.users.create(user)
     jwt_service = JWTService(
         secret_key=settings.SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM,
@@ -194,7 +199,8 @@ def test_reset_password_second_call_route_same_token(users_repo, make_user):
 
     payload = {"new_password": "NewPassword1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     first_call = client.post(
         "/me/reset-password",
@@ -208,7 +214,7 @@ def test_reset_password_second_call_route_same_token(users_repo, make_user):
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = read_uow.users.find_by_email("jhon@doe.com")
     # A primeira chamada deve dar certo e ela vai dar bump no token
     assert first_call.status_code == 204
     # A segunda chamada vai dar erro porque a versão do token não é mais valida
@@ -225,7 +231,7 @@ def test_reset_password_second_call_route_same_token(users_repo, make_user):
     app.dependency_overrides.clear()
 
 
-def test_reset_password_token_version_greater_than_user(users_repo, make_user):
+def test_reset_password_token_version_greater_than_user(write_uow, read_uow, make_user):
     user = make_user(
         username="JhonDoe",
         email="jhon@doe.com",
@@ -235,7 +241,7 @@ def test_reset_password_token_version_greater_than_user(users_repo, make_user):
         password_token_version=0,
         has_activated_once=True,
     )
-    users_repo.create(user)
+    write_uow.users.create(user)
     jwt_service = JWTService(
         secret_key=settings.SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM,
@@ -247,7 +253,8 @@ def test_reset_password_token_version_greater_than_user(users_repo, make_user):
 
     payload = {"new_password": "NewPassword1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
         "/me/reset-password",
@@ -255,7 +262,7 @@ def test_reset_password_token_version_greater_than_user(users_repo, make_user):
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = read_uow.users.find_by_email("jhon@doe.com")
 
     assert response.status_code == 401
     assert response.json()["detail"] == "invalid_activation_token"
@@ -269,7 +276,7 @@ def test_reset_password_token_version_greater_than_user(users_repo, make_user):
     app.dependency_overrides.clear()
 
 
-def test_reset_password_token_version_smaller_than_user(users_repo, make_user):
+def test_reset_password_token_version_smaller_than_user(write_uow, read_uow, make_user):
     user = make_user(
         username="JhonDoe",
         email="jhon@doe.com",
@@ -279,7 +286,7 @@ def test_reset_password_token_version_smaller_than_user(users_repo, make_user):
         password_token_version=1,
         has_activated_once=True,
     )
-    users_repo.create(user)
+    write_uow.users.create(user)
     jwt_service = JWTService(
         secret_key=settings.SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM,
@@ -291,7 +298,8 @@ def test_reset_password_token_version_smaller_than_user(users_repo, make_user):
 
     payload = {"new_password": "NewPassword1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
         "/me/reset-password",
@@ -299,7 +307,7 @@ def test_reset_password_token_version_smaller_than_user(users_repo, make_user):
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = read_uow.users.find_by_email("jhon@doe.com")
 
     assert response.status_code == 401
     assert response.json()["detail"] == "invalid_activation_token"
@@ -313,7 +321,7 @@ def test_reset_password_token_version_smaller_than_user(users_repo, make_user):
     app.dependency_overrides.clear()
 
 
-def test_reset_password_not_valid(users_repo, make_user):
+def test_reset_password_not_valid(write_uow, read_uow, make_user):
     user = make_user(
         username="JhonDoe",
         email="jhon@doe.com",
@@ -323,7 +331,7 @@ def test_reset_password_not_valid(users_repo, make_user):
         password_token_version=0,
         has_activated_once=True,
     )
-    users_repo.create(user)
+    write_uow.users.create(user)
     jwt_service = JWTService(
         secret_key=settings.SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM,
@@ -335,7 +343,8 @@ def test_reset_password_not_valid(users_repo, make_user):
 
     payload = {"new_password": "notvalid"}
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
         "/me/reset-password",
@@ -343,7 +352,7 @@ def test_reset_password_not_valid(users_repo, make_user):
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = read_uow.users.find_by_email("jhon@doe.com")
 
     assert response.status_code == 422
     assert response.json()["detail"] == "password_needs_uppercase"
@@ -357,7 +366,7 @@ def test_reset_password_not_valid(users_repo, make_user):
     app.dependency_overrides.clear()
 
 
-def test_reset_password_wrong_token_type(users_repo, make_user):
+def test_reset_password_wrong_token_type(write_uow, read_uow, make_user):
     user = make_user(
         username="JhonDoe",
         email="jhon@doe.com",
@@ -367,7 +376,7 @@ def test_reset_password_wrong_token_type(users_repo, make_user):
         password_token_version=0,
         has_activated_once=True,
     )
-    users_repo.create(user)
+    write_uow.users.create(user)
     jwt_service = JWTService(
         secret_key=settings.SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM,
@@ -379,7 +388,8 @@ def test_reset_password_wrong_token_type(users_repo, make_user):
 
     payload = {"new_password": "NewPassword1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
         "/me/reset-password",
@@ -387,7 +397,7 @@ def test_reset_password_wrong_token_type(users_repo, make_user):
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = read_uow.users.find_by_email("jhon@doe.com")
 
     assert response.status_code == 401
     assert response.json()["detail"] == "invalid_credentials"
@@ -401,7 +411,7 @@ def test_reset_password_wrong_token_type(users_repo, make_user):
     app.dependency_overrides.clear()
 
 
-def test_reset_password_expired_token(users_repo, make_user):
+def test_reset_password_expired_token(write_uow, read_uow, make_user):
     user = make_user(
         username="JhonDoe",
         email="jhon@doe.com",
@@ -411,7 +421,7 @@ def test_reset_password_expired_token(users_repo, make_user):
         password_token_version=0,
         has_activated_once=True,
     )
-    users_repo.create(user)
+    write_uow.users.create(user)
     jwt_service = JWTService(
         secret_key=settings.SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM,
@@ -425,7 +435,8 @@ def test_reset_password_expired_token(users_repo, make_user):
     with freeze_time("2025-01-01 12:16:00"):
         payload = {"new_password": "NewPassword1"}
 
-        app.dependency_overrides[get_users_repository] = lambda: users_repo
+        app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+        app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
         response = client.post(
             "/me/reset-password",
@@ -433,7 +444,7 @@ def test_reset_password_expired_token(users_repo, make_user):
             headers={"Authorization": f"Bearer {token}"},
         )
 
-    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = read_uow.users.find_by_email("jhon@doe.com")
 
     assert response.status_code == 401
     assert response.json()["detail"] == "invalid_credentials"
@@ -447,7 +458,7 @@ def test_reset_password_expired_token(users_repo, make_user):
     app.dependency_overrides.clear()
 
 
-def test_reset_password_wrong_token_secret_key(users_repo, make_user):
+def test_reset_password_wrong_token_secret_key(write_uow, read_uow, make_user):
     user = make_user(
         username="JhonDoe",
         email="jhon@doe.com",
@@ -457,7 +468,7 @@ def test_reset_password_wrong_token_secret_key(users_repo, make_user):
         password_token_version=0,
         has_activated_once=True,
     )
-    users_repo.create(user)
+    write_uow.users.create(user)
     jwt_service = JWTService(
         secret_key=SecretStr("wrong_secret_key"),
         algorithm=settings.JWT_ALGORITHM,
@@ -469,7 +480,8 @@ def test_reset_password_wrong_token_secret_key(users_repo, make_user):
 
     payload = {"new_password": "NewPassword1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
         "/me/reset-password",
@@ -477,7 +489,7 @@ def test_reset_password_wrong_token_secret_key(users_repo, make_user):
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = read_uow.users.find_by_email("jhon@doe.com")
 
     assert response.status_code == 401
     assert response.json()["detail"] == "invalid_credentials"

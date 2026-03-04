@@ -1,5 +1,4 @@
-from app.api.dependencies.users import get_users_repository
-from app.api.dependencies.vip_clients import get_vip_clients_repository
+from app.api.dependencies.read_unit_of_work import get_read_unit_of_work
 from app.main import app
 from fastapi.testclient import TestClient
 
@@ -7,18 +6,15 @@ from fastapi.testclient import TestClient
 client = TestClient(app)
 
 
-def test_generate_client_codes_success(
-    vip_clients_repo, make_user, make_token, users_repo
-):
+def test_generate_client_codes_success(write_uow, read_uow, make_user, make_token):
     admin = make_user(is_admin=True)
-    users_repo.create(admin)
+    write_uow.users.create(admin)
 
     token = make_token(admin)
 
     payload = {"name": "jhon"}
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
-    app.dependency_overrides[get_vip_clients_repository] = lambda: vip_clients_repo
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
         "/users/vip-client/generate-client-codes",
@@ -38,19 +34,18 @@ def test_generate_client_codes_success(
 
 
 def test_generate_client_code_repo_full(
-    vip_clients_repo, make_user, make_token, users_repo, mocker
+    write_uow, read_uow, make_user, make_token, mocker
 ):
     admin = make_user(is_admin=True)
-    users_repo.create(admin)
+    write_uow.users.create(admin)
 
     token = make_token(admin)
 
     payload = {"name": "jhon"}
 
-    mocker.patch.object(vip_clients_repo, "find_by_client_code", return_value=True)
+    mocker.patch.object(read_uow.vip_clients, "find_by_client_code", return_value=True)
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
-    app.dependency_overrides[get_vip_clients_repository] = lambda: vip_clients_repo
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
         "/users/vip-client/generate-client-codes",
@@ -64,18 +59,15 @@ def test_generate_client_code_repo_full(
     app.dependency_overrides = {}
 
 
-def test_generate_client_code_wrong_payload(
-    vip_clients_repo, make_user, make_token, users_repo
-):
+def test_generate_client_code_wrong_payload(write_uow, read_uow, make_user, make_token):
     admin = make_user(is_admin=True)
-    users_repo.create(admin)
+    write_uow.users.create(admin)
 
     token = make_token(admin)
 
     payload = {"wrong": "payload"}
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
-    app.dependency_overrides[get_vip_clients_repository] = lambda: vip_clients_repo
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
         "/users/vip-client/generate-client-codes",
@@ -89,18 +81,20 @@ def test_generate_client_code_wrong_payload(
 
 
 def test_not_admin_try_to_generate_client_codes(
-    vip_clients_repo, make_user, make_token, users_repo
+    write_uow,
+    read_uow,
+    make_user,
+    make_token,
 ):
     not_admin = make_user(is_admin=False)
 
-    users_repo.create(not_admin)
+    write_uow.users.create(not_admin)
 
     token = make_token(not_admin)
 
     payload = {"name": "jhon"}
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
-    app.dependency_overrides[get_vip_clients_repository] = lambda: vip_clients_repo
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
         "/users/vip-client/generate-client-codes",
@@ -115,18 +109,17 @@ def test_not_admin_try_to_generate_client_codes(
 
 
 def test_not_active_try_to_generate_client_codes(
-    vip_clients_repo, make_user, make_token, users_repo
+    write_uow, read_uow, make_user, make_token
 ):
     not_active = make_user(is_admin=True, is_active=False)
 
-    users_repo.create(not_active)
+    write_uow.users.create(not_active)
 
     token = make_token(not_active)
 
     payload = {"name": "jhon"}
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
-    app.dependency_overrides[get_vip_clients_repository] = lambda: vip_clients_repo
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
         "/users/vip-client/generate-client-codes",
@@ -140,9 +133,7 @@ def test_not_active_try_to_generate_client_codes(
     app.dependency_overrides = {}
 
 
-def test_not_user_try_to_generate_client_codes(
-    vip_clients_repo, make_user, make_token, users_repo
-):
+def test_not_user_try_to_generate_client_codes(read_uow, make_user, make_token):
     not_user = make_user(is_admin=True, is_active=True)
 
     # do not create on repo to simulate not_user
@@ -151,8 +142,7 @@ def test_not_user_try_to_generate_client_codes(
 
     payload = {"name": "jhon"}
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
-    app.dependency_overrides[get_vip_clients_repository] = lambda: vip_clients_repo
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
         "/users/vip-client/generate-client-codes",

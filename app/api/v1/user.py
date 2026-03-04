@@ -355,7 +355,7 @@ def generate_vip_client_code_suggestions(
         )
 
 
-# TODO: fazer testes dessa rota inclusive verificar se a criação falhar o email não deve ir
+# TODO: fazer testes dessa rota
 @router.post("/vip-client", status_code=status.HTTP_201_CREATED)
 async def create_vip_client(
     background_tasks: BackgroundTasks,

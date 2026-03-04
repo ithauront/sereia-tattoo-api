@@ -1,10 +1,10 @@
 from uuid import uuid4
 from fastapi.testclient import TestClient
 from freezegun import freeze_time
+from app.api.dependencies.write_unit_of_work import get_write_unit_of_work
 from app.core.security.versioned_token_service import VersionedTokenService
 from app.core.security.passwords import verify_password
 from app.main import app
-from app.api.dependencies.users import get_users_repository
 from app.core.security.jwt_service import JWTService
 from app.core.config import settings
 
@@ -12,7 +12,7 @@ from app.core.config import settings
 client = TestClient(app)
 
 
-def test_first_activation_user_success(users_repo, make_user):
+def test_first_activation_user_success(write_uow, read_uow, make_user):
     user = make_user(
         username="",
         email="jhon@doe.com",
@@ -22,7 +22,7 @@ def test_first_activation_user_success(users_repo, make_user):
         activation_token_version=0,
         has_activated_once=False,
     )
-    users_repo.create(user)
+    write_uow.users.create(user)
     jwt_service = JWTService(
         secret_key=settings.SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM,
@@ -34,7 +34,7 @@ def test_first_activation_user_success(users_repo, make_user):
 
     payload = {"username": "JhonDoe", "password": "Password1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
 
     response = client.post(
         "/me/first-activation",
@@ -42,7 +42,7 @@ def test_first_activation_user_success(users_repo, make_user):
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = read_uow.users.find_by_email("jhon@doe.com")
 
     assert response.status_code == 204
     assert user_in_users_repo.username == "JhonDoe"
@@ -55,7 +55,7 @@ def test_first_activation_user_success(users_repo, make_user):
     app.dependency_overrides.clear()
 
 
-def test_first_activation_admin_success(users_repo, make_user):
+def test_first_activation_admin_success(write_uow, read_uow, make_user):
     admin = make_user(
         username="",
         email="jhon@doe.com",
@@ -65,7 +65,7 @@ def test_first_activation_admin_success(users_repo, make_user):
         activation_token_version=0,
         has_activated_once=False,
     )
-    users_repo.create(admin)
+    write_uow.users.create(admin)
     jwt_service = JWTService(
         secret_key=settings.SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM,
@@ -77,7 +77,7 @@ def test_first_activation_admin_success(users_repo, make_user):
 
     payload = {"username": "JhonDoe", "password": "Password1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
 
     response = client.post(
         "/me/first-activation",
@@ -85,7 +85,7 @@ def test_first_activation_admin_success(users_repo, make_user):
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = read_uow.users.find_by_email("jhon@doe.com")
 
     assert response.status_code == 204
     assert user_in_users_repo.username == "JhonDoe"
@@ -98,7 +98,7 @@ def test_first_activation_admin_success(users_repo, make_user):
     app.dependency_overrides.clear()
 
 
-def test_first_activation_user_not_found(users_repo):
+def test_first_activation_user_not_found(write_uow, read_uow):
     fake_user_id = uuid4()
     jwt_service = JWTService(
         secret_key=settings.SECRET_KEY,
@@ -111,7 +111,7 @@ def test_first_activation_user_not_found(users_repo):
 
     payload = {"username": "JhonDoe", "password": "Password1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
 
     response = client.post(
         "/me/first-activation",
@@ -119,7 +119,7 @@ def test_first_activation_user_not_found(users_repo):
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = read_uow.users.find_by_email("jhon@doe.com")
 
     assert response.status_code == 404
     assert response.json()["detail"] == "user_not_found"
@@ -128,7 +128,7 @@ def test_first_activation_user_not_found(users_repo):
     app.dependency_overrides.clear()
 
 
-def test_first_activation_user_activated_before(users_repo, make_user):
+def test_first_activation_user_activated_before(write_uow, read_uow, make_user):
     user = make_user(
         username="",
         email="jhon@doe.com",
@@ -138,7 +138,7 @@ def test_first_activation_user_activated_before(users_repo, make_user):
         activation_token_version=0,
         has_activated_once=True,
     )
-    users_repo.create(user)
+    write_uow.users.create(user)
     jwt_service = JWTService(
         secret_key=settings.SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM,
@@ -150,7 +150,7 @@ def test_first_activation_user_activated_before(users_repo, make_user):
 
     payload = {"username": "JhonDoe", "password": "Password1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
 
     response = client.post(
         "/me/first-activation",
@@ -158,7 +158,7 @@ def test_first_activation_user_activated_before(users_repo, make_user):
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = read_uow.users.find_by_email("jhon@doe.com")
 
     assert response.status_code == 409
     assert response.json()["detail"] == "user_was_activated_before"
@@ -172,7 +172,7 @@ def test_first_activation_user_activated_before(users_repo, make_user):
     app.dependency_overrides.clear()
 
 
-def test_first_activation_second_call_route_same_token(users_repo, make_user):
+def test_first_activation_second_call_route_same_token(write_uow, read_uow, make_user):
     user = make_user(
         username="",
         email="jhon@doe.com",
@@ -182,7 +182,7 @@ def test_first_activation_second_call_route_same_token(users_repo, make_user):
         activation_token_version=0,
         has_activated_once=False,
     )
-    users_repo.create(user)
+    write_uow.users.create(user)
     jwt_service = JWTService(
         secret_key=settings.SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM,
@@ -194,7 +194,7 @@ def test_first_activation_second_call_route_same_token(users_repo, make_user):
 
     payload = {"username": "JhonDoe", "password": "Password1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
 
     first_call = client.post(
         "/me/first-activation",
@@ -206,7 +206,7 @@ def test_first_activation_second_call_route_same_token(users_repo, make_user):
         json=payload,
         headers={"Authorization": f"Bearer {token}"},
     )
-    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = read_uow.users.find_by_email("jhon@doe.com")
 
     assert first_call.status_code == 204
 
@@ -222,7 +222,9 @@ def test_first_activation_second_call_route_same_token(users_repo, make_user):
     app.dependency_overrides.clear()
 
 
-def test_first_activation_user_token_version_greater_than_user(users_repo, make_user):
+def test_first_activation_user_token_version_greater_than_user(
+    write_uow, read_uow, make_user
+):
     user = make_user(
         username="",
         email="jhon@doe.com",
@@ -232,7 +234,7 @@ def test_first_activation_user_token_version_greater_than_user(users_repo, make_
         activation_token_version=0,
         has_activated_once=False,
     )
-    users_repo.create(user)
+    write_uow.users.create(user)
     jwt_service = JWTService(
         secret_key=settings.SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM,
@@ -244,7 +246,7 @@ def test_first_activation_user_token_version_greater_than_user(users_repo, make_
 
     payload = {"username": "JhonDoe", "password": "Password1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
 
     response = client.post(
         "/me/first-activation",
@@ -252,7 +254,7 @@ def test_first_activation_user_token_version_greater_than_user(users_repo, make_
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = read_uow.users.find_by_email("jhon@doe.com")
 
     assert response.status_code == 401
     assert response.json()["detail"] == "invalid_activation_token"
@@ -266,7 +268,9 @@ def test_first_activation_user_token_version_greater_than_user(users_repo, make_
     app.dependency_overrides.clear()
 
 
-def test_first_activation_user_token_version_smaller_than_user(users_repo, make_user):
+def test_first_activation_user_token_version_smaller_than_user(
+    write_uow, read_uow, make_user
+):
     user = make_user(
         username="",
         email="jhon@doe.com",
@@ -276,7 +280,7 @@ def test_first_activation_user_token_version_smaller_than_user(users_repo, make_
         activation_token_version=1,
         has_activated_once=False,
     )
-    users_repo.create(user)
+    write_uow.users.create(user)
     jwt_service = JWTService(
         secret_key=settings.SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM,
@@ -288,7 +292,7 @@ def test_first_activation_user_token_version_smaller_than_user(users_repo, make_
 
     payload = {"username": "JhonDoe", "password": "Password1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
 
     response = client.post(
         "/me/first-activation",
@@ -296,7 +300,7 @@ def test_first_activation_user_token_version_smaller_than_user(users_repo, make_
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = read_uow.users.find_by_email("jhon@doe.com")
 
     assert response.status_code == 401
     assert response.json()["detail"] == "invalid_activation_token"
@@ -310,9 +314,9 @@ def test_first_activation_user_token_version_smaller_than_user(users_repo, make_
     app.dependency_overrides.clear()
 
 
-def test_first_activation_username_already_taken(users_repo, make_user):
+def test_first_activation_username_already_taken(write_uow, read_uow, make_user):
     first_user = make_user(username="JhonDoe", email="firstjhon@doe.com")
-    users_repo.create(first_user)
+    write_uow.users.create(first_user)
     user = make_user(
         username="",
         email="jhon@doe.com",
@@ -322,7 +326,7 @@ def test_first_activation_username_already_taken(users_repo, make_user):
         activation_token_version=0,
         has_activated_once=False,
     )
-    users_repo.create(user)
+    write_uow.users.create(user)
     jwt_service = JWTService(
         secret_key=settings.SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM,
@@ -334,7 +338,7 @@ def test_first_activation_username_already_taken(users_repo, make_user):
 
     payload = {"username": "JhonDoe", "password": "Password1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
 
     response = client.post(
         "/me/first-activation",
@@ -342,7 +346,7 @@ def test_first_activation_username_already_taken(users_repo, make_user):
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = read_uow.users.find_by_email("jhon@doe.com")
 
     assert response.status_code == 409
     assert response.json()["detail"] == "username_already_taken"
@@ -356,7 +360,9 @@ def test_first_activation_username_already_taken(users_repo, make_user):
     app.dependency_overrides.clear()
 
 
-def test_first_activation_username_against_validation_rules(users_repo, make_user):
+def test_first_activation_username_against_validation_rules(
+    write_uow, read_uow, make_user
+):
     user = make_user(
         username="",
         email="jhon@doe.com",
@@ -366,7 +372,7 @@ def test_first_activation_username_against_validation_rules(users_repo, make_use
         activation_token_version=0,
         has_activated_once=False,
     )
-    users_repo.create(user)
+    write_uow.users.create(user)
     jwt_service = JWTService(
         secret_key=settings.SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM,
@@ -378,7 +384,7 @@ def test_first_activation_username_against_validation_rules(users_repo, make_use
 
     payload = {"username": "Jh", "password": "Password1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
 
     response = client.post(
         "/me/first-activation",
@@ -386,7 +392,7 @@ def test_first_activation_username_against_validation_rules(users_repo, make_use
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = read_uow.users.find_by_email("jhon@doe.com")
 
     assert response.status_code == 422
     assert response.json()["detail"] == "username_must_have_between_3_and_30_characters"
@@ -400,7 +406,9 @@ def test_first_activation_username_against_validation_rules(users_repo, make_use
     app.dependency_overrides.clear()
 
 
-def test_first_activation_user_wrong_token_type(users_repo, make_user, make_token):
+def test_first_activation_user_wrong_token_type(
+    write_uow, read_uow, make_user, make_token
+):
     user = make_user(
         username="",
         email="jhon@doe.com",
@@ -410,12 +418,12 @@ def test_first_activation_user_wrong_token_type(users_repo, make_user, make_toke
         activation_token_version=0,
         has_activated_once=False,
     )
-    users_repo.create(user)
+    write_uow.users.create(user)
     token = make_token(user, token_type="refresh")
 
     payload = {"username": "JhonDoe", "password": "Password1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
 
     response = client.post(
         "/me/first-activation",
@@ -423,7 +431,7 @@ def test_first_activation_user_wrong_token_type(users_repo, make_user, make_toke
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = read_uow.users.find_by_email("jhon@doe.com")
 
     assert response.status_code == 401
     assert response.json()["detail"] == "invalid_credentials"
@@ -437,7 +445,7 @@ def test_first_activation_user_wrong_token_type(users_repo, make_user, make_toke
     app.dependency_overrides.clear()
 
 
-def test_first_activation_missing_header(users_repo, make_user):
+def test_first_activation_missing_header(write_uow, read_uow, make_user):
     user = make_user(
         username="",
         email="jhon@doe.com",
@@ -447,18 +455,18 @@ def test_first_activation_missing_header(users_repo, make_user):
         activation_token_version=0,
         has_activated_once=False,
     )
-    users_repo.create(user)
+    write_uow.users.create(user)
 
     payload = {"username": "JhonDoe", "password": "Password1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
 
     response = client.post(
         "/me/first-activation",
         json=payload,
     )
 
-    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = read_uow.users.find_by_email("jhon@doe.com")
 
     assert response.status_code == 422
     assert response.json()["detail"][0]["loc"] == ["header", "authorization"]
@@ -472,7 +480,7 @@ def test_first_activation_missing_header(users_repo, make_user):
     app.dependency_overrides.clear()
 
 
-def test_first_activation_missing_Bearer_prefix(users_repo, make_user):
+def test_first_activation_missing_Bearer_prefix(write_uow, read_uow, make_user):
     user = make_user(
         username="",
         email="jhon@doe.com",
@@ -482,7 +490,7 @@ def test_first_activation_missing_Bearer_prefix(users_repo, make_user):
         activation_token_version=0,
         has_activated_once=False,
     )
-    users_repo.create(user)
+    write_uow.users.create(user)
 
     jwt_service = JWTService(
         secret_key=settings.SECRET_KEY,
@@ -495,7 +503,7 @@ def test_first_activation_missing_Bearer_prefix(users_repo, make_user):
 
     payload = {"username": "JhonDoe", "password": "Password1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
 
     response = client.post(
         "/me/first-activation",
@@ -503,7 +511,7 @@ def test_first_activation_missing_Bearer_prefix(users_repo, make_user):
         headers={"Authorization": f" {token}"},
     )
 
-    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = read_uow.users.find_by_email("jhon@doe.com")
 
     assert response.status_code == 401
     assert response.json()["detail"] == "invalid_credentials"
@@ -517,7 +525,7 @@ def test_first_activation_missing_Bearer_prefix(users_repo, make_user):
     app.dependency_overrides.clear()
 
 
-def test_first_activation_invalid_jwt_format(users_repo, make_user):
+def test_first_activation_invalid_jwt_format(write_uow, read_uow, make_user):
     user = make_user(
         username="",
         email="jhon@doe.com",
@@ -527,11 +535,11 @@ def test_first_activation_invalid_jwt_format(users_repo, make_user):
         activation_token_version=0,
         has_activated_once=False,
     )
-    users_repo.create(user)
+    write_uow.users.create(user)
 
     payload = {"username": "JhonDoe", "password": "Password1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
 
     response = client.post(
         "/me/first-activation",
@@ -539,7 +547,7 @@ def test_first_activation_invalid_jwt_format(users_repo, make_user):
         headers={"Authorization": "Bearer abc.def.ghi"},
     )
 
-    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = read_uow.users.find_by_email("jhon@doe.com")
 
     assert response.status_code == 401
     assert response.json()["detail"] == "invalid_credentials"
@@ -553,7 +561,7 @@ def test_first_activation_invalid_jwt_format(users_repo, make_user):
     app.dependency_overrides.clear()
 
 
-def test_first_activation_invalid_token_sub(users_repo, make_user):
+def test_first_activation_invalid_token_sub(write_uow, read_uow, make_user):
     user = make_user(
         username="",
         email="jhon@doe.com",
@@ -563,7 +571,7 @@ def test_first_activation_invalid_token_sub(users_repo, make_user):
         activation_token_version=0,
         has_activated_once=False,
     )
-    users_repo.create(user)
+    write_uow.users.create(user)
 
     jwt_service = JWTService(
         secret_key=settings.SECRET_KEY,
@@ -576,7 +584,7 @@ def test_first_activation_invalid_token_sub(users_repo, make_user):
 
     payload = {"username": "JhonDoe", "password": "Password1"}
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
 
     response = client.post(
         "/me/first-activation",
@@ -584,7 +592,7 @@ def test_first_activation_invalid_token_sub(users_repo, make_user):
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = read_uow.users.find_by_email("jhon@doe.com")
 
     assert response.status_code == 401
     assert response.json()["detail"] == "invalid_credentials"
@@ -598,7 +606,7 @@ def test_first_activation_invalid_token_sub(users_repo, make_user):
     app.dependency_overrides.clear()
 
 
-def test_first_activation_token_expired(users_repo, make_user):
+def test_first_activation_token_expired(write_uow, read_uow, make_user):
     user = make_user(
         username="",
         email="jhon@doe.com",
@@ -608,7 +616,7 @@ def test_first_activation_token_expired(users_repo, make_user):
         activation_token_version=0,
         has_activated_once=False,
     )
-    users_repo.create(user)
+    write_uow.users.create(user)
     jwt_service = JWTService(
         secret_key=settings.SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM,
@@ -621,7 +629,7 @@ def test_first_activation_token_expired(users_repo, make_user):
 
     with freeze_time("2025-01-01 12:16:00"):
         payload = {"username": "JhonDoe", "password": "Password1"}
-        app.dependency_overrides[get_users_repository] = lambda: users_repo
+        app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
 
         response = client.post(
             "/me/first-activation",
@@ -629,7 +637,7 @@ def test_first_activation_token_expired(users_repo, make_user):
             headers={"Authorization": f"Bearer {token}"},
         )
 
-    user_in_users_repo = users_repo.find_by_email("jhon@doe.com")
+    user_in_users_repo = read_uow.users.find_by_email("jhon@doe.com")
 
     assert response.status_code == 401
     assert response.json()["detail"] == "invalid_credentials"

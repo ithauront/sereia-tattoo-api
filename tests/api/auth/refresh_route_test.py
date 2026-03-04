@@ -1,5 +1,5 @@
 from freezegun import freeze_time
-from app.api.dependencies.users import get_users_repository
+from app.api.dependencies.read_unit_of_work import get_read_unit_of_work
 from app.main import app
 from fastapi.testclient import TestClient
 
@@ -7,17 +7,17 @@ from fastapi.testclient import TestClient
 client = TestClient(app)
 
 
-def test_refresh_success(users_repo, make_user, make_token):
+def test_refresh_success(write_uow, read_uow, make_user, make_token):
     user = make_user(access_token_version=0, refresh_token_version=0)
-    users_repo.create(user)
+    write_uow.users.create(user)
     refresh_token = make_token(user=user, version=0, token_type="refresh")
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post("/auth/refresh/", json={"refresh_token": refresh_token})
 
     assert response.status_code == 200
-    user_in_users_repo = users_repo.find_by_id(user.id)
+    user_in_users_repo = read_uow.users.find_by_id(user.id)
     assert user_in_users_repo.access_token_version == 0
     assert user_in_users_repo.refresh_token_version == 0
 
@@ -29,17 +29,17 @@ def test_refresh_success(users_repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_refresh_with_revoked_token(users_repo, make_user, make_token):
+def test_refresh_with_revoked_token(write_uow, read_uow, make_user, make_token):
     user = make_user(access_token_version=0, refresh_token_version=1)
-    users_repo.create(user)
+    write_uow.users.create(user)
     refresh_token = make_token(user=user, version=0, token_type="refresh")
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post("/auth/refresh/", json={"refresh_token": refresh_token})
 
     assert response.status_code == 401
-    user_in_users_repo = users_repo.find_by_id(user.id)
+    user_in_users_repo = read_uow.users.find_by_id(user.id)
     assert user_in_users_repo.access_token_version == 0
     assert user_in_users_repo.refresh_token_version == 1
 
@@ -51,11 +51,11 @@ def test_refresh_with_revoked_token(users_repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_refresh_non_user(users_repo, make_user, make_token):
+def test_refresh_non_user(write_uow, read_uow, make_user, make_token):
     user = make_user(access_token_version=0, refresh_token_version=0)
     refresh_token = make_token(user=user, version=0, token_type="refresh")
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post("/auth/refresh/", json={"refresh_token": refresh_token})
 
@@ -69,18 +69,18 @@ def test_refresh_non_user(users_repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_refresh_twice(users_repo, make_user, make_token):
+def test_refresh_twice(write_uow, read_uow, make_user, make_token):
     user = make_user(access_token_version=0, refresh_token_version=0)
-    users_repo.create(user)
+    write_uow.users.create(user)
     refresh_token = make_token(user=user, version=0, token_type="refresh")
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     first_try = client.post("/auth/refresh/", json={"refresh_token": refresh_token})
     second_try = client.post("/auth/refresh/", json={"refresh_token": refresh_token})
 
     assert first_try.status_code == 200
-    user_in_users_repo = users_repo.find_by_id(user.id)
+    user_in_users_repo = read_uow.users.find_by_id(user.id)
     assert user_in_users_repo.access_token_version == 0
     assert user_in_users_repo.refresh_token_version == 0
 
@@ -90,7 +90,7 @@ def test_refresh_twice(users_repo, make_user, make_token):
     assert data_first_try["refresh_token"] != refresh_token
 
     assert second_try.status_code == 200
-    user_in_users_repo = users_repo.find_by_id(user.id)
+    user_in_users_repo = read_uow.users.find_by_id(user.id)
     assert user_in_users_repo.access_token_version == 0
     assert user_in_users_repo.refresh_token_version == 0
 
@@ -103,12 +103,12 @@ def test_refresh_twice(users_repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_refresh_inactive_user(users_repo, make_user, make_token):
+def test_refresh_inactive_user(read_uow, write_uow, make_user, make_token):
     user = make_user(access_token_version=0, refresh_token_version=0, is_active=False)
-    users_repo.create(user)
+    write_uow.users.create(user)
     token = make_token(user=user, version=0, token_type="refresh")
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post("/auth/refresh/", json={"refresh_token": token})
 
@@ -121,18 +121,18 @@ def test_refresh_inactive_user(users_repo, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_refresh_token_expired(users_repo, make_user, make_token):
+def test_refresh_token_expired(write_uow, read_uow, make_user, make_token):
     user = make_user(access_token_version=0, refresh_token_version=0)
-    users_repo.create(user)
+    write_uow.users.create(user)
     with freeze_time("2025-01-01 12:16:00"):
         refresh_token = make_token(user=user, version=0, token_type="refresh")
 
-    app.dependency_overrides[get_users_repository] = lambda: users_repo
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
     with freeze_time("2025-01-04 12:16:10"):  # refresh token expira em 4 dias
         response = client.post("/auth/refresh/", json={"refresh_token": refresh_token})
 
     assert response.status_code == 401
-    user_in_users_repo = users_repo.find_by_id(user.id)
+    user_in_users_repo = read_uow.users.find_by_id(user.id)
     assert user_in_users_repo.access_token_version == 0
     assert user_in_users_repo.refresh_token_version == 0
 
