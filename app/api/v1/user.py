@@ -355,7 +355,6 @@ def generate_vip_client_code_suggestions(
         )
 
 
-# TODO: fazer testes dessa rota
 @router.post("/vip-client", status_code=status.HTTP_201_CREATED)
 async def create_vip_client(
     background_tasks: BackgroundTasks,
