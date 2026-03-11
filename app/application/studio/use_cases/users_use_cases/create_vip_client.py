@@ -1,3 +1,4 @@
+from app.application.event_bus.event_bus import EventBus
 from app.application.studio.unit_of_work.write_unit_of_work import WriteUnitOfWork
 from app.application.studio.use_cases.DTO.create_vip_client_dto import (
     CreateVipClientInput,
@@ -13,16 +14,14 @@ from app.core.normalize.normalize_email import normalize_email
 from app.core.validations.phone_number import validate_phone_number
 from app.domain.studio.users.entities.value_objects.client_code import ClientCode
 from app.domain.studio.users.entities.vip_client import VipClient
-from app.domain.studio.users.events.create_vip_client_email_requested import (
-    CreateVipClientEmailRequested,
-)
 
 
 class CreateVipClientUseCase:
-    def __init__(self, uow: WriteUnitOfWork):
+    def __init__(self, uow: WriteUnitOfWork, event_bus: EventBus):
         self.uow = uow
+        self.event_bus = event_bus
 
-    def execute(self, data: CreateVipClientInput) -> CreateVipClientEmailRequested:
+    async def execute(self, data: CreateVipClientInput) -> None:
         email = normalize_email(data.email)
         phone = normalize_phone(data.phone)
 
@@ -56,4 +55,4 @@ class CreateVipClientUseCase:
 
             event = vip_client.create_vip_client_email_request()
 
-            return event
+        await self.event_bus.publish(event)

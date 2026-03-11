@@ -13,7 +13,6 @@ from app.core.validations.password import validate_password
 from app.core.validations.username import validate_username
 
 
-# TODO: enviar um email para o usuario para confirmar para ele que a conta dele esta criada e ativa
 class FirstActivationUserUseCase:
     def __init__(self, uow: WriteUnitOfWork):
         self.uow = uow
