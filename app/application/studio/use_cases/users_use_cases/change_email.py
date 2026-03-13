@@ -25,9 +25,10 @@ class ChangeEmailUseCase:
 
             if not verify_password(data.password, current_user.hashed_password):
                 raise AuthenticationFailedError()
-            # mesmo que o usuario ja venha autenticado pelo token na rota
-            # para esse tipo de operação acho interessante pediro o password novamente
-
+                """
+                Even though the user is already authenticated via the token,
+                we require the password again for this type of sensitive operation.
+                """
             if self.uow.users.find_by_email(new_email):
                 raise EmailAlreadyTakenError()
 

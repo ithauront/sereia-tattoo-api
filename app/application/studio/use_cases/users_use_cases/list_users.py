@@ -1,7 +1,9 @@
 from app.application.studio.unit_of_work.read_unit_of_work import ReadUnitOfWork
 from app.application.studio.use_cases.DTO.get_users_dto import (
+    Direction,
     ListUsersInput,
     ListUsersOutput,
+    UsersOrderBy,
 )
 from app.application.studio.use_cases.DTO.user_output_dto import UserOutput
 
@@ -15,16 +17,26 @@ class ListUsersUseCase:
             users = self.uow.users.find_many(
                 is_active=data.is_active, is_admin=data.is_admin
             )
+        """
+         Sorting and pagination are intentionally performed in memory.
+         For the current expected dataset size (very small), this keeps the repository
+         and queries simple without introducing unnecessary database complexity.
+
+         If the dataset grows significantly in the future, this logic should be moved
+         to the repository layer so that sorting and pagination are handled directly
+         by the database (e.g., using ORDER BY, LIMIT, and OFFSET) to avoid loading
+         large result sets into memory.
+        """
 
         admins = [user for user in users if user.is_admin]
         non_admins = [user for user in users if not user.is_admin]
 
-        reverse = data.direction.lower() == "desc"
+        reverse = data.direction == Direction.desc
 
-        if data.order_by == "username":
+        if data.order_by == UsersOrderBy.username:
             admins.sort(key=lambda user: user.username.lower(), reverse=reverse)
             non_admins.sort(key=lambda user: user.username.lower(), reverse=reverse)
-        elif data.order_by == "created_at":
+        elif data.order_by == UsersOrderBy.created_at:
             admins.sort(key=lambda user: user.created_at, reverse=reverse)
             non_admins.sort(key=lambda user: user.created_at, reverse=reverse)
 
