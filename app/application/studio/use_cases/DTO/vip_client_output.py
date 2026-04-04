@@ -30,3 +30,8 @@ class VipClientOutput(BaseModel):
             created_at=vip_client.created_at,
             updated_at=vip_client.updated_at,
         )
+
+
+class VipClientOutputWithDetails(BaseModel):
+    vip_client: VipClientOutput
+    balance: int

@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 from enum import Enum
 
+from app.application.studio.use_cases.DTO.commun import Direction
 from app.application.studio.use_cases.DTO.user_output_dto import UserOutput
 from app.application.studio.use_cases.DTO.vip_client_output import VipClientOutput
 
@@ -19,11 +20,6 @@ class VipClientsOrderBy(str, Enum):
     last_name = "last_name"
     created_at = "created_at"
     updated_at = "updated_at"
-
-
-class Direction(str, Enum):
-    asc = "asc"
-    desc = "desc"
 
 
 class ListUsersInput(BaseModel):
@@ -52,3 +48,7 @@ class ListUsersOutput(BaseModel):
 
 class GetUserInput(BaseModel):
     user_id: UUID
+
+
+class GetVipClientInput(BaseModel):
+    vip_client_id: UUID
