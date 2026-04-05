@@ -1,6 +1,6 @@
 from app.application.studio.unit_of_work.read_unit_of_work import ReadUnitOfWork
+from app.application.studio.use_cases.DTO.commun import Direction
 from app.application.studio.use_cases.DTO.get_users_dto import (
-    Direction,
     ListUsersInput,
     ListUsersOutput,
     UsersOrderBy,
