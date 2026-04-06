@@ -1,6 +1,9 @@
 from sqlalchemy.orm import Session
 
 from app.application.studio.unit_of_work.read_unit_of_work import ReadUnitOfWork
+from app.infrastructure.sqlalchemy.repositories.client_credit_entries_repository import (
+    SQLAlchemyClientCreditEntriesRepository,
+)
 from app.infrastructure.sqlalchemy.repositories.users_repository_sqlalchemy import (
     SQLAlchemyUsersRepository,
 )
@@ -15,6 +18,12 @@ class SqlAlchemyReadUnitOfWork(ReadUnitOfWork):
         self.session: Session = SessionLocal()
         self.users = SQLAlchemyUsersRepository(self.session)
         self.vip_clients = SQLAlchemyVipClientsRepository(self.session)
+        self.client_credit_entries = SQLAlchemyClientCreditEntriesRepository(
+            self.session
+        )
+
+    def __enter__(self):
+        return self
 
     def __exit__(self, exc_type, exc, tb):
         pass
