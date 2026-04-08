@@ -7,7 +7,6 @@ from app.domain.studio.users.events.create_vip_client_email_requested import (
 )
 
 
-# Fazer teste desse handler
 class SendVipClientCreationNotificationEmailHandler:
     def __init__(self, email_service: EmailService):
         self.email_service = email_service

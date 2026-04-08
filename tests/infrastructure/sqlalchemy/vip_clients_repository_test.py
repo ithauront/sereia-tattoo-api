@@ -1,4 +1,4 @@
-from app.infrastructure.sqlalchemy.repositories.vip_clients_repository_sqlalchemy import (  # noqa: E501
+from app.infrastructure.sqlalchemy.repositories.vip_clients_repository_sqlalchemy import (
     SQLAlchemyVipClientsRepository,
 )
 

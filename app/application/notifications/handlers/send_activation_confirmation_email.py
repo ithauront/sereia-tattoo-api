@@ -9,7 +9,6 @@ from app.domain.studio.users.events.send_action_made_email_requested import (
 )
 
 
-# TODO Fazer teste desse handler
 class SendActivationConfirmationEmailHandler:
     def __init__(self, email_service: EmailService):
         self.email_service = email_service
