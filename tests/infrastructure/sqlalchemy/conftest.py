@@ -1,8 +1,11 @@
 from typing import Generator
 import pytest
-from sqlalchemy import StaticPool, create_engine
+from sqlalchemy import StaticPool, create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
 from app.infrastructure.sqlalchemy.base_class import Base
+from app.infrastructure.sqlalchemy.repositories.client_credit_entries_repository import (
+    SQLAlchemyClientCreditEntriesRepository,
+)
 from app.infrastructure.sqlalchemy.repositories.users_repository_sqlalchemy import (
     SQLAlchemyUsersRepository,
 )
@@ -19,6 +22,13 @@ def engine() -> Generator:
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
+
+    @event.listens_for(engine, "connect")
+    def enable_sql_fk(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
     Base.metadata.create_all(bind=engine)
 
     yield engine
@@ -38,7 +48,8 @@ def db_session(engine):
     yield session
 
     session.close()
-    transaction.rollback()
+    if transaction.is_active:
+        transaction.rollback()
     connection.close()
 
 
@@ -50,3 +61,10 @@ def sqlalchemy_users_repo(db_session: Session) -> SQLAlchemyUsersRepository:
 @pytest.fixture
 def sqlalchemy_vip_clients_repo(db_session: Session) -> SQLAlchemyVipClientsRepository:
     return SQLAlchemyVipClientsRepository(session=db_session)
+
+
+@pytest.fixture
+def sqlalchemy_client_credits_entries_repo(
+    db_session: Session,
+) -> SQLAlchemyClientCreditEntriesRepository:
+    return SQLAlchemyClientCreditEntriesRepository(session=db_session)
