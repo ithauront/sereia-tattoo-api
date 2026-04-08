@@ -5,9 +5,16 @@ from app.core.security import jwt_service
 from app.core.security.jwt_service import JWTService
 from app.core.security.passwords import hash_password
 from app.core.security.versioned_token_service import VersionedTokenService
+from app.domain.studio.marketing.entities.client_credit_entry import ClientCreditEntry
+from app.domain.studio.marketing.enums.client_credit_source_type import (
+    ClientCreditSourceType,
+)
 from app.domain.studio.users.entities.user import User
 from app.domain.studio.users.entities.value_objects.client_code import ClientCode
 from app.domain.studio.users.entities.vip_client import VipClient
+from tests.fakes.fake_client_credit_entries_repository import (
+    FakeClientCreditEntriesRepository,
+)
 from tests.fakes.fake_email_service import FakeEmailService
 from tests.fakes.fake_read_unit_of_work import FakeReadUnitOfWork
 from tests.fakes.fake_users_repository import FakeUsersRepository
@@ -27,18 +34,29 @@ def shared_vip_clients_repo():
 
 
 @pytest.fixture
-def read_uow(shared_users_repo, shared_vip_clients_repo):
+def shared_client_credit_entries_repo():
+    return FakeClientCreditEntriesRepository()
+
+
+@pytest.fixture
+def read_uow(
+    shared_users_repo, shared_vip_clients_repo, shared_client_credit_entries_repo
+):
     uow = FakeReadUnitOfWork()
     uow.users = shared_users_repo
     uow.vip_clients = shared_vip_clients_repo
+    uow.client_credit_entries = shared_client_credit_entries_repo
     return uow
 
 
 @pytest.fixture
-def write_uow(shared_users_repo, shared_vip_clients_repo):
+def write_uow(
+    shared_users_repo, shared_vip_clients_repo, shared_client_credit_entries_repo
+):
     uow = FakeWriteUnitOfWork()
     uow.users = shared_users_repo
     uow.vip_clients = shared_vip_clients_repo
+    uow.client_credit_entries = shared_client_credit_entries_repo
     return uow
 
 
@@ -110,6 +128,55 @@ def make_vip_client():
             phone=kwargs.get("phone", "71999999999"),
             client_code=ClientCode(kwargs.get("client_code", "JHON-BLUE")),
         )
+
+    return _factory
+
+
+@pytest.fixture
+def make_client_credit_entry():
+
+    def _factory(**kwargs):
+
+        source_type = kwargs.get(
+            "source_type",
+            ClientCreditSourceType.INDICATION,
+        )
+
+        vip_client_id = kwargs.get("vip_client_id", uuid4())
+        source_id = kwargs.get("source_id", uuid4())
+        quantity = kwargs.get("quantity", 10)
+        reason = kwargs.get("reason", "test reason")
+
+        if source_type == ClientCreditSourceType.INDICATION:
+            return ClientCreditEntry.create_indication(
+                vip_client_id=vip_client_id,
+                appointment_id=source_id,
+                quantity=quantity,
+            )
+
+        if source_type == ClientCreditSourceType.ADDED_BY_ADMIN:
+            return ClientCreditEntry.added_by_admin(
+                vip_client_id=vip_client_id,
+                admin_id=source_id,
+                quantity=quantity,
+                reason=reason,
+            )
+
+        if source_type == ClientCreditSourceType.USED_IN_APPOINTMENT:
+            return ClientCreditEntry.used_in_appointment(
+                vip_client_id=vip_client_id,
+                appointment_id=source_id,
+                quantity=quantity,
+            )
+
+        if source_type == ClientCreditSourceType.REVERSED_BY_ADMIN:
+            return ClientCreditEntry.reverse(
+                vip_client_id=vip_client_id,
+                admin_id=source_id,
+                original_entry_id=kwargs.get("related_entry_id", uuid4()),
+                quantity=quantity,
+                reason=reason,
+            )
 
     return _factory
 
