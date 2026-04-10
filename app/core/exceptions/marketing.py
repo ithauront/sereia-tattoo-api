@@ -4,3 +4,7 @@ class ZeroCreditQuantityNotAllowedError(Exception):
 
 class CreditMustBePositiveError(Exception):
     pass
+
+
+class CreditEntryNotFoundError(Exception):
+    pass
