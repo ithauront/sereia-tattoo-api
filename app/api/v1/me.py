@@ -1,14 +1,19 @@
-from fastapi.concurrency import run_in_threadpool
-from app.api.dependencies.notifications import get_email_service
-from app.api.dependencies.write_unit_of_work import get_write_unit_of_work
-from app.application.notifications.handlers.send_password_reset_email import (
-    SendPasswordResetEmailHandler,
+from app.api.dependencies.events import get_event_bus
+from app.api.dependencies.read_unit_of_work import get_read_unit_of_work
+from app.api.dependencies.security import (
+    get_access_token_service,
+    get_refresh_token_service,
 )
+from app.api.dependencies.write_unit_of_work import get_write_unit_of_work
+from app.api.schemas.auth import TokenPair
+from app.application.event_bus.event_bus import EventBus
+from app.application.studio.unit_of_work.read_unit_of_work import ReadUnitOfWork
 from app.application.studio.unit_of_work.write_unit_of_work import WriteUnitOfWork
 from app.application.studio.use_cases.DTO.change_email_dto import ChangeEmailInput
 from app.application.studio.use_cases.DTO.first_activation_user_dto import (
     FirstActivationInput,
 )
+from app.application.studio.use_cases.DTO.login_dto import LoginInput
 from app.application.studio.use_cases.DTO.password_dto import (
     ChangePasswordInput,
     ResetPasswordInput,
@@ -25,6 +30,7 @@ from app.application.studio.use_cases.users_use_cases.change_password import (
 from app.application.studio.use_cases.users_use_cases.first_activation_user import (
     FirstActivationUserUseCase,
 )
+from app.application.studio.use_cases.users_use_cases.login_user import LoginUserUseCase
 from app.application.studio.use_cases.users_use_cases.prepare_send_forgot_password_email import (
     PrepareSendForgotPasswordEmailUseCase,
 )
@@ -44,37 +50,53 @@ from app.core.exceptions.users import (
 )
 from app.core.security.activation_context import ActivationContext
 from app.core.security.password_context import PasswordContext
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from app.api.dependencies.token_context import (
     get_current_activation_context,
     get_current_reset_password_context,
-)
-from app.api.dependencies.security import (
-    get_reset_password_token_service,
 )
 from app.api.schemas.user import (
     ChangeEmailRequest,
     ChangePasswordRequest,
     FirstActivationRequest,
     ResetPasswordEmailRequest,
+    ResetPasswordEmailResponse,
     ResetPasswordRequest,
 )
 from app.api.dependencies.auth import (
     get_current_active_user,
 )
+from app.core.security.versioned_token_service import VersionedTokenService
 
 router = APIRouter(prefix="/me")
 
 
-@router.post("/first-activation", status_code=status.HTTP_204_NO_CONTENT)
+@router.post(
+    "/first-activation", status_code=status.HTTP_200_OK, response_model=TokenPair
+)
 def first_activation(
     data: FirstActivationRequest,
     current_activation_context: ActivationContext = Depends(
         get_current_activation_context
     ),
-    uow: WriteUnitOfWork = Depends(get_write_unit_of_work),
-):
-    use_case = FirstActivationUserUseCase(uow)
+    write_uow: WriteUnitOfWork = Depends(get_write_unit_of_work),
+    read_uow: ReadUnitOfWork = Depends(get_read_unit_of_work),
+    access_tokens: VersionedTokenService = Depends(get_access_token_service),
+    refresh_tokens: VersionedTokenService = Depends(get_refresh_token_service),
+) -> TokenPair:
+    """
+    This route first calls the FirstActivationUserUseCase to complete the user's
+    initial account activation.
+
+    After a successful activation, it calls the LoginUserUseCase to generate and
+    return a TokenPair to the frontend, providing a better user experience by
+    automatically logging the user in.
+
+    We assume that if the activation flow completes successfully, the login step
+    cannot fail. If an error occurs during login at this point, it likely indicates
+    an unexpected server-side issue.
+    """
+    use_case = FirstActivationUserUseCase(write_uow)
     dto = FirstActivationInput(
         user_id=current_activation_context.user_id,
         token_version=current_activation_context.token_version,
@@ -106,6 +128,15 @@ def first_activation(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(exc),
         )
+
+    login_dto = LoginInput(identifier=data.username, password=data.password)
+    login_use_case = LoginUserUseCase(
+        access_tokens=access_tokens, refresh_tokens=refresh_tokens, uow=read_uow
+    )
+    tokens = login_use_case.execute(login_dto)
+    return TokenPair(
+        access_token=tokens.access_token, refresh_token=tokens.refresh_token
+    )
 
 
 @router.patch("/change-password", status_code=status.HTTP_204_NO_CONTENT)
@@ -170,26 +201,21 @@ def change_email(
         )
 
 
-@router.post("/reset-password-request", status_code=status.HTTP_200_OK)
+@router.post(
+    "/reset-password-request",
+    status_code=status.HTTP_200_OK,
+    response_model=ResetPasswordEmailResponse,
+)
 async def send_reset_password(
-    background_tasks: BackgroundTasks,
     data: ResetPasswordEmailRequest,
     write_uow: WriteUnitOfWork = Depends(get_write_unit_of_work),
-    email_service=Depends(get_email_service),
-    token_service=Depends(get_reset_password_token_service),
+    event_bus: EventBus = Depends(get_event_bus),
 ):
     try:
-        prepare_use_case = PrepareSendForgotPasswordEmailUseCase(write_uow)
+        prepare_use_case = PrepareSendForgotPasswordEmailUseCase(write_uow, event_bus)
         dto = PrepareSendForgotPasswordEmailInput(user_email=data.email)
 
-        event = await run_in_threadpool(prepare_use_case.execute, dto)
-
-        email_handler = SendPasswordResetEmailHandler(
-            email_service=email_service,
-            token_service=token_service,
-        )
-
-        background_tasks.add_task(email_handler.handle, event)
+        await prepare_use_case.execute(dto)
 
     except (UserNotFoundError, UserInactiveError):
         # retornamos 200 com uma msg generica para não dar info

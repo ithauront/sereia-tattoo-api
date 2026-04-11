@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from app.api.dependencies.auth import get_current_user
 from app.api.dependencies.read_unit_of_work import get_read_unit_of_work
 from app.api.dependencies.security import (
@@ -30,7 +30,7 @@ from app.core.security.versioned_token_service import VersionedTokenService
 router = APIRouter(prefix="/auth")
 
 
-@router.post("/login", response_model=TokenPair)
+@router.post("/login", status_code=status.HTTP_200_OK, response_model=TokenPair)
 def login(
     data: LoginRequest,
     uow: ReadUnitOfWork = Depends(get_read_unit_of_work),
@@ -55,7 +55,7 @@ def login(
     )
 
 
-@router.post("/logout")
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 def logout_user(
     current_user=Depends(get_current_user),
     uow: ReadUnitOfWork = Depends(get_read_unit_of_work),
@@ -72,10 +72,8 @@ def logout_user(
     nos teriamos inconsistencia nos retornos desse erro (401 vs 404)
     """
 
-    return Response(status_code=204)
 
-
-@router.post("/refresh", response_model=TokenPair)
+@router.post("/refresh", status_code=status.HTTP_200_OK, response_model=TokenPair)
 def refresh(
     data: RefreshRequest,
     uow: ReadUnitOfWork = Depends(get_read_unit_of_work),
