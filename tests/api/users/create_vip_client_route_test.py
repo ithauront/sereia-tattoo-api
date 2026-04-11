@@ -1,16 +1,16 @@
-from app.api.dependencies.notifications import get_email_service
+from app.api.dependencies.events import get_event_bus
 from app.api.dependencies.read_unit_of_work import get_read_unit_of_work
 from app.api.dependencies.write_unit_of_work import get_write_unit_of_work
 from app.main import app
 from fastapi.testclient import TestClient
 
-from tests.fakes.fake_email_service import FakeEmailService
-
 
 client = TestClient(app)
 
 
-def test_create_vip_client_successful(write_uow, read_uow, make_user, make_token):
+def test_create_vip_client_successful(
+    write_uow, read_uow, make_user, make_token, fake_event_bus
+):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
 
@@ -24,14 +24,12 @@ def test_create_vip_client_successful(write_uow, read_uow, make_user, make_token
         "client_code": "JHON-AZUL",
     }
 
-    fake_email_service = FakeEmailService()
-
-    app.dependency_overrides[get_email_service] = lambda: fake_email_service
+    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
-        "/users/vip-client",
+        "/vip-clients",
         json=payload,
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -46,7 +44,7 @@ def test_create_vip_client_successful(write_uow, read_uow, make_user, make_token
 
 
 def test_vip_client_email_taken(
-    write_uow, read_uow, make_user, make_token, make_vip_client
+    write_uow, read_uow, make_user, make_token, make_vip_client, fake_event_bus
 ):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
@@ -69,14 +67,12 @@ def test_vip_client_email_taken(
         "client_code": "JHON-RED",
     }
 
-    fake_email_service = FakeEmailService()
-
-    app.dependency_overrides[get_email_service] = lambda: fake_email_service
+    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
-        "/users/vip-client",
+        "/vip-clients",
         json=payload,
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -94,7 +90,7 @@ def test_vip_client_email_taken(
 
 
 def test_vip_client_phone_taken(
-    write_uow, read_uow, make_user, make_token, make_vip_client
+    write_uow, read_uow, make_user, make_token, make_vip_client, fake_event_bus
 ):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
@@ -117,14 +113,12 @@ def test_vip_client_phone_taken(
         "client_code": "JHON-RED",
     }
 
-    fake_email_service = FakeEmailService()
-
-    app.dependency_overrides[get_email_service] = lambda: fake_email_service
+    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
-        "/users/vip-client",
+        "/vip-clients",
         json=payload,
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -142,7 +136,7 @@ def test_vip_client_phone_taken(
 
 
 def test_vip_client_code_taken(
-    write_uow, read_uow, make_user, make_token, make_vip_client
+    write_uow, read_uow, make_user, make_token, make_vip_client, fake_event_bus
 ):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
@@ -165,14 +159,12 @@ def test_vip_client_code_taken(
         "client_code": "JHON-AZUL",
     }
 
-    fake_email_service = FakeEmailService()
-
-    app.dependency_overrides[get_email_service] = lambda: fake_email_service
+    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
-        "/users/vip-client",
+        "/vip-clients",
         json=payload,
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -192,7 +184,7 @@ def test_vip_client_code_taken(
 
 
 def test_invalid_email_triggers_validation_error(
-    write_uow, read_uow, make_user, make_token
+    write_uow, read_uow, make_user, make_token, fake_event_bus
 ):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
@@ -207,14 +199,12 @@ def test_invalid_email_triggers_validation_error(
         "client_code": "JHON-AZUL",
     }
 
-    fake_email_service = FakeEmailService()
-
-    app.dependency_overrides[get_email_service] = lambda: fake_email_service
+    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
-        "/users/vip-client",
+        "/vip-clients",
         json=payload,
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -226,7 +216,9 @@ def test_invalid_email_triggers_validation_error(
     app.dependency_overrides = {}
 
 
-def test_not_admin_create_vip_client(write_uow, read_uow, make_user, make_token):
+def test_not_admin_create_vip_client(
+    write_uow, read_uow, make_user, make_token, fake_event_bus
+):
     admin = make_user(is_admin=False, email="admin@admin.com")
     write_uow.users.create(admin)
 
@@ -240,14 +232,12 @@ def test_not_admin_create_vip_client(write_uow, read_uow, make_user, make_token)
         "client_code": "JHON-AZUL",
     }
 
-    fake_email_service = FakeEmailService()
-
-    app.dependency_overrides[get_email_service] = lambda: fake_email_service
+    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
-        "/users/vip-client",
+        "/vip-clients",
         json=payload,
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -261,7 +251,9 @@ def test_not_admin_create_vip_client(write_uow, read_uow, make_user, make_token)
     app.dependency_overrides = {}
 
 
-def test_inactive_admin_create_vip_client(write_uow, read_uow, make_user, make_token):
+def test_inactive_admin_create_vip_client(
+    write_uow, read_uow, make_user, make_token, fake_event_bus
+):
     admin = make_user(is_admin=True, is_active=False, email="admin@admin.com")
     write_uow.users.create(admin)
 
@@ -275,14 +267,12 @@ def test_inactive_admin_create_vip_client(write_uow, read_uow, make_user, make_t
         "client_code": "JHON-AZUL",
     }
 
-    fake_email_service = FakeEmailService()
-
-    app.dependency_overrides[get_email_service] = lambda: fake_email_service
+    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
-        "/users/vip-client",
+        "/vip-clients",
         json=payload,
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -297,7 +287,7 @@ def test_inactive_admin_create_vip_client(write_uow, read_uow, make_user, make_t
 
 
 def test_non_existent_user_create_vip_client(
-    write_uow, read_uow, make_user, make_token
+    write_uow, read_uow, make_user, make_token, fake_event_bus
 ):
     admin = make_user(is_admin=True, email="admin@admin.com")
 
@@ -311,14 +301,12 @@ def test_non_existent_user_create_vip_client(
         "client_code": "JHON-AZUL",
     }
 
-    fake_email_service = FakeEmailService()
-
-    app.dependency_overrides[get_email_service] = lambda: fake_email_service
+    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
-        "/users/vip-client",
+        "/vip-clients",
         json=payload,
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -332,7 +320,9 @@ def test_non_existent_user_create_vip_client(
     app.dependency_overrides = {}
 
 
-def test_wrong_token_type_create_vip_client(write_uow, read_uow, make_user, make_token):
+def test_wrong_token_type_create_vip_client(
+    write_uow, read_uow, make_user, make_token, fake_event_bus
+):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
     token = make_token(admin, token_type="refresh")
@@ -345,14 +335,12 @@ def test_wrong_token_type_create_vip_client(write_uow, read_uow, make_user, make
         "client_code": "JHON-AZUL",
     }
 
-    fake_email_service = FakeEmailService()
-
-    app.dependency_overrides[get_email_service] = lambda: fake_email_service
+    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
-        "/users/vip-client",
+        "/vip-clients",
         json=payload,
         headers={"Authorization": f"Bearer {token}"},
     )

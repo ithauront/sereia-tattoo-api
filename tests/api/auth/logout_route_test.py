@@ -101,7 +101,7 @@ def test_logout_and_and_try_other_route(write_uow, read_uow, make_user, make_tok
     )
 
     demote = client.patch(
-        f"/users/demote/{user.id}",
+        f"/users/{user.id}/demote",
         headers={"Authorization": f"Bearer {token}"},
     )  # just another route that needs auth token
 

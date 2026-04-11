@@ -25,7 +25,7 @@ def test_change_vip_client_email_success(
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.patch(
-        f"/users/vip-client/change-email/{vip_client.id}",
+        f"/vip-clients/{vip_client.id}/change-email",
         json=payload,
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -57,7 +57,7 @@ def test_change_vip_client_email_same_email_idempotent(
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.patch(
-        f"/users/vip-client/change-email/{vip_client.id}",
+        f"/vip-clients/{vip_client.id}/change-email",
         json=payload,
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -89,7 +89,7 @@ def test_change_vip_client_email_not_admin(
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.patch(
-        f"/users/vip-client/change-email/{vip_client.id}",
+        f"/vip-clients/{vip_client.id}/change-email",
         json=payload,
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -122,7 +122,7 @@ def test_change_vip_client_email_not_active(
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.patch(
-        f"/users/vip-client/change-email/{vip_client.id}",
+        f"/vip-clients/{vip_client.id}/change-email",
         json=payload,
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -155,7 +155,7 @@ def test_change_vip_client_email_not_user(
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.patch(
-        f"/users/vip-client/change-email/{vip_client.id}",
+        f"/vip-clients/{vip_client.id}/change-email",
         json=payload,
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -188,7 +188,7 @@ def test_change_vip_client_email_already_taken(
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.patch(
-        f"/users/vip-client/change-email/{vip_client.id}",
+        f"/vip-clients/{vip_client.id}/change-email",
         json=payload,
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -222,7 +222,7 @@ def test_change_vip_client_email_not_found(
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.patch(
-        f"/users/vip-client/change-email/{wrong_id}",
+        f"/vip-clients/{wrong_id}/change-email",
         json=payload,
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -256,7 +256,7 @@ def test_change_vip_client_email_invalid_email(
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.patch(
-        f"/users/vip-client/change-email/{vip_client.id}",
+        f"/vip-clients/{vip_client.id}/change-email",
         json=payload,
         headers={"Authorization": f"Bearer {token}"},
     )

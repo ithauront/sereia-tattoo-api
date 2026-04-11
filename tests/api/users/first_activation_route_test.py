@@ -1,6 +1,7 @@
 from uuid import uuid4
 from fastapi.testclient import TestClient
 from freezegun import freeze_time
+from app.api.dependencies.read_unit_of_work import get_read_unit_of_work
 from app.api.dependencies.write_unit_of_work import get_write_unit_of_work
 from app.core.security.versioned_token_service import VersionedTokenService
 from app.core.security.passwords import verify_password
@@ -35,6 +36,7 @@ def test_first_activation_user_success(write_uow, read_uow, make_user):
     payload = {"username": "JhonDoe", "password": "Password1"}
 
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
         "/me/first-activation",
@@ -44,7 +46,20 @@ def test_first_activation_user_success(write_uow, read_uow, make_user):
 
     user_in_users_repo = read_uow.users.find_by_email("jhon@doe.com")
 
-    assert response.status_code == 204
+    assert response.status_code == 200
+
+    data = response.json()
+    access = data["access_token"]
+    refresh = data["refresh_token"]
+
+    payload_access = jwt_service.decode(access)
+    assert payload_access["sub"] == str(user.id)
+    assert payload_access["type"] == "access"
+
+    payload_refresh = jwt_service.decode(refresh)
+    assert payload_refresh["sub"] == str(user.id)
+    assert payload_refresh["type"] == "refresh"
+
     assert user_in_users_repo.username == "JhonDoe"
     assert verify_password("Password1", user_in_users_repo.hashed_password) is True
     assert user_in_users_repo.is_active is True
@@ -78,6 +93,7 @@ def test_first_activation_admin_success(write_uow, read_uow, make_user):
     payload = {"username": "JhonDoe", "password": "Password1"}
 
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
         "/me/first-activation",
@@ -87,7 +103,20 @@ def test_first_activation_admin_success(write_uow, read_uow, make_user):
 
     user_in_users_repo = read_uow.users.find_by_email("jhon@doe.com")
 
-    assert response.status_code == 204
+    assert response.status_code == 200
+
+    data = response.json()
+    access = data["access_token"]
+    refresh = data["refresh_token"]
+
+    payload_access = jwt_service.decode(access)
+    assert payload_access["sub"] == str(admin.id)
+    assert payload_access["type"] == "access"
+
+    payload_refresh = jwt_service.decode(refresh)
+    assert payload_refresh["sub"] == str(admin.id)
+    assert payload_refresh["type"] == "refresh"
+
     assert user_in_users_repo.username == "JhonDoe"
     assert verify_password("Password1", user_in_users_repo.hashed_password) is True
     assert user_in_users_repo.is_active is True
@@ -112,6 +141,7 @@ def test_first_activation_user_not_found(write_uow, read_uow):
     payload = {"username": "JhonDoe", "password": "Password1"}
 
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
         "/me/first-activation",
@@ -151,6 +181,7 @@ def test_first_activation_user_activated_before(write_uow, read_uow, make_user):
     payload = {"username": "JhonDoe", "password": "Password1"}
 
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
         "/me/first-activation",
@@ -195,6 +226,7 @@ def test_first_activation_second_call_route_same_token(write_uow, read_uow, make
     payload = {"username": "JhonDoe", "password": "Password1"}
 
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     first_call = client.post(
         "/me/first-activation",
@@ -208,7 +240,7 @@ def test_first_activation_second_call_route_same_token(write_uow, read_uow, make
     )
     user_in_users_repo = read_uow.users.find_by_email("jhon@doe.com")
 
-    assert first_call.status_code == 204
+    assert first_call.status_code == 200
 
     assert second_call.status_code == 409
     assert second_call.json()["detail"] == "user_was_activated_before"
@@ -247,6 +279,7 @@ def test_first_activation_user_token_version_greater_than_user(
     payload = {"username": "JhonDoe", "password": "Password1"}
 
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
         "/me/first-activation",
@@ -293,6 +326,7 @@ def test_first_activation_user_token_version_smaller_than_user(
     payload = {"username": "JhonDoe", "password": "Password1"}
 
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
         "/me/first-activation",
@@ -339,6 +373,7 @@ def test_first_activation_username_already_taken(write_uow, read_uow, make_user)
     payload = {"username": "JhonDoe", "password": "Password1"}
 
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
         "/me/first-activation",
@@ -385,6 +420,7 @@ def test_first_activation_username_against_validation_rules(
     payload = {"username": "Jh", "password": "Password1"}
 
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
         "/me/first-activation",
@@ -424,6 +460,7 @@ def test_first_activation_user_wrong_token_type(
     payload = {"username": "JhonDoe", "password": "Password1"}
 
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
         "/me/first-activation",
@@ -460,6 +497,7 @@ def test_first_activation_missing_header(write_uow, read_uow, make_user):
     payload = {"username": "JhonDoe", "password": "Password1"}
 
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
         "/me/first-activation",
@@ -504,6 +542,7 @@ def test_first_activation_missing_Bearer_prefix(write_uow, read_uow, make_user):
     payload = {"username": "JhonDoe", "password": "Password1"}
 
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
         "/me/first-activation",
@@ -540,6 +579,7 @@ def test_first_activation_invalid_jwt_format(write_uow, read_uow, make_user):
     payload = {"username": "JhonDoe", "password": "Password1"}
 
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
         "/me/first-activation",
@@ -585,6 +625,7 @@ def test_first_activation_invalid_token_sub(write_uow, read_uow, make_user):
     payload = {"username": "JhonDoe", "password": "Password1"}
 
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
         "/me/first-activation",

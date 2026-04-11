@@ -21,7 +21,7 @@ def test_demote_user(write_uow, read_uow, make_user, make_token):
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.patch(
-        f"/users/demote/{user.id}",
+        f"/users/{user.id}/demote",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -43,7 +43,7 @@ def test_demote_nonexistent_user(write_uow, read_uow, make_user, make_token):
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.patch(
-        f"/users/demote/{user.id}",
+        f"/users/{user.id}/demote",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -64,7 +64,7 @@ def test_route_cannot_demote_yourself(write_uow, read_uow, make_user, make_token
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.patch(
-        f"/users/demote/{admin.id}",
+        f"/users/{admin.id}/demote",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -85,7 +85,7 @@ def test_not_admin_demote_user(write_uow, read_uow, make_user, make_token):
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.patch(
-        f"/users/demote/{user.id}",
+        f"/users/{user.id}/demote",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -109,7 +109,7 @@ def test_inactive_admin_demote_user(write_uow, read_uow, make_user, make_token):
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.patch(
-        f"/users/demote/{user.id}",
+        f"/users/{user.id}/demote",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -132,7 +132,7 @@ def test_nonexistent_user_demote_user(write_uow, read_uow, make_user, make_token
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.patch(
-        f"/users/demote/{user.id}",
+        f"/users/{user.id}/demote",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -155,7 +155,7 @@ def test_wrong_token_type_demote_user(write_uow, read_uow, make_user, make_token
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.patch(
-        f"/users/demote/{user.id}",
+        f"/users/{user.id}/demote",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -176,7 +176,7 @@ def test_missing_authorization_header(write_uow, read_uow, make_user):
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
-    response = client.patch(f"/users/demote/{user.id}")
+    response = client.patch(f"/users/{user.id}/demote")
 
     assert response.status_code == 422
     assert response.json()["detail"][0]["loc"] == ["header", "authorization"]
@@ -198,7 +198,7 @@ def test_missing_bearer_prefix(write_uow, read_uow, make_user, make_token):
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.patch(
-        f"/users/demote/{user.id}",
+        f"/users/{user.id}/demote",
         headers={"Authorization": f" {token}"},
     )
 
@@ -220,7 +220,7 @@ def test_invalid_jwt_format(write_uow, read_uow, make_user):
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.patch(
-        f"/users/demote/{user.id}",
+        f"/users/{user.id}/demote",
         headers={"Authorization": "Bearer abc.def.ghi"},
     )
 
@@ -242,7 +242,7 @@ def test_invalid_token_sub(write_uow, read_uow, make_user):
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.patch(
-        f"/users/demote/{user.id}",
+        f"/users/{user.id}/demote",
         headers={"Authorization": f" {token}"},
     )
 

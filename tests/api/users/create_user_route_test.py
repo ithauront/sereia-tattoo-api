@@ -1,16 +1,18 @@
 from fastapi.testclient import TestClient
+from app.api.dependencies.events import get_event_bus
 from app.api.dependencies.read_unit_of_work import get_read_unit_of_work
 from app.api.dependencies.write_unit_of_work import get_write_unit_of_work
 from app.core.security import jwt_service
 from app.main import app
 from tests.fakes.fake_email_service import FakeEmailService
-from app.api.dependencies.notifications import get_email_service
 
 
 client = TestClient(app)
 
 
-def test_create_user_success(write_uow, read_uow, make_user, make_token):
+def test_create_user_success(
+    write_uow, read_uow, make_user, make_token, fake_event_bus
+):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
 
@@ -18,9 +20,7 @@ def test_create_user_success(write_uow, read_uow, make_user, make_token):
 
     payload = {"email": "jhon@doe.com"}
 
-    fake_email_service = FakeEmailService()
-
-    app.dependency_overrides[get_email_service] = lambda: fake_email_service
+    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -42,7 +42,9 @@ def test_create_user_success(write_uow, read_uow, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_user_already_exists(write_uow, read_uow, make_user, make_token):
+def test_user_already_exists(
+    write_uow, read_uow, make_user, make_token, fake_event_bus
+):
     admin = make_user(is_admin=True, email="admin@admin.com")
     user = make_user(email="jhon@doe.com")
     write_uow.users.create(admin)
@@ -54,7 +56,7 @@ def test_user_already_exists(write_uow, read_uow, make_user, make_token):
 
     fake_email_service = FakeEmailService()
 
-    app.dependency_overrides[get_email_service] = lambda: fake_email_service
+    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -71,7 +73,9 @@ def test_user_already_exists(write_uow, read_uow, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_not_admin_create_user(write_uow, read_uow, make_user, make_token):
+def test_not_admin_create_user(
+    write_uow, read_uow, make_user, make_token, fake_event_bus
+):
     not_admin = make_user(is_admin=False, email="admin@admin.com")
     write_uow.users.create(not_admin)
 
@@ -79,9 +83,7 @@ def test_not_admin_create_user(write_uow, read_uow, make_user, make_token):
 
     payload = {"email": "jhon@doe.com"}
 
-    fake_email_service = FakeEmailService()
-
-    app.dependency_overrides[get_email_service] = lambda: fake_email_service
+    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -100,7 +102,9 @@ def test_not_admin_create_user(write_uow, read_uow, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_inactive_admin_create_user(write_uow, read_uow, make_user, make_token):
+def test_inactive_admin_create_user(
+    write_uow, read_uow, make_user, make_token, fake_event_bus
+):
     inactive_admin = make_user(is_admin=True, email="admin@admin.com", is_active=False)
     write_uow.users.create(inactive_admin)
 
@@ -108,9 +112,7 @@ def test_inactive_admin_create_user(write_uow, read_uow, make_user, make_token):
 
     payload = {"email": "jhon@doe.com"}
 
-    fake_email_service = FakeEmailService()
-
-    app.dependency_overrides[get_email_service] = lambda: fake_email_service
+    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -129,16 +131,16 @@ def test_inactive_admin_create_user(write_uow, read_uow, make_user, make_token):
     app.dependency_overrides = {}
 
 
-def test_non_existent_user_create_user(write_uow, read_uow, make_user, make_token):
+def test_non_existent_user_create_user(
+    write_uow, read_uow, make_user, make_token, fake_event_bus
+):
     admin = make_user(is_admin=True, email="admin@admin.com")
 
     token = make_token(admin)
 
     payload = {"email": "jhon@doe.com"}
 
-    fake_email_service = FakeEmailService()
-
-    app.dependency_overrides[get_email_service] = lambda: fake_email_service
+    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -157,7 +159,9 @@ def test_non_existent_user_create_user(write_uow, read_uow, make_user, make_toke
     app.dependency_overrides = {}
 
 
-def test_wrong_token_type_create_user(write_uow, read_uow, make_user, make_token):
+def test_wrong_token_type_create_user(
+    write_uow, read_uow, make_user, make_token, fake_event_bus
+):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
 
@@ -165,9 +169,7 @@ def test_wrong_token_type_create_user(write_uow, read_uow, make_user, make_token
 
     payload = {"email": "jhon@doe.com"}
 
-    fake_email_service = FakeEmailService()
-
-    app.dependency_overrides[get_email_service] = lambda: fake_email_service
+    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -186,15 +188,15 @@ def test_wrong_token_type_create_user(write_uow, read_uow, make_user, make_token
     app.dependency_overrides = {}
 
 
-def test_missing_authorization_header_create_user(write_uow, read_uow, make_user):
+def test_missing_authorization_header_create_user(
+    write_uow, read_uow, make_user, fake_event_bus
+):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
 
     payload = {"email": "jhon@doe.com"}
 
-    fake_email_service = FakeEmailService()
-
-    app.dependency_overrides[get_email_service] = lambda: fake_email_service
+    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -212,7 +214,9 @@ def test_missing_authorization_header_create_user(write_uow, read_uow, make_user
     app.dependency_overrides = {}
 
 
-def test_missing_bearer_prefix_create_user(write_uow, read_uow, make_user, make_token):
+def test_missing_bearer_prefix_create_user(
+    write_uow, read_uow, make_user, make_token, fake_event_bus
+):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
 
@@ -220,9 +224,7 @@ def test_missing_bearer_prefix_create_user(write_uow, read_uow, make_user, make_
 
     payload = {"email": "jhon@doe.com"}
 
-    fake_email_service = FakeEmailService()
-
-    app.dependency_overrides[get_email_service] = lambda: fake_email_service
+    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -241,15 +243,13 @@ def test_missing_bearer_prefix_create_user(write_uow, read_uow, make_user, make_
     app.dependency_overrides = {}
 
 
-def test_invalid_jwt_format_create_user(write_uow, read_uow, make_user):
+def test_invalid_jwt_format_create_user(write_uow, read_uow, make_user, fake_event_bus):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
 
     payload = {"email": "jhon@doe.com"}
 
-    fake_email_service = FakeEmailService()
-
-    app.dependency_overrides[get_email_service] = lambda: fake_email_service
+    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -268,7 +268,7 @@ def test_invalid_jwt_format_create_user(write_uow, read_uow, make_user):
     app.dependency_overrides = {}
 
 
-def test_invalid_token_sub_create_user(write_uow, read_uow, make_user):
+def test_invalid_token_sub_create_user(write_uow, read_uow, make_user, fake_event_bus):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
 
@@ -276,9 +276,7 @@ def test_invalid_token_sub_create_user(write_uow, read_uow, make_user):
 
     payload = {"email": "jhon@doe.com"}
 
-    fake_email_service = FakeEmailService()
-
-    app.dependency_overrides[get_email_service] = lambda: fake_email_service
+    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 

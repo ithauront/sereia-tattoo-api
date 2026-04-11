@@ -21,7 +21,7 @@ def test_promote_user(write_uow, read_uow, make_user, make_token):
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.patch(
-        f"/users/promote/{user.id}",
+        f"/users/{user.id}/promote",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -43,7 +43,7 @@ def test_promote_nonexistent_user(write_uow, read_uow, make_user, make_token):
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.patch(
-        f"/users/promote/{user.id}",
+        f"/users/{user.id}/promote",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -67,7 +67,7 @@ def test_promote_admin_user(write_uow, read_uow, make_user, make_token):
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.patch(
-        f"/users/promote/{user.id}",
+        f"/users/{user.id}/promote",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -90,7 +90,7 @@ def test_not_admin_promote_user(write_uow, read_uow, make_user, make_token):
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.patch(
-        f"/users/promote/{user.id}",
+        f"/users/{user.id}/promote",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -114,7 +114,7 @@ def test_inactive_admin_promote_user(write_uow, read_uow, make_user, make_token)
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.patch(
-        f"/users/promote/{user.id}",
+        f"/users/{user.id}/promote",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -137,7 +137,7 @@ def test_nonexistent_user_promote_user(write_uow, read_uow, make_user, make_toke
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.patch(
-        f"/users/promote/{user.id}",
+        f"/users/{user.id}/promote",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -161,7 +161,7 @@ def test_wrong_token_type_promote_user(write_uow, read_uow, make_user, make_toke
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.patch(
-        f"/users/promote/{user.id}",
+        f"/users/{user.id}/promote",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -182,7 +182,7 @@ def test_missing_authorization_header(write_uow, read_uow, make_user):
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
-    response = client.patch(f"/users/promote/{user.id}")
+    response = client.patch(f"/users/{user.id}/promote")
 
     assert response.status_code == 422
     assert response.json()["detail"][0]["loc"] == ["header", "authorization"]
@@ -204,7 +204,7 @@ def test_missing_bearer_prefix(write_uow, make_user, read_uow, make_token):
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.patch(
-        f"/users/promote/{user.id}",
+        f"/users/{user.id}/promote",
         headers={"Authorization": f" {token}"},
     )
 
@@ -226,7 +226,7 @@ def test_invalid_jwt_format(write_uow, read_uow, make_user):
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.patch(
-        f"/users/promote/{user.id}",
+        f"/users/{user.id}/promote",
         headers={"Authorization": "Bearer abc.def.ghi"},
     )
 
@@ -248,7 +248,7 @@ def test_invalid_token_sub(write_uow, read_uow, make_user):
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.patch(
-        f"/users/promote/{user.id}",
+        f"/users/{user.id}/promote",
         headers={"Authorization": f"Bearer {token}"},
     )
 

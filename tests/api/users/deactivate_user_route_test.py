@@ -20,7 +20,7 @@ def test_deactivate_user(write_uow, read_uow, make_user, make_token):
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.patch(
-        f"/users/deactivate/{user.id}",
+        f"/users/{user.id}/deactivate",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -42,7 +42,7 @@ def test_deactivate_nonexistent_user(write_uow, read_uow, make_user, make_token)
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.patch(
-        f"/users/deactivate/{user.id}",
+        f"/users/{user.id}/deactivate",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -63,7 +63,7 @@ def test_route_cannot_deactivate_yourself(write_uow, read_uow, make_user, make_t
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.patch(
-        f"/users/deactivate/{admin.id}",
+        f"/users/{admin.id}/deactivate",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -84,7 +84,7 @@ def test_deactivate_user_inactive(write_uow, read_uow, make_user, make_token):
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.patch(
-        f"/users/deactivate/{user.id}",
+        f"/users/{user.id}/deactivate",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -107,7 +107,7 @@ def test_not_admin_deactivate_user(write_uow, read_uow, make_user, make_token):
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.patch(
-        f"/users/deactivate/{user.id}",
+        f"/users/{user.id}/deactivate",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -131,7 +131,7 @@ def test_inactive_admin_deactivate_user(write_uow, read_uow, make_user, make_tok
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.patch(
-        f"/users/deactivate/{user.id}",
+        f"/users/{user.id}/deactivate",
         headers={"Authorization": f"Bearer {token}"},
     )
 
@@ -154,7 +154,7 @@ def test_nonexistent_user_deactivate_user(write_uow, read_uow, make_user, make_t
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.patch(
-        f"/users/deactivate/{user.id}",
+        f"/users/{user.id}/deactivate",
         headers={"Authorization": f"Bearer {token}"},
     )
 
