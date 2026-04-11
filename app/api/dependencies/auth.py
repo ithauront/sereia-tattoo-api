@@ -10,7 +10,6 @@ from app.core.exceptions.security import TokenError
 from app.core.security.versioned_token_service import VersionedTokenService
 
 
-# TODO fazer teste de todas as dependencias mas talvez não seja necessario porque elas são indiretamente testadas pelas rotas.
 def get_current_user(
     authorization: str = Header(...),
     uow: ReadUnitOfWork = Depends(get_read_unit_of_work),
