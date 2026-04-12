@@ -17,7 +17,7 @@ def test_generate_client_codes_success(write_uow, read_uow, make_user, make_toke
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
-        "/users/vip-client/generate-client-codes",
+        "/vip-clients/generate-client-codes",
         json=payload,
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -48,7 +48,7 @@ def test_generate_client_code_repo_full(
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
-        "/users/vip-client/generate-client-codes",
+        "/vip-clients/generate-client-codes",
         json=payload,
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -70,7 +70,7 @@ def test_generate_client_code_wrong_payload(write_uow, read_uow, make_user, make
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
-        "/users/vip-client/generate-client-codes",
+        "/vip-clients/generate-client-codes",
         json=payload,
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -97,7 +97,7 @@ def test_not_admin_try_to_generate_client_codes(
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
-        "/users/vip-client/generate-client-codes",
+        "/vip-clients/generate-client-codes",
         json=payload,
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -122,7 +122,7 @@ def test_not_active_try_to_generate_client_codes(
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
-        "/users/vip-client/generate-client-codes",
+        "/vip-clients/generate-client-codes",
         json=payload,
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -145,7 +145,7 @@ def test_not_user_try_to_generate_client_codes(read_uow, make_user, make_token):
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
     response = client.post(
-        "/users/vip-client/generate-client-codes",
+        "/vip-clients/generate-client-codes",
         json=payload,
         headers={"Authorization": f"Bearer {token}"},
     )
