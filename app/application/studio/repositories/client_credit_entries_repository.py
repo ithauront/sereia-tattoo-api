@@ -3,8 +3,8 @@ from typing import Optional, List
 from uuid import UUID
 
 from app.application.studio.use_cases.DTO.list_client_credit_entries import Direction
-from app.domain.studio.marketing.entities.client_credit_entry import ClientCreditEntry
-from app.domain.studio.marketing.enums.client_credit_source_type import (
+from app.domain.studio.finances.entities.client_credit_entry import ClientCreditEntry
+from app.domain.studio.finances.enums.client_credit_source_type import (
     ClientCreditSourceType,
 )
 

@@ -4,7 +4,7 @@ from sqlalchemy import Enum, ForeignKey, Integer, DateTime, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 from datetime import datetime
 
-from app.domain.studio.marketing.enums.client_credit_source_type import (
+from app.domain.studio.finances.enums.client_credit_source_type import (
     ClientCreditSourceType,
 )
 from app.infrastructure.sqlalchemy.base_class import Base

@@ -9,8 +9,8 @@ from app.application.studio.repositories.client_credit_entries_repository import
 from sqlalchemy.orm import Session
 
 from app.application.studio.use_cases.DTO.commun import Direction
-from app.domain.studio.marketing.entities.client_credit_entry import ClientCreditEntry
-from app.domain.studio.marketing.enums.client_credit_source_type import (
+from app.domain.studio.finances.entities.client_credit_entry import ClientCreditEntry
+from app.domain.studio.finances.enums.client_credit_source_type import (
     ClientCreditSourceType,
 )
 from app.infrastructure.sqlalchemy.models.client_credit_entry import (

@@ -4,7 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.application.studio.use_cases.DTO.commun import Direction
-from app.domain.studio.marketing.entities.client_credit_entry import ClientCreditEntry
+from app.domain.studio.finances.entities.client_credit_entry import ClientCreditEntry
 
 
 class ListCreditEntriesByClientIdInput(BaseModel):

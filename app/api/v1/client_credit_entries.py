@@ -15,10 +15,10 @@ from app.application.studio.use_cases.DTO.list_client_credit_entries import (
     ListCreditEntriesByClientIdInput,
     ListCreditEntriesOutput,
 )
-from app.application.studio.use_cases.marketing_use_cases.get_credit_entry_details_by_id import (
+from app.application.studio.use_cases.finances_use_cases.get_credit_entry_details_by_id import (
     GetCreditEntryDetailsByIdUseCase,
 )
-from app.application.studio.use_cases.marketing_use_cases.list_credit_entries_by_client_id import (
+from app.application.studio.use_cases.finances_use_cases.list_credit_entries_by_client_id import (
     ListCreditEntriesByClientIdUseCase,
 )
 from app.core.exceptions.marketing import CreditEntryNotFoundError

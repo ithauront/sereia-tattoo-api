@@ -5,7 +5,7 @@ from app.core.exceptions.marketing import (
     CreditMustBePositiveError,
     ZeroCreditQuantityNotAllowedError,
 )
-from app.domain.studio.marketing.enums.client_credit_source_type import (
+from app.domain.studio.finances.enums.client_credit_source_type import (
     ClientCreditSourceType,
 )
 
