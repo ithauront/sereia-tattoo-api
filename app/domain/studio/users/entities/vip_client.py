@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
-from app.domain.studio.users.entities.value_objects.client_code import ClientCode
+from app.domain.studio.value_objects.client_code import ClientCode
 from app.domain.studio.users.events.create_vip_client_email_requested import (
     CreateVipClientEmailRequested,
 )

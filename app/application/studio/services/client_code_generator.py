@@ -2,7 +2,7 @@ import random
 from app.application.studio.unit_of_work.read_unit_of_work import ReadUnitOfWork
 from app.core.exceptions.users import AllClientCodesTakenError
 from app.domain.studio.users.constants.client_code_colors import VIP_CLIENT_CODE_COLORS
-from app.domain.studio.users.entities.value_objects.client_code import ClientCode
+from app.domain.studio.value_objects.client_code import ClientCode
 
 
 class ClientCodeGenerator:

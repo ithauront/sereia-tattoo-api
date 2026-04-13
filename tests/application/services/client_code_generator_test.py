@@ -3,7 +3,7 @@ import pytest
 from app.application.studio.services.client_code_generator import ClientCodeGenerator
 from app.core.exceptions.users import AllClientCodesTakenError
 from app.domain.studio.users.constants.client_code_colors import VIP_CLIENT_CODE_COLORS
-from app.domain.studio.users.entities.value_objects.client_code import ClientCode
+from app.domain.studio.value_objects.client_code import ClientCode
 
 
 def test_client_code_generation(read_uow):

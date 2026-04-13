@@ -10,7 +10,7 @@ from app.application.studio.use_cases.users_use_cases.get_vip_client import (
     GetVipClientUseCase,
 )
 from app.core.exceptions.users import VipClientNotFoundError
-from app.domain.studio.marketing.enums.client_credit_source_type import (
+from app.domain.studio.finances.enums.client_credit_source_type import (
     ClientCreditSourceType,
 )
 

@@ -5,7 +5,7 @@ from app.application.studio.use_cases.users_use_cases.generate_vip_client_code i
 )
 from app.core.exceptions.users import AllClientCodesTakenError
 from app.domain.studio.users.constants.client_code_colors import VIP_CLIENT_CODE_COLORS
-from app.domain.studio.users.entities.value_objects.client_code import ClientCode
+from app.domain.studio.value_objects.client_code import ClientCode
 
 
 def test_generate_vip_client_code(read_uow):

@@ -1,5 +1,5 @@
 from app.core.exceptions.users import AllClientCodesTakenError
-from app.domain.studio.users.entities.value_objects.client_code import ClientCode
+from app.domain.studio.value_objects.client_code import ClientCode
 from app.application.studio.services.client_code_generator import ClientCodeGenerator
 
 

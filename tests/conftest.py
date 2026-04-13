@@ -5,12 +5,12 @@ from app.core.security import jwt_service
 from app.core.security.jwt_service import JWTService
 from app.core.security.passwords import hash_password
 from app.core.security.versioned_token_service import VersionedTokenService
-from app.domain.studio.marketing.entities.client_credit_entry import ClientCreditEntry
-from app.domain.studio.marketing.enums.client_credit_source_type import (
+from app.domain.studio.finances.entities.client_credit_entry import ClientCreditEntry
+from app.domain.studio.finances.enums.client_credit_source_type import (
     ClientCreditSourceType,
 )
 from app.domain.studio.users.entities.user import User
-from app.domain.studio.users.entities.value_objects.client_code import ClientCode
+from app.domain.studio.value_objects.client_code import ClientCode
 from app.domain.studio.users.entities.vip_client import VipClient
 from tests.fakes.fake_client_credit_entries_repository import (
     FakeClientCreditEntriesRepository,

@@ -2,7 +2,7 @@ from uuid import uuid4
 
 import pytest
 
-from app.domain.studio.marketing.enums.client_credit_source_type import (
+from app.domain.studio.finances.enums.client_credit_source_type import (
     ClientCreditSourceType,
 )
 from app.infrastructure.sqlalchemy.repositories.client_credit_entries_repository import (

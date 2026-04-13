@@ -4,7 +4,7 @@ from uuid import uuid4
 import pytest
 
 from app.application.studio.use_cases.DTO.commun import Direction
-from app.domain.studio.marketing.enums.client_credit_source_type import (
+from app.domain.studio.finances.enums.client_credit_source_type import (
     ClientCreditSourceType,
 )
 from tests.fakes.fake_client_credit_entries_repository import (

@@ -12,7 +12,7 @@ from app.core.exceptions.validation import ValidationError
 from app.core.normalize.normalize_phone import normalize_phone
 from app.core.normalize.normalize_email import normalize_email
 from app.core.validations.phone_number import validate_phone_number
-from app.domain.studio.users.entities.value_objects.client_code import ClientCode
+from app.domain.studio.value_objects.client_code import ClientCode
 from app.domain.studio.users.entities.vip_client import VipClient
 
 
