@@ -1,0 +1,2 @@
+class ClientInfoModelError(Exception):
+    pass
