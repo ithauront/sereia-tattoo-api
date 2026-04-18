@@ -1,4 +1,4 @@
-from uuid import uuid4
+from uuid import uuid4, UUID as pyUUID
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import String, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column
@@ -10,7 +10,7 @@ from app.infrastructure.sqlalchemy.base_class import Base
 class VipClientModel(Base):
     __tablename__ = "vip_client"
 
-    id: Mapped[UUID] = mapped_column(
+    id: Mapped[pyUUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid4
     )
     first_name: Mapped[str] = mapped_column(
@@ -31,11 +31,9 @@ class VipClientModel(Base):
         String(50), unique=True, nullable=False, index=True
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        DateTime(timezone=True), nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        server_default=func.now(),
-        onupdate=func.now(),
     )

@@ -1,4 +1,4 @@
-from uuid import uuid4
+from uuid import uuid4, UUID as pyUUID
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy import Enum, ForeignKey, Integer, DateTime, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
@@ -13,16 +13,16 @@ from app.infrastructure.sqlalchemy.base_class import Base
 class ClientCreditEntryModel(Base):
     __tablename__ = "client_credit_entry"
 
-    id: Mapped[UUID] = mapped_column(
+    id: Mapped[pyUUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid4
     )
-    vip_client_id: Mapped[UUID] = mapped_column(
+    vip_client_id: Mapped[pyUUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("vip_client.id"),
         nullable=False,
         index=True,
     )
-    source_id: Mapped[UUID] = mapped_column(
+    source_id: Mapped[pyUUID] = mapped_column(
         UUID(as_uuid=True),
         nullable=False,
         index=True,
@@ -30,7 +30,7 @@ class ClientCreditEntryModel(Base):
     source_type: Mapped[ClientCreditSourceType] = mapped_column(
         Enum(ClientCreditSourceType, name="client_credit_source_type"), nullable=False
     )
-    related_entry_id: Mapped[UUID | None] = mapped_column(
+    related_entry_id: Mapped[pyUUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("client_credit_entry.id"),
         nullable=True,
@@ -42,5 +42,6 @@ class ClientCreditEntryModel(Base):
         nullable=False,
     )
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, server_default=func.now()
+        DateTime(timezone=True),
+        nullable=False,
     )
