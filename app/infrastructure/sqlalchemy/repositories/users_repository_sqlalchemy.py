@@ -21,6 +21,8 @@ class SQLAlchemyUsersRepository(UsersRepository):
             is_active=user.is_active,
             has_activated_once=user.has_activated_once,
             activation_token_version=user.activation_token_version,
+            created_at=user.created_at,
+            updated_at=user.updated_at,
         )
         self.session.add(orm_user)
         self.session.flush()
@@ -39,6 +41,7 @@ class SQLAlchemyUsersRepository(UsersRepository):
         orm_user.is_admin = user.is_admin
         orm_user.has_activated_once = user.has_activated_once
         orm_user.activation_token_version = user.activation_token_version
+        orm_user.updated_at = user.updated_at
 
         self.session.flush()
 

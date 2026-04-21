@@ -23,6 +23,8 @@ class SQLAlchemyVipClientsRepository(VipClientsRepository):
             email=vip_client.email,
             phone=vip_client.phone,
             client_code=vip_client.client_code.value,
+            created_at=vip_client.created_at,
+            updated_at=vip_client.updated_at,
         )
         self.session.add(orm_vip_client)
         self.session.flush()
@@ -40,6 +42,7 @@ class SQLAlchemyVipClientsRepository(VipClientsRepository):
         orm_vip_client.email = vip_client.email
         orm_vip_client.phone = vip_client.phone
         orm_vip_client.client_code = str(vip_client.client_code)
+        orm_vip_client.updated_at = vip_client.updated_at
 
         self.session.flush()
 

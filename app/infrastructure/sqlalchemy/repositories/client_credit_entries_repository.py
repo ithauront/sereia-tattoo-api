@@ -31,6 +31,7 @@ class SQLAlchemyClientCreditEntriesRepository(ClientCreditEntriesRepository):
             related_entry_id=client_credit_entry.related_entry_id,
             quantity=client_credit_entry.quantity,
             reason=client_credit_entry.reason,
+            created_at=client_credit_entry.created_at,
         )
         self.session.add(orm_client_credit_entry)
         self.session.flush()
