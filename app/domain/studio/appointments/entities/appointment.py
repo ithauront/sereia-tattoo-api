@@ -5,6 +5,7 @@ from app.core.exceptions.appointments import (
     AppointmentMustBeInCorrectPreviousStatusError,
     AppointmentMustBeScheduledError,
     AppointmentMustHaveRealisticTimeAndDateError,
+    AppointmentStatusBreakingDomainRules,
     AppointmentWasNotFullyPaidError,
     CurrentSessionMustBeLessThanTotalError,
     CurrentSessionMustBePositiveError,
@@ -46,7 +47,7 @@ class Appointment:
         created_at: datetime | None = None,
         updated_at: datetime | None = None,
     ):
-#TODO: pensar uma maneira de logar quem fez as modificações
+        # TODO: pensar uma maneira de logar quem fez as modificações
         now = self._utc_now()
 
         self.id = id or uuid4()
@@ -68,6 +69,8 @@ class Appointment:
         self.observations = observations
         self.created_at = created_at or now
         self.updated_at = updated_at or now
+
+        self._validate_state()
 
     @classmethod
     def create(
@@ -182,6 +185,40 @@ class Appointment:
 
     def _touch(self):
         self.updated_at = self._utc_now()
+
+    def _validate_state(self):
+        if self.status == AppointmentStatus.REQUESTED:
+            if self.price is not None:
+                raise AppointmentStatusBreakingDomainRules(
+                    "status_requested_does_not_suport_price"
+                )
+            if self.deposit_confirmed_at is not None:
+                raise AppointmentStatusBreakingDomainRules(
+                    "status_requested_does_not_suport_deposit"
+                )
+
+        elif self.status == AppointmentStatus.QUOTED:
+            if self.price is None:
+                raise AppointmentStatusBreakingDomainRules(
+                    "status_quoted_must_have_price"
+                )
+            if self.deposit_confirmed_at is not None:
+                raise AppointmentStatusBreakingDomainRules(
+                    "status_quoted_does_not_suport_deposit"
+                )
+
+        elif self.status == AppointmentStatus.SCHEDULED:
+            if self.price is None:
+                raise AppointmentStatusBreakingDomainRules(
+                    "status_scheduled_must_have_price"
+                )
+            if self.deposit_confirmed_at is None:
+                raise AppointmentStatusBreakingDomainRules(
+                    "status_scheduled_must_have_deposit"
+                )
+
+        if self.end_at <= self.start_at:
+            raise AppointmentMustHaveRealisticTimeAndDateError()
 
     @staticmethod
     def _utc_now() -> datetime:
