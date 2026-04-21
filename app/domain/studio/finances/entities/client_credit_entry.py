@@ -70,6 +70,7 @@ class ClientCreditEntry:
         quantity: int,
         reason: str,
         related_entry_id: UUID | None = None,
+        created_at: datetime | None = None,
     ) -> "ClientCreditEntry":
         return cls(
             vip_client_id=vip_client_id,
@@ -78,6 +79,7 @@ class ClientCreditEntry:
             quantity=quantity,
             reason=reason,
             related_entry_id=related_entry_id,
+            created_at=created_at,
         )
 
     @property
@@ -95,6 +97,7 @@ class ClientCreditEntry:
         vip_client_id: UUID,
         appointment_id: UUID,
         quantity: int,
+        created_at: datetime | None = None,
     ) -> "ClientCreditEntry":
 
         if quantity <= 0:
@@ -106,6 +109,7 @@ class ClientCreditEntry:
             source_type=ClientCreditSourceType.INDICATION,
             quantity=quantity,
             reason="Créditos referentes a indicação.",
+            created_at=created_at,
         )
 
     @classmethod
@@ -116,6 +120,7 @@ class ClientCreditEntry:
         admin_id: UUID,
         quantity: int,
         reason: str,
+        created_at: datetime | None = None,
     ) -> "ClientCreditEntry":
 
         if quantity <= 0:
@@ -127,6 +132,7 @@ class ClientCreditEntry:
             source_type=ClientCreditSourceType.ADDED_BY_ADMIN,
             quantity=quantity,
             reason=reason,
+            created_at=created_at,
         )
 
     @classmethod
@@ -136,6 +142,7 @@ class ClientCreditEntry:
         vip_client_id: UUID,
         appointment_id: UUID,
         quantity: int,
+        created_at: datetime | None = None,
     ) -> "ClientCreditEntry":
 
         if quantity <= 0:
@@ -147,6 +154,7 @@ class ClientCreditEntry:
             source_type=ClientCreditSourceType.USED_IN_APPOINTMENT,
             quantity=-abs(quantity),
             reason="Créditos usados em appointment",
+            created_at=created_at,
         )
 
     @classmethod
@@ -158,6 +166,7 @@ class ClientCreditEntry:
         original_entry_id: UUID,
         quantity: int,
         reason: str,
+        created_at: datetime | None = None,
     ) -> "ClientCreditEntry":
 
         if quantity <= 0:
@@ -170,4 +179,5 @@ class ClientCreditEntry:
             quantity=-abs(quantity),
             reason=reason,
             related_entry_id=original_entry_id,
+            created_at=created_at,
         )
