@@ -4,7 +4,7 @@ from app.domain.studio.finances.enums.payment_enums import PaymentMethodType
 from app.infrastructure.sqlalchemy.base_class import Base
 from uuid import uuid4, UUID as pyUUID
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy import Enum, ForeignKey, Numeric, String, DateTime, Text, func
+from sqlalchemy import Enum, ForeignKey, Numeric, String, DateTime, Text
 from sqlalchemy.orm import Mapped, mapped_column
 from datetime import datetime
 
@@ -27,7 +27,7 @@ class PaymentModel(Base):
     )
     appointment_id: Mapped[pyUUID | None] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("appointment.id"),
+        ForeignKey("appointments.id"),
         nullable=True,
         index=True,
     )
