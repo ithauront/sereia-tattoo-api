@@ -9,6 +9,7 @@ from app.core.exceptions.payment import (
 from app.domain.studio.finances.enums.payment_enums import PaymentMethodType
 
 
+# TODO: fazer o model o repo, o fake repo e o teste do fake repo
 class Payment:
     def __init__(
         self,
