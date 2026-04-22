@@ -4,3 +4,7 @@ class PaymentMustBeGreaterThanZeroError(Exception):
 
 class VipClientIdIsRequiredError(Exception):
     pass
+
+
+class DuplicateExternalReferenceError(Exception):
+    pass
