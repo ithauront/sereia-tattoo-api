@@ -26,6 +26,7 @@ class SQLAlchemyPaymentsRepository(PaymentsRepository):
             appointment_id=payment.appointment_id,
             external_reference=payment.external_reference,
             description=payment.description,
+            created_at=payment.created_at,
         )
         self.session.add(orm_payment)
         self.session.flush()
