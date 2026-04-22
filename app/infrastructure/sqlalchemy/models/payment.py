@@ -32,7 +32,7 @@ class PaymentModel(Base):
         index=True,
     )
     external_reference: Mapped[str | None] = mapped_column(
-        String(255), nullable=True, index=True
+        String(255), nullable=True, index=True, unique=True
     )
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
 
