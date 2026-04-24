@@ -41,7 +41,7 @@ class SQLAlchemyVipClientsRepository(VipClientsRepository):
         orm_vip_client.last_name = vip_client.last_name
         orm_vip_client.email = vip_client.email
         orm_vip_client.phone = vip_client.phone
-        orm_vip_client.client_code = str(vip_client.client_code)
+        orm_vip_client.client_code = vip_client.client_code.value
         orm_vip_client.updated_at = vip_client.updated_at
 
         self.session.flush()
