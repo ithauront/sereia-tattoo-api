@@ -1,6 +1,9 @@
 from sqlalchemy.orm import Session
 
 from app.application.studio.unit_of_work.write_unit_of_work import WriteUnitOfWork
+from app.infrastructure.sqlalchemy.repositories.appointments_repository_sqlalchemy import (
+    SQLAlchemyAppointmentsRepository,
+)
 from app.infrastructure.sqlalchemy.repositories.client_credit_entries_repository import (
     SQLAlchemyClientCreditEntriesRepository,
 )
@@ -25,6 +28,7 @@ class SqlAlchemyWriteUnitOfWork(WriteUnitOfWork):
             self.session
         )
         self.payments = SQLAlchemyPaymentsRepository(self.session)
+        self.appointments = SQLAlchemyAppointmentsRepository(self.session)
 
     def __enter__(self):
         return self
