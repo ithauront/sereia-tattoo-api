@@ -1,0 +1,1 @@
+CREATE DATABASE sereia_test;

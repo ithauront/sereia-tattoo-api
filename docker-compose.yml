@@ -11,6 +11,7 @@ services:
       - "5432:5432"
     volumes:
       - sereia_postgres_data:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
 
 volumes:
   sereia_postgres_data:
