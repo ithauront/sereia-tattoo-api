@@ -14,6 +14,7 @@ from app.core.exceptions.appointments import (
     TotalSessionsNumberMustBeDefineError,
     TotalSessionsNumberMustBePositiveError,
 )
+from app.core.exceptions.validation import ValidationError
 from app.domain.studio.appointments.enums.appointment_enums import (
     AppointmentStatus,
     AppointmentType,
@@ -22,7 +23,6 @@ from app.domain.studio.appointments.entities.value_objects.client_info import Cl
 from app.domain.studio.value_objects.client_code import ClientCode
 
 
-# TODO: fazer o repo, o fake repo e o teste do fake repo
 class Appointment:
     def __init__(
         self,
@@ -51,8 +51,8 @@ class Appointment:
         now = self._utc_now()
 
         self.id = id or uuid4()
-        self.status = status
-        self.appointment_type = appointment_type
+        self.status = self._ensure_enum(status, AppointmentStatus)
+        self.appointment_type = self._ensure_enum(appointment_type, AppointmentType)
         self.start_at = start_at
         self.end_at = end_at
         self.placement = placement
@@ -223,3 +223,12 @@ class Appointment:
     @staticmethod
     def _utc_now() -> datetime:
         return datetime.now(timezone.utc)
+
+    @staticmethod
+    def _ensure_enum(value, enum_cls):
+        if isinstance(value, enum_cls):
+            return value
+        try:
+            return enum_cls(value)
+        except ValueError:
+            raise ValidationError(f"Invalid value '{value}' for {enum_cls.__name__}")
