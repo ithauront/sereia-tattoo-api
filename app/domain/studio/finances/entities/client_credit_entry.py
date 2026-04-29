@@ -5,6 +5,7 @@ from app.core.exceptions.marketing import (
     CreditMustBePositiveError,
     ZeroCreditQuantityNotAllowedError,
 )
+from app.domain.utils.ensure_enum import ensure_enum
 from app.domain.studio.finances.enums.client_credit_source_type import (
     ClientCreditSourceType,
 )
@@ -54,7 +55,7 @@ class ClientCreditEntry:
         self.id = id or uuid4()
         self.vip_client_id = vip_client_id
         self.source_id = source_id
-        self.source_type = source_type
+        self.source_type = ensure_enum(source_type, ClientCreditSourceType)
         self.related_entry_id = related_entry_id
         self.quantity = quantity
         self.reason = reason

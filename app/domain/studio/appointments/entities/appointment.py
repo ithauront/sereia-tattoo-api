@@ -14,7 +14,7 @@ from app.core.exceptions.appointments import (
     TotalSessionsNumberMustBeDefineError,
     TotalSessionsNumberMustBePositiveError,
 )
-from app.core.exceptions.validation import ValidationError
+from app.domain.utils.ensure_enum import ensure_enum
 from app.domain.studio.appointments.enums.appointment_enums import (
     AppointmentStatus,
     AppointmentType,
@@ -51,8 +51,8 @@ class Appointment:
         now = self._utc_now()
 
         self.id = id or uuid4()
-        self.status = self._ensure_enum(status, AppointmentStatus)
-        self.appointment_type = self._ensure_enum(appointment_type, AppointmentType)
+        self.status = ensure_enum(status, AppointmentStatus)
+        self.appointment_type = ensure_enum(appointment_type, AppointmentType)
         self.start_at = start_at
         self.end_at = end_at
         self.placement = placement
@@ -223,12 +223,3 @@ class Appointment:
     @staticmethod
     def _utc_now() -> datetime:
         return datetime.now(timezone.utc)
-
-    @staticmethod
-    def _ensure_enum(value, enum_cls):
-        if isinstance(value, enum_cls):
-            return value
-        try:
-            return enum_cls(value)
-        except ValueError:
-            raise ValidationError(f"Invalid value '{value}' for {enum_cls.__name__}")

@@ -6,6 +6,7 @@ from app.core.exceptions.payment import (
     PaymentMustBeGreaterThanZeroError,
     VipClientIdIsRequiredError,
 )
+from app.domain.utils.ensure_enum import ensure_enum
 from app.domain.studio.finances.enums.payment_enums import PaymentMethodType
 
 
@@ -34,7 +35,7 @@ class Payment:
 
         self.id = id or uuid4()
         self.amount = amount
-        self.payment_method = payment_method
+        self.payment_method = ensure_enum(payment_method, PaymentMethodType)
         self.vip_client_id = vip_client_id
         self.appointment_id = appointment_id
         self.external_reference = external_reference
