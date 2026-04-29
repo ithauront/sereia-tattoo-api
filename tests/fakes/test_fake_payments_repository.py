@@ -7,7 +7,7 @@ import pytest
 from app.application.studio.use_cases.DTO.commun import Direction
 from app.core.exceptions.payment import DuplicateExternalReferenceError
 from app.domain.studio.finances.entities.payment import Payment
-from app.domain.studio.finances.enums.payment_enums import PaymentMethodType
+from app.core.types.payment_enums import PaymentMethodType
 from tests.fakes.fake_appointments_repository import FakeAppointmentsRepository
 from tests.fakes.fake_payments_repository import FakePaymentsRepository
 from tests.fakes.fake_vip_clients_repository import FakeVipClientsRepository

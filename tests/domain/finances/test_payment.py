@@ -1,7 +1,7 @@
 import pytest
 
 from app.core.exceptions.validation import ValidationError
-from app.domain.studio.finances.enums.payment_enums import PaymentMethodType
+from app.core.types.payment_enums import PaymentMethodType
 
 
 def test_method_not_enum_raises_error(make_payment):

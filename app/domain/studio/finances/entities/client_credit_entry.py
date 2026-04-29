@@ -6,7 +6,7 @@ from app.core.exceptions.marketing import (
     ZeroCreditQuantityNotAllowedError,
 )
 from app.domain.utils.ensure_enum import ensure_enum
-from app.domain.studio.finances.enums.client_credit_source_type import (
+from app.core.types.client_credit_source_type import (
     ClientCreditSourceType,
 )
 

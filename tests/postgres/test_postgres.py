@@ -4,13 +4,14 @@ from uuid import uuid4
 import pytest
 from sqlalchemy.exc import DatabaseError, IntegrityError
 
-from app.domain.studio.appointments.enums.appointment_enums import AppointmentType
+from app.core.types.appointment_enums import AppointmentType
 from app.infrastructure.sqlalchemy.models.appointments import AppointmentModel
 from app.infrastructure.sqlalchemy.repositories.appointments_repository_sqlalchemy import (
     SQLAlchemyAppointmentsRepository,
 )
 
 
+# TODO: testar o decimal no postgress
 # TODO: verificar talvez outras coisas que devam ser testadas aqui; como o defaulte de false se não vira 0 e etc
 def test_datetime_timezone_is_preserved(
     sqlalchemy_appointments_repo: SQLAlchemyAppointmentsRepository,

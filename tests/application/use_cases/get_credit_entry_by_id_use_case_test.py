@@ -9,7 +9,7 @@ from app.application.studio.use_cases.finances_use_cases.get_credit_entry_detail
 )
 from app.core.exceptions.marketing import CreditEntryNotFoundError
 from app.core.exceptions.users import UserNotFoundError, VipClientNotFoundError
-from app.domain.studio.finances.enums.client_credit_source_type import (
+from app.core.types.client_credit_source_type import (
     ClientCreditSourceType,
 )
 

@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from app.domain.studio.finances.enums.payment_enums import PaymentMethodType
+from app.core.types.payment_enums import PaymentMethodType
 from app.infrastructure.sqlalchemy.base_class import Base
 from uuid import uuid4, UUID as pyUUID
 from sqlalchemy.dialects.postgresql import UUID

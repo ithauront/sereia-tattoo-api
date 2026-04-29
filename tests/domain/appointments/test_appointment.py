@@ -1,7 +1,7 @@
 import pytest
 
 from app.core.exceptions.validation import ValidationError
-from app.domain.studio.appointments.enums.appointment_enums import AppointmentStatus
+from app.core.types.appointment_enums import AppointmentStatus
 
 
 def test_unknown_status_raises_error(make_appointment_base):

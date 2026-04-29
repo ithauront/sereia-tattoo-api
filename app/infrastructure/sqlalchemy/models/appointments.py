@@ -16,7 +16,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.domain.studio.appointments.enums.appointment_enums import (
+from app.core.types.appointment_enums import (
     AppointmentStatus,
     AppointmentType,
 )

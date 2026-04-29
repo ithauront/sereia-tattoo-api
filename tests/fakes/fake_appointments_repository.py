@@ -8,7 +8,7 @@ from app.application.studio.repositories.appointments_repository import (
 from app.application.studio.use_cases.DTO.client_filters import ClientInfoFilter
 from app.application.studio.use_cases.DTO.commun import Direction
 from app.domain.studio.appointments.entities.appointment import Appointment
-from app.domain.studio.appointments.enums.appointment_enums import (
+from app.core.types.appointment_enums import (
     AppointmentStatus,
     AppointmentType,
 )

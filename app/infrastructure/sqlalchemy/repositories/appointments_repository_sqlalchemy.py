@@ -12,7 +12,7 @@ from app.application.studio.use_cases.DTO.client_filters import ClientInfoFilter
 from app.application.studio.use_cases.DTO.commun import Direction
 from app.domain.studio.appointments.entities.appointment import Appointment
 from app.domain.studio.appointments.entities.value_objects.client_info import ClientInfo
-from app.domain.studio.appointments.enums.appointment_enums import (
+from app.core.types.appointment_enums import (
     AppointmentStatus,
     AppointmentType,
 )
@@ -20,7 +20,6 @@ from app.domain.studio.value_objects.client_code import ClientCode
 from app.infrastructure.sqlalchemy.models.appointments import AppointmentModel
 
 
-# TODO fazer fake e teste do fake e tambem teste do real
 class SQLAlchemyAppointmentsRepository(AppointmentsRepository):
     def __init__(self, session: Session):
         self.session = session

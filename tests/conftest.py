@@ -9,16 +9,16 @@ from app.core.security.passwords import hash_password
 from app.core.security.versioned_token_service import VersionedTokenService
 from app.domain.studio.appointments.entities.appointment import Appointment
 from app.domain.studio.appointments.entities.value_objects.client_info import ClientInfo
-from app.domain.studio.appointments.enums.appointment_enums import (
+from app.core.types.appointment_enums import (
     AppointmentStatus,
     AppointmentType,
 )
 from app.domain.studio.finances.entities.client_credit_entry import ClientCreditEntry
 from app.domain.studio.finances.entities.payment import Payment
-from app.domain.studio.finances.enums.client_credit_source_type import (
+from app.core.types.client_credit_source_type import (
     ClientCreditSourceType,
 )
-from app.domain.studio.finances.enums.payment_enums import PaymentMethodType
+from app.core.types.payment_enums import PaymentMethodType
 from app.domain.studio.users.entities.user import User
 from app.domain.studio.value_objects.client_code import ClientCode
 from app.domain.studio.users.entities.vip_client import VipClient

@@ -8,7 +8,7 @@ from app.domain.studio.appointments.entities.value_objects.client_info import (
     ClientInfo,
     NonVipContact,
 )
-from app.domain.studio.appointments.enums.appointment_enums import (
+from app.core.types.appointment_enums import (
     AppointmentStatus,
     AppointmentType,
 )

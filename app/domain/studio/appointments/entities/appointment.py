@@ -15,7 +15,7 @@ from app.core.exceptions.appointments import (
     TotalSessionsNumberMustBePositiveError,
 )
 from app.domain.utils.ensure_enum import ensure_enum
-from app.domain.studio.appointments.enums.appointment_enums import (
+from app.core.types.appointment_enums import (
     AppointmentStatus,
     AppointmentType,
 )
