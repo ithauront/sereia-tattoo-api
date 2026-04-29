@@ -270,7 +270,10 @@ def make_appointment_base():
 
         return Appointment(
             id=kwargs.get("id", uuid4()),
-            status=AppointmentStatus.REQUESTED,
+            status=kwargs.get(
+                "status",
+                AppointmentStatus.REQUESTED,
+            ),
             appointment_type=kwargs.get("appointment_type", AppointmentType.TATTOO),
             start_at=start_at,
             end_at=end_at,
