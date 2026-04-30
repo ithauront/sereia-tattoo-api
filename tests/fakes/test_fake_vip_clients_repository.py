@@ -73,6 +73,16 @@ def test_update(repo, make_vip_client):
     assert not_found is None
 
 
+def test_update_not_found(repo, make_vip_client):
+    vip_client = make_vip_client()
+    # we do not persist vip_user for this test
+    vip_client.phone = "71911111111"
+    vip_client.email = "new@email.com"
+    update = repo.update(vip_client)
+
+    assert update is None
+
+
 def test_find_many(repo, make_vip_client):
     vip_client_1 = make_vip_client(email="jhon@doe.com", phone="71911111111")
     vip_client_2 = make_vip_client(email="jane@doe.com", phone="71922222222")
