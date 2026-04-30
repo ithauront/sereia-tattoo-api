@@ -3,8 +3,14 @@ import pytest
 from sqlalchemy import StaticPool, create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
 from app.infrastructure.sqlalchemy.base_class import Base
+from app.infrastructure.sqlalchemy.repositories.appointments_repository_sqlalchemy import (
+    SQLAlchemyAppointmentsRepository,
+)
 from app.infrastructure.sqlalchemy.repositories.client_credit_entries_repository import (
     SQLAlchemyClientCreditEntriesRepository,
+)
+from app.infrastructure.sqlalchemy.repositories.payments_repository_sqlalchemy import (
+    SQLAlchemyPaymentsRepository,
 )
 from app.infrastructure.sqlalchemy.repositories.users_repository_sqlalchemy import (
     SQLAlchemyUsersRepository,
@@ -61,6 +67,18 @@ def sqlalchemy_users_repo(db_session: Session) -> SQLAlchemyUsersRepository:
 @pytest.fixture
 def sqlalchemy_vip_clients_repo(db_session: Session) -> SQLAlchemyVipClientsRepository:
     return SQLAlchemyVipClientsRepository(session=db_session)
+
+
+@pytest.fixture
+def sqlalchemy_payments_repo(db_session: Session) -> SQLAlchemyPaymentsRepository:
+    return SQLAlchemyPaymentsRepository(session=db_session)
+
+
+@pytest.fixture
+def sqlalchemy_appointments_repo(
+    db_session: Session,
+) -> SQLAlchemyAppointmentsRepository:
+    return SQLAlchemyAppointmentsRepository(session=db_session)
 
 
 @pytest.fixture
