@@ -56,6 +56,16 @@ def test_update(repo, make_user):
     assert found.updated_at > found.created_at
 
 
+def test_update_not_found(repo, make_user):
+    user = make_user()
+    # we do not persist user for this test
+    user.username = "NewName"
+    user.is_admin = True
+    update = repo.update(user)
+
+    assert update is None
+
+
 def test_find_many(repo, make_user):
     user1 = make_user(
         is_active=True, is_admin=True, username="jhonDoe", email="jhon@doe.com"
