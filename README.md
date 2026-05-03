@@ -206,3 +206,22 @@ No fluxo de criação de um cliente VIP, o frontend precisa preencher um formul�
 - O name deve ser enviado pelo frontend. A convenção do sistema recomenda (inicialmente) enviar o firstname do cliente.
 - Caso o backend retorne o erro 409: "please_try_creating_client_code_with_last_name", o frontend deve tentar enviar o lastname.
 - A decisão de automatizar o envio do firstname e, no retry enviar o lastname, ou de deixar o usuário escolher, fica a cargo do frontend. O importante é sugerir enviar o firstname inicialmente e o lastname apenas em caso de erro.
+
+## AUDIT
+
+Os logs de auditoria não fazem parte do domínio neste projeto.
+
+Isso porque, no cenário atual, eles:
+
+- não influenciam regras de negócio
+- não são utilizados para tomada de decisão dentro do sistema
+- servem apenas para rastreamento, debugging e observabilidade
+
+Por esse motivo, optamos por tratá-los como uma preocupação de infraestrutura.
+
+Os logs de auditoria são implementados com:
+
+- Model (SQLAlchemy) → persistência no banco de dados
+- Repository (infraestrutura) → responsável por salvar e consultar logs
+- DTO (AuditLogEntry) → estrutura tipada utilizada pela camada de aplicação
+- Integração com Unit of Work → garante consistência transacional
