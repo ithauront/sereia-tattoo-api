@@ -6,6 +6,9 @@ from app.infrastructure.sqlalchemy.base_class import Base
 from app.infrastructure.sqlalchemy.repositories.appointments_repository_sqlalchemy import (
     SQLAlchemyAppointmentsRepository,
 )
+from app.infrastructure.sqlalchemy.repositories.audit_logs_repository import (
+    SQLAlchemyAuditLogsRepository,
+)
 from app.infrastructure.sqlalchemy.repositories.client_credit_entries_repository import (
     SQLAlchemyClientCreditEntriesRepository,
 )
@@ -86,3 +89,10 @@ def sqlalchemy_client_credits_entries_repo(
     db_session: Session,
 ) -> SQLAlchemyClientCreditEntriesRepository:
     return SQLAlchemyClientCreditEntriesRepository(session=db_session)
+
+
+@pytest.fixture
+def sqlalchemy_audit_logs_repo(
+    db_session: Session,
+) -> SQLAlchemyAuditLogsRepository:
+    return SQLAlchemyAuditLogsRepository(session=db_session)
