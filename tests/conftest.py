@@ -3,10 +3,12 @@ from decimal import Decimal
 from uuid import uuid4
 import pytest
 from app.application.event_bus.setup import setup_event_bus
+from app.application.studio.use_cases.DTO.audit_logs import AuditLogEntry
 from app.core.security import jwt_service
 from app.core.security.jwt_service import JWTService
 from app.core.security.passwords import hash_password
 from app.core.security.versioned_token_service import VersionedTokenService
+from app.core.types.audit_actor_type import AuditActorType
 from app.domain.studio.appointments.entities.appointment import Appointment
 from app.domain.studio.appointments.entities.value_objects.client_info import ClientInfo
 from app.core.types.appointment_enums import (
@@ -23,6 +25,7 @@ from app.domain.studio.users.entities.user import User
 from app.domain.studio.value_objects.client_code import ClientCode
 from app.domain.studio.users.entities.vip_client import VipClient
 from tests.fakes.fake_appointments_repository import FakeAppointmentsRepository
+from tests.fakes.fake_audit_logs_repository import FakeAuditLogsRepository
 from tests.fakes.fake_client_credit_entries_repository import (
     FakeClientCreditEntriesRepository,
 )
@@ -61,12 +64,18 @@ def shared_payments_repo():
 
 
 @pytest.fixture
+def shared_audit_logs_repo():
+    return FakeAuditLogsRepository()
+
+
+@pytest.fixture
 def read_uow(
     shared_users_repo,
     shared_vip_clients_repo,
     shared_client_credit_entries_repo,
     shared_appointments_repo,
     shared_payments_repo,
+    shared_audit_logs_repo,
 ):
     uow = FakeReadUnitOfWork()
     uow.users = shared_users_repo
@@ -74,6 +83,7 @@ def read_uow(
     uow.client_credit_entries = shared_client_credit_entries_repo
     uow.appointments = shared_appointments_repo
     uow.payments = shared_payments_repo
+    uow.audit_logs = shared_audit_logs_repo
     return uow
 
 
@@ -84,6 +94,7 @@ def write_uow(
     shared_client_credit_entries_repo,
     shared_appointments_repo,
     shared_payments_repo,
+    shared_audit_logs_repo,
 ):
     uow = FakeWriteUnitOfWork()
     uow.users = shared_users_repo
@@ -91,6 +102,7 @@ def write_uow(
     uow.client_credit_entries = shared_client_credit_entries_repo
     uow.appointments = shared_appointments_repo
     uow.payments = shared_payments_repo
+    uow.audit_logs = shared_audit_logs_repo
     return uow
 
 
@@ -331,5 +343,33 @@ def make_completed_appointment(make_scheduled_appointment):
         appointment = make_scheduled_appointment(**kwargs)
         appointment.complete(kwargs.get("total_paid", appointment.price))
         return appointment
+
+    return _factory
+
+
+@pytest.fixture
+def make_audit_log():
+    def _factory(**kwargs):
+        base_now = kwargs.get(
+            "base_now", datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc)
+        )
+        return AuditLogEntry(
+            entity_name=kwargs.get("entity_name", "users"),
+            entity_id=kwargs.get("entity_id", uuid4()),
+            action=kwargs.get("action", "change user phone"),
+            actor_id=kwargs.get("actor_id", uuid4()),
+            actor_type=kwargs.get("actor_type", AuditActorType.USER),
+            changes=kwargs.get(
+                "changes",
+                {
+                    "phone": {
+                        "from": "71988888888",
+                        "to": "71977777777",
+                    }
+                },
+            ),
+            performed_at=kwargs.get("performed_at", base_now),
+            reason=kwargs.get("reason", "client change his phone"),
+        )
 
     return _factory
