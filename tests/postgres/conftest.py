@@ -8,7 +8,9 @@ from app.infrastructure.sqlalchemy.base_class import Base
 from app.infrastructure.sqlalchemy.repositories.appointments_repository_sqlalchemy import (
     SQLAlchemyAppointmentsRepository,
 )
-
+from app.infrastructure.sqlalchemy.repositories.audit_logs_repository import (
+    SQLAlchemyAuditLogsRepository,
+)
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
@@ -52,3 +54,11 @@ def sqlalchemy_appointments_repo(
     db_session: Session,
 ) -> SQLAlchemyAppointmentsRepository:
     return SQLAlchemyAppointmentsRepository(session=db_session)
+
+
+@pytest.fixture
+def sqlalchemy_audit_logs_repo(
+    db_session: Session,
+) -> SQLAlchemyAuditLogsRepository:
+    return SQLAlchemyAuditLogsRepository(session=db_session)
+
