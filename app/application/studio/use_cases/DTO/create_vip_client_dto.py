@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from pydantic import BaseModel, EmailStr
 
 
@@ -7,3 +9,4 @@ class CreateVipClientInput(BaseModel):
     phone: str
     email: EmailStr
     client_code: str
+    actor_id: UUID

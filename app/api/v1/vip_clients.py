@@ -63,7 +63,6 @@ from app.core.exceptions.users import (
 )
 from app.core.exceptions.validation import ValidationError
 
-
 router = APIRouter(prefix="/vip-clients")
 
 
@@ -107,6 +106,7 @@ async def create_vip_client(
             email=data.email,
             phone=data.phone,
             client_code=data.client_code,
+            actor_id=current_user.id,
         )
 
         await use_case.execute(dto)
@@ -144,7 +144,7 @@ def change_vip_client_email(
 ):
     use_case = ChangeVipClientEmailUseCase(uow)
     dto = ChangeVipClientEmailInput(
-        vip_client_id=vip_client_id, new_email=data.new_email
+        vip_client_id=vip_client_id, new_email=data.new_email, actor_id=current_user.id
     )
 
     try:
@@ -168,7 +168,7 @@ def change_vip_client_phone(
 ):
     use_case = ChangeVipClientPhoneUseCase(uow)
     dto = ChangeVipClientPhoneInput(
-        vip_client_id=vip_client_id, new_phone=data.new_phone
+        vip_client_id=vip_client_id, new_phone=data.new_phone, actor_id=current_user.id
     )
 
     try:

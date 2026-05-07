@@ -47,7 +47,6 @@ class Appointment:
         created_at: datetime | None = None,
         updated_at: datetime | None = None,
     ):
-        # TODO: pensar uma maneira de logar quem fez as modificações
         now = self._utc_now()
 
         self.id = id or uuid4()

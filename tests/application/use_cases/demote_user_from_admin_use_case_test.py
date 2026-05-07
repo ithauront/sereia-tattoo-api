@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 import pytest
 from app.application.studio.use_cases.DTO.user_status_dto import DemoteUserInput
@@ -9,6 +10,7 @@ from app.core.exceptions.users import (
     LastAdminCannotBeDemotedError,
     UserNotFoundError,
 )
+from app.core.types.audit_actor_type import AuditActorType
 
 
 def test_demote_user_success(write_uow, make_user):
@@ -30,7 +32,38 @@ def test_demote_user_success(write_uow, make_user):
     assert user.refresh_token_version == 0
 
 
-def test_cannot_demote_yourself(write_uow, make_user):
+def test_demote_user_create_log(write_uow, make_user, read_uow):
+    admin = make_user(
+        is_active=True, is_admin=True, access_token_version=0, refresh_token_version=0
+    )  # admin is verify in route but I prefer to explicit admin here
+    user = make_user(is_active=True, is_admin=True)
+    write_uow.users.create(admin)
+    write_uow.users.create(user)
+
+    use_case = DemoteUserFromAdminUseCase(write_uow)
+    input_data = DemoteUserInput(user_id=user.id, actor_id=admin.id)
+
+    use_case.execute(input_data)
+
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+
+    log = logs[0]
+
+    assert log.entity_name == "users"
+    assert log.entity_id == user.id
+    assert log.action == "demote user from admin"
+    assert log.actor_id == admin.id
+    assert log.actor_type == AuditActorType.USER
+    assert log.changes == {
+        "is_admin": {
+            "from": True,
+            "to": False,
+        }
+    }
+    assert abs(log.performed_at - datetime.now(timezone.utc)) < timedelta(seconds=2)
+
+
+def test_cannot_demote_yourself(write_uow, make_user, read_uow):
     admin1 = make_user(is_admin=True, access_token_version=0, refresh_token_version=0)
     admin2 = make_user(is_admin=True)  # 2 admins to not mistake with last admin rule.
 
@@ -46,8 +79,11 @@ def test_cannot_demote_yourself(write_uow, make_user):
     assert admin1.access_token_version == 0
     assert admin1.refresh_token_version == 0
 
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+    assert logs == []
 
-def test_last_active_admin_cannot_be_demoted(write_uow, make_user):
+
+def test_last_active_admin_cannot_be_demoted(write_uow, make_user, read_uow):
     inactive_admin = make_user(
         is_admin=True, is_active=False
     )  # actor active verification is made in controller
@@ -63,8 +99,11 @@ def test_last_active_admin_cannot_be_demoted(write_uow, make_user):
     with pytest.raises(LastAdminCannotBeDemotedError):
         use_case.execute(input_data)
 
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+    assert logs == []
 
-def test_user_not_found_to_demote(write_uow, make_user):
+
+def test_user_not_found_to_demote(write_uow, make_user, read_uow):
     admin = make_user(is_active=True, is_admin=True)
     not_user_id = uuid4()
     write_uow.users.create(admin)
@@ -74,8 +113,11 @@ def test_user_not_found_to_demote(write_uow, make_user):
     with pytest.raises(UserNotFoundError):
         use_case.execute(input_data)
 
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+    assert logs == []
 
-def test_user_already_non_admin(write_uow, make_user):
+
+def test_user_already_non_admin(write_uow, make_user, read_uow):
     admin = make_user(is_active=True, is_admin=True)
     user = make_user(is_admin=False)
     write_uow.users.create(admin)
@@ -87,3 +129,6 @@ def test_user_already_non_admin(write_uow, make_user):
     use_case.execute(input_data)
 
     assert user.is_admin is False
+
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+    assert logs == []

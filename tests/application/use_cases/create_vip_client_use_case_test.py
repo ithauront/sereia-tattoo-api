@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+
 import pytest
 
 from app.application.studio.use_cases.DTO.create_vip_client_dto import (
@@ -12,6 +14,7 @@ from app.core.exceptions.users import (
     PhoneAlreadyTakenError,
 )
 from app.core.exceptions.validation import ValidationError
+from app.core.types.audit_actor_type import AuditActorType
 from app.domain.studio.users.events.create_vip_client_email_requested import (
     CreateVipClientEmailRequested,
 )
@@ -19,7 +22,9 @@ from tests.fakes.fake_event_bus import FakeEventBus
 
 
 @pytest.mark.asyncio
-async def test_create_vip_client_success(write_uow, read_uow):
+async def test_create_vip_client_success(write_uow, read_uow, make_user):
+    admin = make_user(is_admin=True)
+    write_uow.users.create(admin)
 
     event_bus = FakeEventBus()
 
@@ -30,6 +35,7 @@ async def test_create_vip_client_success(write_uow, read_uow):
         phone="11-92345-6789",  # we test normalization of phone
         email="JHON@DOE.com",  # we test normalization of email string
         client_code="JHON-AZUL",
+        actor_id=admin.id,
     )
 
     await use_case.execute(input_data)
@@ -50,7 +56,51 @@ async def test_create_vip_client_success(write_uow, read_uow):
 
 
 @pytest.mark.asyncio
-async def test_vip_client_invalid_phone(write_uow, mocker):
+async def test_create_vip_client_log_action(write_uow, read_uow, make_user):
+    admin = make_user(is_admin=True)
+    write_uow.users.create(admin)
+
+    event_bus = FakeEventBus()
+
+    use_case = CreateVipClientUseCase(write_uow, event_bus)
+    input_data = CreateVipClientInput(
+        first_name="Jhon",
+        last_name="Doe",
+        phone="11-92345-6789",  # we test normalization of phone
+        email="JHON@DOE.com",  # we test normalization of email string
+        client_code="JHON-AZUL",
+        actor_id=admin.id,
+    )
+
+    await use_case.execute(input_data)
+
+    saved_vip_client = read_uow.vip_clients.find_by_email("jhon@doe.com")
+
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+    log = logs[0]
+
+    assert log is not None
+    assert log.entity_name == "users"
+    assert log.entity_id == saved_vip_client.id
+    assert log.action == "create vip client"
+    assert log.actor_id == admin.id
+    assert log.actor_type == AuditActorType.USER
+    assert log.changes == {
+        "initial_state": {
+            "first_name": saved_vip_client.first_name,
+            "last_name": saved_vip_client.last_name,
+            "email": saved_vip_client.email,
+            "phone": saved_vip_client.phone,
+            "client_code": saved_vip_client.client_code,
+        }
+    }
+    assert abs(log.performed_at - datetime.now(timezone.utc)) < timedelta(seconds=2)
+
+
+@pytest.mark.asyncio
+async def test_vip_client_invalid_phone(write_uow, read_uow, mocker, make_user):
+    admin = make_user(is_admin=True)
+    write_uow.users.create(admin)
     event_bus = FakeEventBus()
 
     spy = mocker.spy(write_uow.vip_clients, "create")
@@ -63,6 +113,7 @@ async def test_vip_client_invalid_phone(write_uow, mocker):
         phone="invalid-phone",
         email="jhon@doe.com",
         client_code="JHON-AZUL",
+        actor_id=admin.id,
     )
 
     with pytest.raises(ValidationError):
@@ -70,12 +121,22 @@ async def test_vip_client_invalid_phone(write_uow, mocker):
 
     spy.assert_not_called()
 
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+    assert logs == []
+
 
 @pytest.mark.asyncio
-async def test_vip_client_email_taken(write_uow, make_vip_client, mocker):
+async def test_vip_client_email_taken(
+    write_uow, read_uow, make_vip_client, mocker, make_user
+):
+    admin = make_user(is_admin=True)
+    write_uow.users.create(admin)
+
     event_bus = FakeEventBus()
     vip_client = make_vip_client(
-        email="jhon@doe.com", phone="11888888888", client_code="OTHER-CODE"
+        email="jhon@doe.com",
+        phone="11888888888",
+        client_code="OTHER-CODE",
     )
     write_uow.vip_clients.create(vip_client)
 
@@ -88,6 +149,7 @@ async def test_vip_client_email_taken(write_uow, make_vip_client, mocker):
         phone="11923456789",
         email="jhon@doe.com",
         client_code="JHON-AZUL",
+        actor_id=admin.id,
     )
 
     with pytest.raises(EmailAlreadyTakenError):
@@ -95,9 +157,17 @@ async def test_vip_client_email_taken(write_uow, make_vip_client, mocker):
 
     spy.assert_not_called()
 
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+    assert logs == []
+
 
 @pytest.mark.asyncio
-async def test_vip_client_phone_taken(write_uow, make_vip_client, mocker):
+async def test_vip_client_phone_taken(
+    write_uow, read_uow, make_vip_client, mocker, make_user
+):
+    admin = make_user(is_admin=True)
+    write_uow.users.create(admin)
+
     event_bus = FakeEventBus()
     vip_client = make_vip_client(
         email="other@doe.com", phone="11923456789", client_code="OTHER-CODE"
@@ -113,6 +183,7 @@ async def test_vip_client_phone_taken(write_uow, make_vip_client, mocker):
         phone="11923456789",
         email="jhon@doe.com",
         client_code="JHON-AZUL",
+        actor_id=admin.id,
     )
 
     with pytest.raises(PhoneAlreadyTakenError):
@@ -120,9 +191,17 @@ async def test_vip_client_phone_taken(write_uow, make_vip_client, mocker):
 
     spy.assert_not_called()
 
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+    assert logs == []
+
 
 @pytest.mark.asyncio
-async def test_vip_client_client_code_taken(write_uow, make_vip_client, mocker):
+async def test_vip_client_client_code_taken(
+    write_uow, make_vip_client, mocker, make_user, read_uow
+):
+    admin = make_user(is_admin=True)
+    write_uow.users.create(admin)
+
     event_bus = FakeEventBus()
     vip_client = make_vip_client(
         email="other@doe.com", phone="11888888888", client_code="JHON-AZUL"
@@ -138,9 +217,13 @@ async def test_vip_client_client_code_taken(write_uow, make_vip_client, mocker):
         phone="11923456789",
         email="jhon@doe.com",
         client_code="JHON-AZUL",
+        actor_id=admin.id,
     )
 
     with pytest.raises(ClientCodeAlreadyTakenError):
         await use_case.execute(input_data)
 
     spy.assert_not_called()
+
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+    assert logs == []

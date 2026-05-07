@@ -4,6 +4,7 @@ from pydantic import BaseModel
 
 class ActivateUserInput(BaseModel):
     user_id: UUID
+    actor_id: UUID
 
 
 class DeactivateUserInput(BaseModel):
@@ -18,3 +19,4 @@ class DemoteUserInput(BaseModel):
 
 class PromoteUserInput(BaseModel):
     user_id: UUID
+    actor_id: UUID

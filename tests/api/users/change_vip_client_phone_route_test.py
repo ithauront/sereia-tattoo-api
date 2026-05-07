@@ -1,9 +1,11 @@
+from datetime import datetime, timedelta, timezone
+
 from fastapi.testclient import TestClient
 
 from app.api.dependencies.read_unit_of_work import get_read_unit_of_work
 from app.api.dependencies.write_unit_of_work import get_write_unit_of_work
+from app.core.types.audit_actor_type import AuditActorType
 from app.main import app
-
 
 client = TestClient(app)
 
@@ -36,6 +38,48 @@ def test_change_vip_client_phone_success(
     assert response.status_code == 204
     assert vip_client_saved.phone == "71988888888"
     assert admin_saved.email == "admin@admin.com"
+
+    app.dependency_overrides = {}
+
+
+def test_change_vip_client_phone_create_log(
+    make_vip_client, make_user, make_token, write_uow, read_uow
+):
+    admin = make_user(is_admin=True, is_active=True, email="admin@admin.com")
+    write_uow.users.create(admin)
+
+    vip_client = make_vip_client(phone="71999999999", email="vip@client.com")
+    write_uow.vip_clients.create(vip_client)
+
+    token = make_token(admin)
+
+    payload = {"new_phone": "71988888888"}
+
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
+
+    response = client.patch(
+        f"/vip-clients/{vip_client.id}/change-phone",
+        json=payload,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+
+    log = logs[0]
+
+    assert log.entity_name == "users"
+    assert log.entity_id == vip_client.id
+    assert log.action == "change vip client phone"
+    assert log.actor_id == admin.id
+    assert log.actor_type == AuditActorType.USER
+    assert log.changes == {
+        "phone": {
+            "from": "71999999999",
+            "to": "71988888888",
+        }
+    }
+    assert abs(log.performed_at - datetime.now(timezone.utc)) < timedelta(seconds=2)
 
     app.dependency_overrides = {}
 
@@ -76,6 +120,12 @@ def test_change_vip_client_phone_double_call_success(
     assert vip_client_saved.phone == "71988888888"
     assert admin_saved.email == "admin@admin.com"
 
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+
+    assert (
+        len(logs) == 1
+    )  # since second call does not change db we should only get 1 log
+
     app.dependency_overrides = {}
 
 
@@ -108,6 +158,9 @@ def test_change_vip_client_phone_not_admin(
     assert response.json()["detail"] == "forbidden"
     assert vip_client_saved.phone == "71999999999"
     assert admin_saved.email == "admin@admin.com"
+
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+    assert logs == []
 
     app.dependency_overrides = {}
 
@@ -142,6 +195,9 @@ def test_change_vip_client_phone_not_active(
     assert vip_client_saved.phone == "71999999999"
     assert admin_saved.email == "admin@admin.com"
 
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+    assert logs == []
+
     app.dependency_overrides = {}
 
 
@@ -172,6 +228,9 @@ def test_change_vip_client_phone_not_user(
     assert response.status_code == 401
     assert response.json()["detail"] == "invalid_credentials"
     assert vip_client_saved.phone == "71999999999"
+
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+    assert logs == []
 
     app.dependency_overrides = {}
 
@@ -211,6 +270,9 @@ def test_change_vip_client_phone_already_taken(
     assert vip_client2_saved.phone == "71988888888"
     assert admin_saved.email == "admin@admin.com"
 
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+    assert logs == []
+
     app.dependency_overrides = {}
 
 
@@ -239,6 +301,9 @@ def test_change_vip_client_phone_client_not_found(
     assert response.status_code == 404
     assert response.json()["detail"] == "vip_client_not_found"
 
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+    assert logs == []
+
     app.dependency_overrides = {}
 
 
@@ -265,5 +330,8 @@ def test_change_vip_client_phone_invalid_phone(
     )
 
     assert response.status_code == 422
+
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+    assert logs == []
 
     app.dependency_overrides = {}

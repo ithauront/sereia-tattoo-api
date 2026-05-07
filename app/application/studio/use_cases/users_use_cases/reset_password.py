@@ -1,4 +1,7 @@
+from datetime import datetime, timezone
+
 from app.application.studio.unit_of_work.write_unit_of_work import WriteUnitOfWork
+from app.application.studio.use_cases.DTO.audit_logs import AuditLogEntry
 from app.application.studio.use_cases.DTO.password_dto import ResetPasswordInput
 from app.core.exceptions.users import (
     InvalidPasswordTokenError,
@@ -6,6 +9,7 @@ from app.core.exceptions.users import (
     UserNotFoundError,
 )
 from app.core.security.passwords import hash_password
+from app.core.types.audit_actor_type import AuditActorType
 from app.core.validations.password import validate_password
 
 
@@ -29,3 +33,19 @@ class ResetPasswordUseCase:
             user.change_password(new_hashed_password)
 
             self.uow.users.update(user)
+
+            log = AuditLogEntry(
+                entity_name="users",
+                entity_id=user.id,
+                action="reset user password",
+                actor_id=user.id,
+                actor_type=AuditActorType.USER,
+                changes={
+                    "password": {
+                        "reset": True,
+                    }
+                },
+                performed_at=datetime.now(timezone.utc),
+            )
+
+            self.uow.audit_logs.create(log)

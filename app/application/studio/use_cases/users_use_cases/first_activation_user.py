@@ -1,4 +1,7 @@
+from datetime import datetime, timezone
+
 from app.application.studio.unit_of_work.write_unit_of_work import WriteUnitOfWork
+from app.application.studio.use_cases.DTO.audit_logs import AuditLogEntry
 from app.application.studio.use_cases.DTO.first_activation_user_dto import (
     FirstActivationInput,
 )
@@ -9,6 +12,7 @@ from app.core.exceptions.users import (
     UsernameAlreadyTakenError,
 )
 from app.core.security.passwords import hash_password
+from app.core.types.audit_actor_type import AuditActorType
 from app.core.validations.password import validate_password
 from app.core.validations.username import validate_username
 
@@ -40,3 +44,23 @@ class FirstActivationUserUseCase:
             user.activate()
 
             self.uow.users.update(user)
+
+            log = AuditLogEntry(
+                entity_name="users",
+                entity_id=user.id,
+                action="first activation of user",
+                actor_id=user.id,
+                actor_type=AuditActorType.USER,
+                changes={
+                    "first_activation_state": {
+                        "email": user.email,
+                        "username": user.username,
+                        "is_admin": user.is_admin,
+                        "is_active": user.is_active,
+                    }
+                },
+                performed_at=datetime.now(timezone.utc),
+                reason="the first activation is self-performed",
+            )
+
+            self.uow.audit_logs.create(log)

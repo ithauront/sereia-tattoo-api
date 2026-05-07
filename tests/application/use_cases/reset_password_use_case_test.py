@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 import pytest
@@ -11,6 +12,7 @@ from app.core.exceptions.users import (
     UserNotFoundError,
 )
 from app.core.security.passwords import verify_password
+from app.core.types.audit_actor_type import AuditActorType
 
 
 def test_reset_password_success(read_uow, write_uow, make_user):
@@ -36,6 +38,37 @@ def test_reset_password_success(read_uow, write_uow, make_user):
     assert saved.refresh_token_version == 1
 
 
+def test_reset_password_create_log(read_uow, write_uow, make_user):
+    user = make_user(
+        password_token_version=0, access_token_version=0, refresh_token_version=0
+    )
+    write_uow.users.create(user)
+
+    use_case = ResetPasswordUseCase(write_uow)
+
+    input_data = ResetPasswordInput(
+        password="StrongPassword1", user_id=user.id, password_token_version=0
+    )
+
+    use_case.execute(input_data)
+
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+
+    log = logs[0]
+
+    assert log.entity_name == "users"
+    assert log.entity_id == user.id
+    assert log.action == "reset user password"
+    assert log.actor_id == user.id
+    assert log.actor_type == AuditActorType.USER
+    assert log.changes == {
+        "password": {
+            "reset": True,
+        }
+    }
+    assert abs(log.performed_at - datetime.now(timezone.utc)) < timedelta(seconds=2)
+
+
 def test_reset_password_wrong_user_id(read_uow, write_uow, make_user):
     user = make_user(password_token_version=0)
     write_uow.users.create(user)
@@ -52,6 +85,9 @@ def test_reset_password_wrong_user_id(read_uow, write_uow, make_user):
 
     saved = read_uow.users.find_by_id(user.id)
     assert saved.password_token_version == 0
+
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+    assert logs == []
 
 
 def test_reset_password_wrong_token_version(write_uow, read_uow, make_user):
@@ -70,6 +106,9 @@ def test_reset_password_wrong_token_version(write_uow, read_uow, make_user):
     saved = read_uow.users.find_by_id(user.id)
     assert saved.password_token_version == 1
 
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+    assert logs == []
+
 
 def test_reset_password_user_inactive(write_uow, read_uow, make_user):
     user = make_user(password_token_version=0, is_active=False)
@@ -86,3 +125,6 @@ def test_reset_password_user_inactive(write_uow, read_uow, make_user):
 
     saved = read_uow.users.find_by_id(user.id)
     assert saved.password_token_version == 0
+
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+    assert logs == []

@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 from fastapi.testclient import TestClient
 from freezegun import freeze_time
@@ -7,6 +8,7 @@ from app.api.dependencies.write_unit_of_work import get_write_unit_of_work
 from app.core.security.jwt_service import JWTService
 from app.core.security.passwords import hash_password, verify_password
 from app.core.security.versioned_token_service import VersionedTokenService
+from app.core.types.audit_actor_type import AuditActorType
 from app.main import app
 from app.core.config import settings
 
@@ -57,6 +59,56 @@ def test_reset_password_success(write_uow, read_uow, make_user):
     app.dependency_overrides.clear()
 
 
+def test_reset_password_create_log(write_uow, read_uow, make_user):
+    user = make_user(
+        username="JhonDoe",
+        email="jhon@doe.com",
+        hashed_password="OldPassword1",
+        is_active=True,
+        is_admin=False,
+        password_token_version=0,
+        has_activated_once=True,
+    )
+    write_uow.users.create(user)
+    jwt_service = JWTService(
+        secret_key=settings.SECRET_KEY,
+        algorithm=settings.JWT_ALGORITHM,
+    )
+    token_service = VersionedTokenService(
+        jwt_service=jwt_service, token_type="reset_password", ttl_minutes=15
+    )
+    token = token_service.create(user_id=str(user.id), version=0)
+
+    payload = {"new_password": "NewPassword1"}
+
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
+
+    client.post(
+        "/me/reset-password",
+        json=payload,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+
+    log = logs[0]
+
+    assert log.entity_name == "users"
+    assert log.entity_id == user.id
+    assert log.action == "reset user password"
+    assert log.actor_id == user.id
+    assert log.actor_type == AuditActorType.USER
+    assert log.changes == {
+        "password": {
+            "reset": True,
+        }
+    }
+    assert abs(log.performed_at - datetime.now(timezone.utc)) < timedelta(seconds=2)
+
+    app.dependency_overrides.clear()
+
+
 def test_reset_password_admin_success(write_uow, read_uow, make_user):
     user = make_user(
         username="JhonDoe",
@@ -98,6 +150,9 @@ def test_reset_password_admin_success(write_uow, read_uow, make_user):
     assert user_in_users_repo.has_activated_once is True
     assert user_in_users_repo.password_token_version == 1
 
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+    assert len(logs) == 1
+
     app.dependency_overrides.clear()
 
 
@@ -128,6 +183,9 @@ def test_reset_password_user_not_found(write_uow, read_uow):
     assert response.status_code == 404
     assert response.json()["detail"] == "user_not_found"
     assert user_in_users_repo is None
+
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+    assert logs == []
 
     app.dependency_overrides.clear()
 
@@ -173,6 +231,9 @@ def test_reset_password_user_inactive(write_uow, read_uow, make_user):
     assert user_in_users_repo.is_admin is True
     assert user_in_users_repo.has_activated_once is True
     assert user_in_users_repo.password_token_version == 0
+
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+    assert logs == []
 
     app.dependency_overrides.clear()
 
@@ -228,6 +289,9 @@ def test_reset_password_second_call_route_same_token(write_uow, read_uow, make_u
     assert user_in_users_repo.has_activated_once is True
     assert user_in_users_repo.password_token_version == 1
 
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+    assert len(logs) == 1  # only first call is logged
+
     app.dependency_overrides.clear()
 
 
@@ -272,6 +336,9 @@ def test_reset_password_token_version_greater_than_user(write_uow, read_uow, mak
     assert user_in_users_repo.is_admin is False
     assert user_in_users_repo.has_activated_once is True
     assert user_in_users_repo.password_token_version == 0
+
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+    assert logs == []
 
     app.dependency_overrides.clear()
 
@@ -318,6 +385,9 @@ def test_reset_password_token_version_smaller_than_user(write_uow, read_uow, mak
     assert user_in_users_repo.has_activated_once is True
     assert user_in_users_repo.password_token_version == 1
 
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+    assert logs == []
+
     app.dependency_overrides.clear()
 
 
@@ -363,6 +433,9 @@ def test_reset_password_not_valid(write_uow, read_uow, make_user):
     assert user_in_users_repo.has_activated_once is True
     assert user_in_users_repo.password_token_version == 0
 
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+    assert logs == []
+
     app.dependency_overrides.clear()
 
 
@@ -407,6 +480,9 @@ def test_reset_password_wrong_token_type(write_uow, read_uow, make_user):
     assert user_in_users_repo.is_admin is False
     assert user_in_users_repo.has_activated_once is True
     assert user_in_users_repo.password_token_version == 0
+
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+    assert logs == []
 
     app.dependency_overrides.clear()
 
@@ -455,6 +531,9 @@ def test_reset_password_expired_token(write_uow, read_uow, make_user):
     assert user_in_users_repo.has_activated_once is True
     assert user_in_users_repo.password_token_version == 0
 
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+    assert logs == []
+
     app.dependency_overrides.clear()
 
 
@@ -499,5 +578,8 @@ def test_reset_password_wrong_token_secret_key(write_uow, read_uow, make_user):
     assert user_in_users_repo.is_admin is False
     assert user_in_users_repo.has_activated_once is True
     assert user_in_users_repo.password_token_version == 0
+
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+    assert logs == []
 
     app.dependency_overrides.clear()

@@ -5,7 +5,6 @@ from uuid import UUID
 from app.application.studio.use_cases.DTO.audit_logs import AuditLogEntry
 
 
-# TODO: quando tudo estiver pronto adicionar o audit log a algum metodo apenas para testar se funciona
 class AuditLogsRepository(ABC):
     @abstractmethod
     def create(self, audit_log: AuditLogEntry) -> None: ...

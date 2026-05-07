@@ -1,7 +1,11 @@
+from datetime import datetime, timezone
+
 from app.application.studio.unit_of_work.write_unit_of_work import WriteUnitOfWork
+from app.application.studio.use_cases.DTO.audit_logs import AuditLogEntry
 from app.application.studio.use_cases.DTO.password_dto import ChangePasswordInput
 from app.core.exceptions.users import AuthenticationFailedError, UserNotFoundError
 from app.core.security.passwords import hash_password, verify_password
+from app.core.types.audit_actor_type import AuditActorType
 from app.core.validations.password import validate_password
 
 
@@ -25,3 +29,19 @@ class ChangePasswordUseCase:
             current_user.change_password(hashed_password)
 
             self.uow.users.update(current_user)
+
+            log = AuditLogEntry(
+                entity_name="users",
+                entity_id=current_user.id,
+                action="change user password",
+                actor_id=current_user.id,
+                actor_type=AuditActorType.USER,
+                changes={
+                    "password": {
+                        "change": True,
+                    }
+                },
+                performed_at=datetime.now(timezone.utc),
+            )
+
+            self.uow.audit_logs.create(log)

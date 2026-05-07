@@ -11,3 +11,4 @@ class ChangeEmailInput(BaseModel):
 class ChangeVipClientEmailInput(BaseModel):
     vip_client_id: UUID
     new_email: EmailStr
+    actor_id: UUID

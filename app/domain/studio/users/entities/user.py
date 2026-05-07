@@ -75,14 +75,14 @@ class User:
         self.bump_refresh_token()
         self._touch()
 
-    def change_password(self, new_hashed_password):
+    def change_password(self, new_hashed_password: str):
         self.hashed_password = new_hashed_password
         self.bump_password_token()
         self.bump_access_token()
         self.bump_refresh_token()
         self._touch()
 
-    def change_email(self, new_email):
+    def change_email(self, new_email: str):
         self.email = new_email
         self.bump_access_token()
         self.bump_refresh_token()

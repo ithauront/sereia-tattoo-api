@@ -1,5 +1,8 @@
+from datetime import datetime, timezone
+
 from app.application.event_bus.event_bus import EventBus
 from app.application.studio.unit_of_work.write_unit_of_work import WriteUnitOfWork
+from app.application.studio.use_cases.DTO.audit_logs import AuditLogEntry
 from app.application.studio.use_cases.DTO.create_vip_client_dto import (
     CreateVipClientInput,
 )
@@ -11,6 +14,7 @@ from app.core.exceptions.users import (
 from app.core.exceptions.validation import ValidationError
 from app.core.normalize.normalize_phone import normalize_phone
 from app.core.normalize.normalize_email import normalize_email
+from app.core.types.audit_actor_type import AuditActorType
 from app.core.validations.phone_number import validate_phone_number
 from app.domain.studio.value_objects.client_code import ClientCode
 from app.domain.studio.users.entities.vip_client import VipClient
@@ -52,6 +56,26 @@ class CreateVipClientUseCase:
                 client_code=ClientCode(data.client_code),
             )
             self.uow.vip_clients.create(vip_client)
+
+            log = AuditLogEntry(
+                entity_name="users",
+                entity_id=vip_client.id,
+                action="create vip client",
+                actor_id=data.actor_id,
+                actor_type=AuditActorType.USER,
+                changes={
+                    "initial_state": {
+                        "first_name": data.first_name,
+                        "last_name": data.last_name,
+                        "email": email,
+                        "phone": phone,
+                        "client_code": vip_client.client_code,
+                    }
+                },
+                performed_at=datetime.now(timezone.utc),
+            )
+
+            self.uow.audit_logs.create(log)
 
             event = vip_client.create_vip_client_email_request()
 

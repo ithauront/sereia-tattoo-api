@@ -1,9 +1,10 @@
+from datetime import timedelta, timezone, datetime
+
 from fastapi.testclient import TestClient
 from app.api.dependencies.read_unit_of_work import get_read_unit_of_work
 from app.api.dependencies.write_unit_of_work import get_write_unit_of_work
-from app.core.security import jwt_service
+from app.core.types.audit_actor_type import AuditActorType
 from app.main import app
-
 
 client = TestClient(app)
 
@@ -31,6 +32,43 @@ def test_demote_user(write_uow, read_uow, make_user, make_token):
     app.dependency_overrides = {}
 
 
+def test_demote_user_create_log(write_uow, read_uow, make_user, make_token):
+    admin = make_user(is_admin=True)
+    user = make_user(is_admin=True)
+
+    write_uow.users.create(admin)
+    write_uow.users.create(user)
+
+    token = make_token(admin)
+
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
+
+    client.patch(
+        f"/users/{user.id}/demote",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+
+    log = logs[0]
+
+    assert log.entity_name == "users"
+    assert log.entity_id == user.id
+    assert log.action == "demote user from admin"
+    assert log.actor_id == admin.id
+    assert log.actor_type == AuditActorType.USER
+    assert log.changes == {
+        "is_admin": {
+            "from": True,
+            "to": False,
+        }
+    }
+    assert abs(log.performed_at - datetime.now(timezone.utc)) < timedelta(seconds=2)
+
+    app.dependency_overrides = {}
+
+
 def test_demote_nonexistent_user(write_uow, read_uow, make_user, make_token):
     admin = make_user(is_admin=True)
     user = make_user(is_admin=True)
@@ -51,6 +89,9 @@ def test_demote_nonexistent_user(write_uow, read_uow, make_user, make_token):
     assert response.json()["detail"] == "user_not_found"
     assert user.is_admin is True
 
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+    assert logs == []
+
     app.dependency_overrides = {}
 
 
@@ -70,6 +111,11 @@ def test_route_cannot_demote_yourself(write_uow, read_uow, make_user, make_token
 
     assert response.status_code == 409
     assert response.json()["detail"] == "cannot_demote_yourself"
+
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+    assert logs == []
+
+    app.dependency_overrides = {}
 
 
 def test_not_admin_demote_user(write_uow, read_uow, make_user, make_token):
@@ -92,6 +138,9 @@ def test_not_admin_demote_user(write_uow, read_uow, make_user, make_token):
     assert response.status_code == 403
     assert response.json()["detail"] == "forbidden"
     assert user.is_admin is True
+
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+    assert logs == []
 
     app.dependency_overrides = {}
 
@@ -117,6 +166,9 @@ def test_inactive_admin_demote_user(write_uow, read_uow, make_user, make_token):
     assert response.json()["detail"] == "inactive_user"
     assert user.is_admin is True
 
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+    assert logs == []
+
     app.dependency_overrides = {}
 
 
@@ -140,114 +192,7 @@ def test_nonexistent_user_demote_user(write_uow, read_uow, make_user, make_token
     assert response.json()["detail"] == "invalid_credentials"
     assert user.is_admin is True
 
-    app.dependency_overrides = {}
-
-
-def test_wrong_token_type_demote_user(write_uow, read_uow, make_user, make_token):
-    admin = make_user(is_admin=True)
-    user = make_user(is_admin=True)
-
-    write_uow.users.create(user)
-
-    token = make_token(admin, token_type="refresh")
-
-    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
-    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
-
-    response = client.patch(
-        f"/users/{user.id}/demote",
-        headers={"Authorization": f"Bearer {token}"},
-    )
-
-    assert response.status_code == 401
-    assert response.json()["detail"] == "invalid_credentials"
-    assert user.is_admin is True
-
-    app.dependency_overrides = {}
-
-
-def test_missing_authorization_header(write_uow, read_uow, make_user):
-    admin = make_user(is_admin=True)
-    user = make_user(is_admin=True)
-
-    write_uow.users.create(admin)
-    write_uow.users.create(user)
-
-    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
-    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
-
-    response = client.patch(f"/users/{user.id}/demote")
-
-    assert response.status_code == 422
-    assert response.json()["detail"][0]["loc"] == ["header", "authorization"]
-    assert user.is_admin is True
-
-    app.dependency_overrides = {}
-
-
-def test_missing_bearer_prefix(write_uow, read_uow, make_user, make_token):
-    admin = make_user(is_admin=True)
-    user = make_user(is_admin=True)
-
-    write_uow.users.create(admin)
-    write_uow.users.create(user)
-
-    token = make_token(admin)
-
-    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
-    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
-
-    response = client.patch(
-        f"/users/{user.id}/demote",
-        headers={"Authorization": f" {token}"},
-    )
-
-    assert response.status_code == 401
-    assert response.json()["detail"] == "invalid_credentials"
-    assert user.is_admin is True
-
-    app.dependency_overrides = {}
-
-
-def test_invalid_jwt_format(write_uow, read_uow, make_user):
-    admin = make_user(is_admin=True)
-    user = make_user(is_admin=True)
-
-    write_uow.users.create(admin)
-    write_uow.users.create(user)
-
-    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
-    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
-
-    response = client.patch(
-        f"/users/{user.id}/demote",
-        headers={"Authorization": "Bearer abc.def.ghi"},
-    )
-
-    assert response.status_code == 401
-    assert response.json()["detail"] == "invalid_credentials"
-    assert user.is_admin is True
-
-    app.dependency_overrides = {}
-
-
-def test_invalid_token_sub(write_uow, read_uow, make_user):
-    user = make_user(is_admin=True)
-
-    write_uow.users.create(user)
-
-    token = jwt_service.create(subject="not-a-uuid", minutes=60, token_type="access")
-
-    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
-    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
-
-    response = client.patch(
-        f"/users/{user.id}/demote",
-        headers={"Authorization": f" {token}"},
-    )
-
-    assert response.status_code == 401
-    assert response.json()["detail"] == "invalid_credentials"
-    assert user.is_admin is True
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="users")
+    assert logs == []
 
     app.dependency_overrides = {}

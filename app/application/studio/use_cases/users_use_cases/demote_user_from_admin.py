@@ -1,10 +1,14 @@
+from datetime import datetime, timezone
+
 from app.application.studio.unit_of_work.write_unit_of_work import WriteUnitOfWork
+from app.application.studio.use_cases.DTO.audit_logs import AuditLogEntry
 from app.application.studio.use_cases.DTO.user_status_dto import DemoteUserInput
 from app.core.exceptions.users import (
     CannotDemoteYourselfError,
     LastAdminCannotBeDemotedError,
     UserNotFoundError,
 )
+from app.core.types.audit_actor_type import AuditActorType
 
 
 class DemoteUserFromAdminUseCase:
@@ -31,3 +35,20 @@ class DemoteUserFromAdminUseCase:
 
             if changed:
                 self.uow.users.update(user)
+
+                log = AuditLogEntry(
+                    entity_name="users",
+                    entity_id=user.id,
+                    action="demote user from admin",
+                    actor_id=data.actor_id,
+                    actor_type=AuditActorType.USER,
+                    changes={
+                        "is_admin": {
+                            "from": True,
+                            "to": False,
+                        }
+                    },
+                    performed_at=datetime.now(timezone.utc),
+                )
+
+                self.uow.audit_logs.create(log)

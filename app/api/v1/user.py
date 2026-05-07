@@ -74,7 +74,6 @@ from app.core.exceptions.users import (
     UserNotFoundError,
 )
 
-
 router = APIRouter(prefix="/users")
 
 
@@ -87,7 +86,7 @@ async def create_user(
 ):
     try:
         use_case = CreateUserUseCase(uow, event_bus)
-        dto = CreateUserInput(user_email=data.email)
+        dto = CreateUserInput(user_email=data.email, actor_id=current_user.id)
 
         await use_case.execute(dto)
 
@@ -211,7 +210,7 @@ def activate_user(
     uow: WriteUnitOfWork = Depends(get_write_unit_of_work),
 ):
     use_case = ActivateUserUseCase(uow)
-    dto = ActivateUserInput(user_id=user_id)
+    dto = ActivateUserInput(user_id=user_id, actor_id=current_user.id)
 
     try:
         use_case.execute(dto)
@@ -253,7 +252,7 @@ def promote_user(
     uow: WriteUnitOfWork = Depends(get_write_unit_of_work),
 ):
     use_case = PromoteUserToAdminUseCase(uow)
-    dto = PromoteUserInput(user_id=user_id)
+    dto = PromoteUserInput(user_id=user_id, actor_id=current_user.id)
 
     try:
         use_case.execute(dto)
