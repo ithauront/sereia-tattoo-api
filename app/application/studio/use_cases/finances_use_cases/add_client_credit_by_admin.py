@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from app.application.studio.unit_of_work.write_unit_of_work import WriteUnitOfWork
 from app.application.studio.use_cases.DTO.add_client_credits import (
     AddClientCreditByAdminInput,
+    AddClientCreditByAdminOutput,
 )
 from app.application.studio.use_cases.DTO.audit_logs import AuditLogEntry
 from app.core.exceptions.users import VipClientNotFoundError
@@ -11,12 +12,14 @@ from app.core.types.client_credit_source_type import ClientCreditSourceType
 from app.domain.studio.finances.entities.client_credit_entry import ClientCreditEntry
 
 
-# TODO: fazer rota, e testes do use_case e rota testar o log tambem
+# TODO: fazer testes do use_case
 class AddClientCreditByAdminUseCase:
     def __init__(self, uow: WriteUnitOfWork):
         self.uow = uow
 
-    def execute(self, data: AddClientCreditByAdminInput):
+    def execute(
+        self, data: AddClientCreditByAdminInput
+    ) -> AddClientCreditByAdminOutput:
         with self.uow:
             vip_client = self.uow.vip_clients.find_by_id(data.vip_client_id)
 
@@ -65,3 +68,7 @@ class AddClientCreditByAdminUseCase:
             )
 
             self.uow.audit_logs.create(log)
+
+            return AddClientCreditByAdminOutput(
+                before=total_credits_before, after=total_credits_after
+            )

@@ -8,3 +8,8 @@ class AddClientCreditByAdminInput(BaseModel):
     quantity: int
     reason: str
     actor_id: UUID
+
+
+class AddClientCreditByAdminOutput(BaseModel):
+    before: int
+    after: int
