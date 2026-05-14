@@ -23,8 +23,8 @@ from app.infrastructure.sqlalchemy.session import SessionLocal
 
 
 class SqlAlchemyReadUnitOfWork(ReadUnitOfWork):
-    def __init__(self):
-        self.session: Session = SessionLocal()
+    def __init__(self, session: Session | None = None):
+        self.session: Session = session or SessionLocal()
         self.users = SQLAlchemyUsersRepository(self.session)
         self.vip_clients = SQLAlchemyVipClientsRepository(self.session)
         self.client_credit_entries = SQLAlchemyClientCreditEntriesRepository(
