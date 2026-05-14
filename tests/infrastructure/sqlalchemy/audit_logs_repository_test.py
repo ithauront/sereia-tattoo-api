@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from app.core.types.audit_actor_type import AuditActorType
 
 
+# TODO: testar um caso em se o auditlog falhar se faz rollback e não salva o caso original, por exemplo usando o usecase do addclientcreditby admin. não sei se esse teste deve ser nesse lugar, se não procurar onde é o luggar ideal. não é no teste do use_case pq ele usa fake repo
 def test_create_and_find_many_by_entity_name(
     make_audit_log, sqlalchemy_audit_logs_repo, make_user, sqlalchemy_users_repo
 ):
