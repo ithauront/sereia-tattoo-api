@@ -21,6 +21,12 @@ from app.infrastructure.sqlalchemy.repositories.users_repository_sqlalchemy impo
 from app.infrastructure.sqlalchemy.repositories.vip_clients_repository_sqlalchemy import (
     SQLAlchemyVipClientsRepository,
 )
+from app.infrastructure.sqlalchemy.unit_of_work.read_unit_of_work import (
+    SqlAlchemyReadUnitOfWork,
+)
+from app.infrastructure.sqlalchemy.unit_of_work.write_unit_of_work import (
+    SqlAlchemyWriteUnitOfWork,
+)
 
 
 @pytest.fixture
@@ -96,3 +102,17 @@ def sqlalchemy_audit_logs_repo(
     db_session: Session,
 ) -> SQLAlchemyAuditLogsRepository:
     return SQLAlchemyAuditLogsRepository(session=db_session)
+
+
+@pytest.fixture
+def sqlalchemy_write_uow(db_session):
+    write_uow = SqlAlchemyWriteUnitOfWork(session=db_session)
+
+    return write_uow
+
+
+@pytest.fixture
+def sqlalchemy_read_uow(db_session):
+    read_uow = SqlAlchemyReadUnitOfWork(session=db_session)
+
+    return read_uow
