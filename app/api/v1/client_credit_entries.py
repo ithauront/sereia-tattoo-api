@@ -42,8 +42,6 @@ from app.core.exceptions.users import UserNotFoundError, VipClientNotFoundError
 router = APIRouter(prefix="/client-credit-entries")
 
 
-# TODO: fazer teste dessa rota
-#TODO: verificar se deixamos o add credits no nome da toda uma vez que ela ja é post"/client-credit-entries/{vip_client_id}/add_credits" o post ja pode ser semantico de dizer que adiciona credito. mas talvez colocar by_admin no lugar de add credits
 @router.post(
     "/{vip_client_id}/add_credits",
     status_code=status.HTTP_201_CREATED,

@@ -58,7 +58,7 @@ def test_change_vip_client_phone_create_log(
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
-    response = client.patch(
+    client.patch(
         f"/vip-clients/{vip_client.id}/change-phone",
         json=payload,
         headers={"Authorization": f"Bearer {token}"},

@@ -12,7 +12,6 @@ from app.core.types.client_credit_source_type import ClientCreditSourceType
 from app.domain.studio.finances.entities.client_credit_entry import ClientCreditEntry
 
 
-# TODO: fazer testes do use_case
 class AddClientCreditByAdminUseCase:
     def __init__(self, uow: WriteUnitOfWork):
         self.uow = uow
