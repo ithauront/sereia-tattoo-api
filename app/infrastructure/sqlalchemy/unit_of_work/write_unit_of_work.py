@@ -38,10 +38,13 @@ class SqlAlchemyWriteUnitOfWork(WriteUnitOfWork):
         return self
 
     def __exit__(self, exc_type, exc, tb):
-        if exc_type:
-            self.rollback()
-        else:
-            self.commit()
+        try:
+            if exc_type:
+                self.rollback()
+            else:
+                self.commit()
+        finally:
+            self.session.close()
 
     def commit(self):
         self.session.commit()
