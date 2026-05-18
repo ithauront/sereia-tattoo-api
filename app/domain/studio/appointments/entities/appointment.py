@@ -21,7 +21,7 @@ from app.core.types.appointment_enums import (
 )
 from app.domain.studio.appointments.entities.value_objects.client_info import ClientInfo
 from app.domain.studio.value_objects.client_code import ClientCode
-from studio.appointments.events.appointment_completed import AppointmentCompleted
+from app.domain.studio.appointments.events.appointment_completed import AppointmentCompleted
 from typing import Optional
 
 class Appointment:

@@ -1,6 +1,9 @@
 class AppointmentMustHaveRealisticTimeAndDateError(Exception):
     pass
 
+class AppointmentNotFoundError(Exception):
+    pass
+
 
 class TotalSessionsNumberMustBePositiveError(Exception):
     pass

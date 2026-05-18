@@ -1,5 +1,5 @@
 from uuid import UUID
-from studio.value_objects.client_code import ClientCode
+from app.domain.studio.value_objects.client_code import ClientCode
 from app.domain.studio.appointments.entities.value_objects.client_info import ClientInfo
 
 
