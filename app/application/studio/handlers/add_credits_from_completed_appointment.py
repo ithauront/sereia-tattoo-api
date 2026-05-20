@@ -1,4 +1,6 @@
-from app.domain.studio.appointments.events.appointment_completed import AppointmentCompleted
+from app.domain.studio.appointments.events.appointment_completed import (
+    AppointmentCompleted,
+)
 from app.core.types.payment_enums import PaymentMethodType
 from decimal import Decimal
 from app.domain.studio.finances.entities.client_credit_entry import ClientCreditEntry
@@ -55,30 +57,31 @@ tests
 
 15. O handler é idempotente: executar duas vezes para o mesmo evento não duplica créditos.
 """
+
+
 class AddCreditsFromCompletedAppointmentHandler:
     def __init__(self, write_uow_factory):
         self.write_uow_factory = write_uow_factory
 
-    async def handle(self, event: AppointmentCompleted)-> None:
+    async def handle(self, event: AppointmentCompleted) -> None:
         # In this handler silent returns prevent collateral credit generation failures from breaking the completed appointment flow.
         with self.write_uow_factory() as uow:
             vip_client = uow.vip_clients.find_by_client_code(event.referral_code)
             if vip_client is None:
 
                 return
-            
+
             existing_entries = uow.client_credit_entries.find_many_by_source_id(
                 source_id=event.appointment_id,
             )
 
             for entry in existing_entries:
                 if (
-                entry.vip_client_id == vip_client.id
-                and entry.source_type == ClientCreditSourceType.INDICATION
+                    entry.vip_client_id == vip_client.id
+                    and entry.source_type == ClientCreditSourceType.INDICATION
                 ):
                     return
-            
-            
+
             total_credits_before = uow.client_credit_entries.get_balance(
                 vip_client_id=vip_client.id
             )
@@ -107,11 +110,11 @@ class AddCreditsFromCompletedAppointmentHandler:
             )
 
             quantity = ceil(total_in_money * rate)
-            
-            client_credits= ClientCreditEntry.create_indication(
+
+            client_credits = ClientCreditEntry.create_indication(
                 vip_client_id=vip_client.id,
                 appointment_id=event.appointment_id,
-                quantity=quantity
+                quantity=quantity,
             )
 
             uow.client_credit_entries.create(client_credit_entry=client_credits)
@@ -119,7 +122,6 @@ class AddCreditsFromCompletedAppointmentHandler:
             total_credits_after = uow.client_credit_entries.get_balance(
                 vip_client_id=vip_client.id
             )
-
 
             log = AuditLogEntry(
                 entity_name="client_credit_entry",
@@ -147,11 +149,5 @@ class AddCreditsFromCompletedAppointmentHandler:
                 reason="credits from referral in appointment",
                 performed_at=datetime.now(timezone.utc),
             )
-                
-                
 
             uow.audit_logs.create(log)
-            
-              
-
-

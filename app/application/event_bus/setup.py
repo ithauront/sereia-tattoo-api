@@ -25,11 +25,16 @@ from app.domain.studio.users.events.send_action_made_email_requested import (
     SendActionMadeEmailRequested,
 )
 
-from app.domain.studio.appointments.events.appointment_completed import AppointmentCompleted
-from app.application.studio.handlers.add_credits_from_completed_appointment import AddCreditsFromCompletedAppointmentHandler
+from app.domain.studio.appointments.events.appointment_completed import (
+    AppointmentCompleted,
+)
+from app.application.studio.handlers.add_credits_from_completed_appointment import (
+    AddCreditsFromCompletedAppointmentHandler,
+)
 from app.infrastructure.sqlalchemy.unit_of_work.write_unit_of_work import (
     SqlAlchemyWriteUnitOfWork,
 )
+
 
 def setup_event_bus(email_service, token_service):
 
@@ -68,7 +73,10 @@ def setup_event_bus(email_service, token_service):
     )
 
     bus.register(
-        AppointmentCompleted, AddCreditsFromCompletedAppointmentHandler(write_uow_factory=SqlAlchemyWriteUnitOfWork)
+        AppointmentCompleted,
+        AddCreditsFromCompletedAppointmentHandler(
+            write_uow_factory=SqlAlchemyWriteUnitOfWork
+        ),
     )
 
     return bus
