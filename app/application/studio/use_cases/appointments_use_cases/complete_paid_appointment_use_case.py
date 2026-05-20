@@ -28,7 +28,6 @@ class CompletePaidAppointmentUseCase:
             #TODO: total_net = total_paid - total_refund
             #TODO: mudar os total paid por total_net quando ja houver refund
 
-            #TODO: no teste testar o caso doappointment not fully paid error que pode subir do appointment.complete
             event = appointment.complete(total_paid=total_paid)
 
             self.uow.appointments.update(appointment=appointment)
