@@ -10,63 +10,16 @@ from app.core.types.client_credit_source_type import ClientCreditSourceType
 from datetime import datetime, timezone
 from math import ceil
 
-# TODO: Test silent returns, idempotency, payment filtering, credit calculation and audit log creation.
-"""
-TODO:
-tests
-1. Retorna silenciosamente se o VIP client não existir.
-
-2. Não cria crédito se já existir uma entry com:
-   - mesmo source_id/appointment_id
-   - mesmo vip_client_id
-   - source_type INDICATION
-
-3. Busca os payments pelo appointment_id correto.
-
-4. Ignora payments feitos com CLIENT_CREDIT.
-
-5. Soma apenas payments feitos em dinheiro/outros métodos válidos.
-
-6. Retorna silenciosamente se total_in_money <= 0.
-
-7. Aplica 5% quando o client_info corresponde ao próprio VIP client.
-
-8. Aplica 10% quando o appointment veio de cliente indicado.
-
-9. Arredonda os créditos para cima com ceil.
-
-10. Cria ClientCreditEntry com:
-    - vip_client_id correto
-    - appointment_id correto
-    - quantity correta
-    - source_type INDICATION, se create_indication já define isso
-
-11. Cria audit log quando o crédito é criado.
-
-12. Não cria audit log quando:
-    - VIP client não existe
-    - crédito já existe
-    - não há pagamento em dinheiro
-    - total_in_money <= 0
-
-13. O balance no log mostra:
-    - from = saldo antes
-    - to = saldo depois
-
-14. O actor_type do log é SYSTEM.
-
-15. O handler é idempotente: executar duas vezes para o mesmo evento não duplica créditos.
-"""
-
 
 class AddCreditsFromCompletedAppointmentHandler:
     def __init__(self, write_uow_factory):
         self.write_uow_factory = write_uow_factory
 
     async def handle(self, event: AppointmentCompleted) -> None:
-        # In this handler silent returns prevent collateral credit generation failures from breaking the completed appointment flow.
+        """In this handler silent returns prevent collateral
+        credit generation failures from breaking the completed appointment flow."""
         with self.write_uow_factory() as uow:
-            vip_client = uow.vip_clients.find_by_client_code(event.referral_code)
+            vip_client = uow.vip_clients.find_by_client_code(event.referral_code.value)
             if vip_client is None:
 
                 return

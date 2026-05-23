@@ -21,8 +21,11 @@ from app.core.types.appointment_enums import (
 )
 from app.domain.studio.appointments.entities.value_objects.client_info import ClientInfo
 from app.domain.studio.value_objects.client_code import ClientCode
-from app.domain.studio.appointments.events.appointment_completed import AppointmentCompleted
+from app.domain.studio.appointments.events.appointment_completed import (
+    AppointmentCompleted,
+)
 from typing import Optional
+
 
 class Appointment:
     def __init__(
@@ -159,7 +162,7 @@ class Appointment:
         self.status = AppointmentStatus.SCHEDULED
         self._touch()
 
-    def complete(self, total_paid: Decimal)->Optional[AppointmentCompleted]:
+    def complete(self, total_paid: Decimal) -> Optional[AppointmentCompleted]:
         """
         TODO:
         When an appointment is successfully completed and fully paid,
@@ -207,15 +210,21 @@ class Appointment:
             raise AppointmentMustBeScheduledError()
 
         if total_paid < self.price:
-            raise AppointmentWasNotFullyPaidError("please_check_payments_and_possible_refunds")
+            raise AppointmentWasNotFullyPaidError(
+                "please_check_payments_and_possible_refunds"
+            )
 
         self.status = AppointmentStatus.COMPLETED
         self._touch()
         if self.referral_code is not None:
-            return AppointmentCompleted( appointment_id=self.id, referral_code=self.referral_code, client_info=self.client_info)
+            return AppointmentCompleted(
+                appointment_id=self.id,
+                referral_code=self.referral_code,
+                client_info=self.client_info,
+            )
 
         return None
-    
+
     def mark_as_canceled(self, observations: str):
         self.status = AppointmentStatus.CANCELED
         self.add_observations(observations)

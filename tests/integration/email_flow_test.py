@@ -17,7 +17,7 @@ def test_create_user_triggers_email(
 ):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
-
+    
     token = make_token(admin)
 
     fake_email_service = FakeEmailService()

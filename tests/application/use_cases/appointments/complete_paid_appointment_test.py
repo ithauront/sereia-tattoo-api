@@ -312,7 +312,6 @@ async def test_appointment_not_persisted_paid(
     with pytest.raises(AppointmentNotFoundError):
         await use_case.execute(dto)
 
-
     assert appointment.status == AppointmentStatus.SCHEDULED
 
     assert len(event_bus.events) == 0
