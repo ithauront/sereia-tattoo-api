@@ -36,7 +36,12 @@ from app.infrastructure.sqlalchemy.unit_of_work.write_unit_of_work import (
 )
 
 
-def setup_event_bus(email_service, token_service):
+def setup_event_bus(
+    email_service,
+    token_service,
+    write_uow_factory=SqlAlchemyWriteUnitOfWork,
+    #TODO: refactor retirar o write_uow daqui e la no use_case ao chamar o event_bus.publish a gente passar o uow para ele tambem.
+):
 
     activation_token_service = VersionedTokenService(
         jwt_service=token_service, token_type="activation", ttl_minutes=60
@@ -74,9 +79,7 @@ def setup_event_bus(email_service, token_service):
 
     bus.register(
         AppointmentCompleted,
-        AddCreditsFromCompletedAppointmentHandler(
-            write_uow_factory=SqlAlchemyWriteUnitOfWork
-        ),
+        AddCreditsFromCompletedAppointmentHandler(write_uow_factory=write_uow_factory),
     )
 
     return bus

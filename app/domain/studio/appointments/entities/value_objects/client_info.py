@@ -11,7 +11,6 @@ class NonVipContact:
     phone: str
 
 
-# TODO: fazer teste disso? talvez ele ja seja testado coletarelmente
 class ClientInfo:
     def __init__(
         self,

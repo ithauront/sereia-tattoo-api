@@ -163,46 +163,6 @@ class Appointment:
         self._touch()
 
     def complete(self, total_paid: Decimal) -> Optional[AppointmentCompleted]:
-        """
-        TODO:
-        When an appointment is successfully completed and fully paid,
-        emit an AppointmentCompletedEvent.
-
-        The event should be handled asynchronously/synchronously by the
-        domain event bus and trigger collateral business flows that are
-            NOT responsibility of the Appointment aggregate itself.
-
-            Initial collateral flow:
-            - If this appointment has a referral_code attached:
-                -> find the related VIP client
-                -> generate referral credits for that VIP client
-                -> create the corresponding client_credit_entry
-                -> create audit logs
-
-            Architectural decisions:
-            - Do NOT add credits directly inside the Appointment aggregate.
-            - Do NOT expose this as an HTTP route.
-            - Use domain events + handlers.
-            - Credits generated from appointments must use a dedicated
-              source_type (ex: APPOINTMENT_REFERRAL).
-            - The credit generation flow must be idempotent:
-                repeated event handling must NOT generate duplicated credits.
-
-            Suggested flow:
-                CompleteAppointmentUseCase
-                    -> appointment.complete()
-                        -> emits AppointmentCompletedEvent
-
-                EventBus
-                    -> AddCreditsFromCompletedAppointmentHandler
-                        -> AddCreditsFromCompletedAppointmentUseCase
-
-            Suggested idempotency strategy:
-                unique(source_type, source_id)
-                where:
-                    source_type = APPOINTMENT_REFERRAL
-                    source_id = appointment.id
-        """
         if self.price is None:
             raise PriceMustBeDefinedError()
 

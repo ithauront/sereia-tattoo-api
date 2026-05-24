@@ -60,3 +60,4 @@ class CompletePaidAppointmentUseCase:
 
         if event is not None:
             await self.event_bus.publish(event)
+            # TODO: apos refatorar o setup do eventbus a gente publica aqui não apenas o evento mas tambem o uow
