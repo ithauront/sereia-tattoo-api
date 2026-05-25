@@ -10,8 +10,9 @@ class EventBus:
     def register(self, event_type: Type, handler):
         self._handlers[event_type].append(handler)
 
-    # TODO: apos refatorar o use_case que publica o evento e o uow a gente precisa autorizar o publish aqui para receber contexto.
-    async def publish(self, event):
+    async def publish(self, event, **context):
         handlers = self._handlers[type(event)]
 
-        await asyncio.gather(*(handler.handle(event) for handler in handlers))
+        await asyncio.gather(
+            *(handler.handle(event, **context) for handler in handlers)
+        )

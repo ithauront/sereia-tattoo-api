@@ -31,16 +31,14 @@ from app.domain.studio.appointments.events.appointment_completed import (
 from app.application.studio.handlers.add_credits_from_completed_appointment import (
     AddCreditsFromCompletedAppointmentHandler,
 )
-from app.infrastructure.sqlalchemy.unit_of_work.write_unit_of_work import (
-    SqlAlchemyWriteUnitOfWork,
-)
 
 
+# TODO: criar separação de eventos. os eventos transacionais (compartilham uow com a transação como o caso de criar creditos) e eventos de integração (são isolados e podem falhar independentemente como o caso de envio de emails)
+# #TODO: permitir a publicação de multiplos eventos
+# Os todos aqui não são necessariamente desse arquivo, mas sim do fluxo de eventbus
 def setup_event_bus(
     email_service,
     token_service,
-    write_uow_factory=SqlAlchemyWriteUnitOfWork,
-    #TODO: refactor retirar o write_uow daqui e la no use_case ao chamar o event_bus.publish a gente passar o uow para ele tambem.
 ):
 
     activation_token_service = VersionedTokenService(
@@ -79,7 +77,7 @@ def setup_event_bus(
 
     bus.register(
         AppointmentCompleted,
-        AddCreditsFromCompletedAppointmentHandler(write_uow_factory=write_uow_factory),
+        AddCreditsFromCompletedAppointmentHandler(),
     )
 
     return bus

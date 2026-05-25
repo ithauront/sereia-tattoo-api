@@ -58,6 +58,14 @@ class CompletePaidAppointmentUseCase:
 
             self.uow.audit_logs.create(log)
 
-        if event is not None:
-            await self.event_bus.publish(event)
-            # TODO: apos refatorar o setup do eventbus a gente publica aqui não apenas o evento mas tambem o uow
+            if event is not None:
+                await self.event_bus.publish(event, context=self.uow)
+
+            """
+            The event triggers a handler responsible for creating client credits
+            when there is a referral.
+
+            Since client credits are a financial right of the client,
+            their creation should happen in the same transaction
+            as the appointment completion.
+            """
