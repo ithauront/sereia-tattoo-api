@@ -49,7 +49,6 @@ def test_complete_appointment_generates_referral_credits(
     app.dependency_overrides[get_event_bus] = lambda: setup_event_bus(
         email_service=None,
         token_service=jwt_service_instance,
-        write_uow_factory=lambda: write_uow,
     )
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
@@ -114,7 +113,6 @@ def test_complete_appointment_failure_does_not_generate_credits(
     app.dependency_overrides[get_event_bus] = lambda: setup_event_bus(
         email_service=None,
         token_service=jwt_service_instance,
-        write_uow_factory=lambda: write_uow,
     )
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
