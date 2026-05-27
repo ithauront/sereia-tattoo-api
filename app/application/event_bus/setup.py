@@ -1,4 +1,7 @@
+from app.application.event_bus import integration_event_bus, transactional_event_bus
 from app.application.event_bus.event_bus import EventBus
+from app.application.event_bus.integration_event_bus import IntegrationEventBus
+from app.application.event_bus.transactional_event_bus import TransactionalEventBus
 from app.application.notifications.handlers.send_activation_confirmation_email import (
     SendActivationConfirmationEmailHandler,
 )
@@ -49,35 +52,36 @@ def setup_event_bus(
         jwt_service=token_service, token_type="reset_password", ttl_minutes=15
     )
 
-    bus = EventBus()
+    transactional_bus = TransactionalEventBus()
+    integration_bus = IntegrationEventBus()
 
-    bus.register(
+    integration_bus.register(
         ActivationEmailRequested,
         SendUserActivationHandler(
             email_service=email_service, token_service=activation_token_service
         ),
     )
 
-    bus.register(
+    integration_bus.register(
         PasswordResetEmailRequested,
         SendPasswordResetEmailHandler(
             email_service=email_service, token_service=password_token_service
         ),
     )
 
-    bus.register(
+    integration_bus.register(
         CreateVipClientEmailRequested,
         SendVipClientCreationNotificationEmailHandler(email_service=email_service),
     )
 
-    bus.register(
+    integration_bus.register(
         SendActionMadeEmailRequested,
         SendActivationConfirmationEmailHandler(email_service=email_service),
     )
 
-    bus.register(
+    transactional_bus.register(
         AppointmentCompleted,
         AddCreditsFromCompletedAppointmentHandler(),
     )
 
-    return bus
+    return transactional_bus, integration_bus

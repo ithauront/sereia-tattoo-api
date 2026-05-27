@@ -10,7 +10,7 @@ from app.api.dependencies.auth import (
     get_current_active_user,
     get_current_admin_user,
 )
-from app.api.dependencies.events import get_event_bus
+from app.api.dependencies.events import get_integration_event_bus
 from app.api.dependencies.read_unit_of_work import get_read_unit_of_work
 from app.api.dependencies.write_unit_of_work import (
     get_write_unit_of_work,
@@ -21,7 +21,7 @@ from app.api.schemas.user import (
     CreateUserResponse,
     ResendActivationEmailResponse,
 )
-from app.application.event_bus.event_bus import EventBus
+from app.application.event_bus.integration_event_bus import IntegrationEventBus
 from app.application.studio.unit_of_work.read_unit_of_work import ReadUnitOfWork
 from app.application.studio.unit_of_work.write_unit_of_work import (
     WriteUnitOfWork,
@@ -82,10 +82,10 @@ async def create_user(
     data: CreateUserRequest,
     current_user=Depends(get_current_admin_user),
     uow: WriteUnitOfWork = Depends(get_write_unit_of_work),
-    event_bus: EventBus = Depends(get_event_bus),
+    integration_bus: IntegrationEventBus = Depends(get_integration_event_bus),
 ):
     try:
-        use_case = CreateUserUseCase(uow, event_bus)
+        use_case = CreateUserUseCase(uow, integration_bus=integration_bus)
         dto = CreateUserInput(user_email=data.email, actor_id=current_user.id)
 
         await use_case.execute(dto)
@@ -108,12 +108,14 @@ async def create_user(
 async def resend_email(
     data: ActivateUserRequest,
     write_uow: WriteUnitOfWork = Depends(get_write_unit_of_work),
-    event_bus: EventBus = Depends(get_event_bus),
+    integration_bus: IntegrationEventBus = Depends(get_integration_event_bus),
 ):
     # Escolhi deixar essa rota publica porque a segurança vai estar no
     # email do usuario que foi cadastrado pelo ADMIN"
     try:
-        prepare_use_case = PrepareResendActivationEmailUseCase(write_uow, event_bus)
+        prepare_use_case = PrepareResendActivationEmailUseCase(
+            write_uow, integration_bus=integration_bus
+        )
         dto = PrepareResendActivationEmailInput(user_email=data.email)
 
         await prepare_use_case.execute(dto)

@@ -45,7 +45,7 @@ async def test_should_create_10_percent_credit_for_indication(
 
     handler = AddCreditsFromCompletedAppointmentHandler()
 
-    await handler.handle(event=event, context=write_uow)
+    await handler.handle(event=event, uow=write_uow)
 
     credits_created = read_uow.client_credit_entries.get_balance(
         vip_client_id=vip_client.id
@@ -125,7 +125,7 @@ async def test_ceil_should_round_for_more(
 
     handler = AddCreditsFromCompletedAppointmentHandler()
 
-    await handler.handle(event=event, context=write_uow)
+    await handler.handle(event=event, uow=write_uow)
 
     credits_created = read_uow.client_credit_entries.get_balance(
         vip_client_id=vip_client.id
@@ -160,7 +160,7 @@ async def test_should_create_5_percent_credit_for_self_referral(
 
     handler = AddCreditsFromCompletedAppointmentHandler()
 
-    await handler.handle(event=event, context=write_uow)
+    await handler.handle(event=event, uow=write_uow)
 
     credits_created = read_uow.client_credit_entries.get_balance(
         vip_client_id=vip_client.id
@@ -233,7 +233,7 @@ async def test_add_credits_client_has_credits_before(
 
     handler = AddCreditsFromCompletedAppointmentHandler()
 
-    await handler.handle(event=event, context=write_uow)
+    await handler.handle(event=event, uow=write_uow)
 
     total_credits = read_uow.client_credit_entries.get_balance(
         vip_client_id=vip_client.id
@@ -312,7 +312,7 @@ async def test_part_of_payment_from_credits(
 
     handler = AddCreditsFromCompletedAppointmentHandler()
 
-    await handler.handle(event=event, context=write_uow)
+    await handler.handle(event=event, uow=write_uow)
 
     credits_created = read_uow.client_credit_entries.get_balance(
         vip_client_id=vip_client.id
@@ -352,7 +352,7 @@ async def test_total_payment_from_credits(
 
     handler = AddCreditsFromCompletedAppointmentHandler()
 
-    await handler.handle(event=event, context=write_uow)
+    await handler.handle(event=event, uow=write_uow)
 
     credits_created = read_uow.client_credit_entries.get_balance(
         vip_client_id=vip_client.id
@@ -406,7 +406,7 @@ async def test_existing_entry_should_silent_return(
 
     handler = AddCreditsFromCompletedAppointmentHandler()
 
-    await handler.handle(event=event, context=write_uow)
+    await handler.handle(event=event, uow=write_uow)
 
     credits_created = read_uow.client_credit_entries.get_balance(
         vip_client_id=vip_client.id
@@ -468,7 +468,7 @@ async def test_existing_credits_from_other_sources_should_not_prevent_addition(
 
     handler = AddCreditsFromCompletedAppointmentHandler()
 
-    await handler.handle(event=event, context=write_uow)
+    await handler.handle(event=event, uow=write_uow)
 
     credits_created = read_uow.client_credit_entries.get_balance(
         vip_client_id=vip_client.id
@@ -531,7 +531,7 @@ async def test_non_existing_referral_code_should_silent_return(
 
     handler = AddCreditsFromCompletedAppointmentHandler()
 
-    await handler.handle(event=event, context=write_uow)
+    await handler.handle(event=event, uow=write_uow)
 
     credits_created = read_uow.client_credit_entries.get_balance(
         vip_client_id=vip_client.id
@@ -589,7 +589,7 @@ async def test_add_credits_from_correct_appointment(
 
     handler = AddCreditsFromCompletedAppointmentHandler()
 
-    await handler.handle(event=event, context=write_uow)
+    await handler.handle(event=event, uow=write_uow)
 
     credits_created = read_uow.client_credit_entries.get_balance(
         vip_client_id=vip_client.id
@@ -651,8 +651,8 @@ async def test_handler_is_idempotent(
 
     handler = AddCreditsFromCompletedAppointmentHandler()
 
-    await handler.handle(event=event, context=write_uow)
-    await handler.handle(event=event, context=write_uow)
+    await handler.handle(event=event, uow=write_uow)
+    await handler.handle(event=event, uow=write_uow)
 
     credits_created = read_uow.client_credit_entries.get_balance(
         vip_client_id=vip_client.id
@@ -691,7 +691,7 @@ async def test_total_less_equal_to_zero_should_silent_return(
 
     handler = AddCreditsFromCompletedAppointmentHandler()
 
-    await handler.handle(event=event, context=write_uow)
+    await handler.handle(event=event, uow=write_uow)
 
     credits_created = read_uow.client_credit_entries.get_balance(
         vip_client_id=vip_client.id

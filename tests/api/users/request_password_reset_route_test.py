@@ -1,5 +1,5 @@
 from fastapi.testclient import TestClient
-from app.api.dependencies.events import get_event_bus
+from app.api.dependencies.events import get_integration_event_bus
 from app.api.dependencies.read_unit_of_work import get_read_unit_of_work
 from app.api.dependencies.write_unit_of_work import get_write_unit_of_work
 from app.main import app
@@ -7,13 +7,13 @@ from app.main import app
 client = TestClient(app)
 
 
-def test_request_reset_password_success(write_uow, read_uow, make_user, fake_event_bus):
+def test_request_reset_password_success(write_uow, read_uow, make_user, fake_integration_event_bus):
     user = make_user(email="jhon@doe.com", password_token_version=0)
     write_uow.users.create(user)
 
     payload = {"email": "jhon@doe.com"}
 
-    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
+    app.dependency_overrides[get_integration_event_bus] = lambda: fake_integration_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -33,14 +33,14 @@ def test_request_reset_password_success(write_uow, read_uow, make_user, fake_eve
 
 
 def test_request_reset_password_user_inactive(
-    write_uow, read_uow, make_user, fake_event_bus
+    write_uow, read_uow, make_user, fake_integration_event_bus
 ):
     user = make_user(email="jhon@doe.com", is_active=False, password_token_version=0)
     write_uow.users.create(user)
 
     payload = {"email": "jhon@doe.com"}
 
-    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
+    app.dependency_overrides[get_integration_event_bus] = lambda: fake_integration_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -60,10 +60,10 @@ def test_request_reset_password_user_inactive(
     app.dependency_overrides.clear()
 
 
-def test_request_reset_password_user_not_found(read_uow, write_uow, fake_event_bus):
+def test_request_reset_password_user_not_found(read_uow, write_uow, fake_integration_event_bus):
     payload = {"email": "jhon@doe.com"}
 
-    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
+    app.dependency_overrides[get_integration_event_bus] = lambda: fake_integration_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -78,8 +78,8 @@ def test_request_reset_password_user_not_found(read_uow, write_uow, fake_event_b
     app.dependency_overrides.clear()
 
 
-def test_request_reset_password_invalid_payload(fake_event_bus):
-    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
+def test_request_reset_password_invalid_payload(fake_integration_event_bus):
+    app.dependency_overrides[get_integration_event_bus] = lambda: fake_integration_event_bus
 
     response = client.post("/me/reset-password-request", json={})
 

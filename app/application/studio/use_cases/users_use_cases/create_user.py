@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from app.application.event_bus.event_bus import EventBus
+from app.application.event_bus.integration_event_bus import IntegrationEventBus
 from app.application.studio.unit_of_work.write_unit_of_work import WriteUnitOfWork
 from app.application.studio.use_cases.DTO.audit_logs import AuditLogEntry
 from app.application.studio.use_cases.DTO.create_user_dto import CreateUserInput
@@ -11,9 +11,9 @@ from app.domain.studio.users.entities.user import User
 
 
 class CreateUserUseCase:
-    def __init__(self, uow: WriteUnitOfWork, event_bus: EventBus):
+    def __init__(self, uow: WriteUnitOfWork, integration_bus: IntegrationEventBus):
         self.uow = uow
-        self.event_bus = event_bus
+        self.integration_bus = integration_bus
 
     async def execute(self, data: CreateUserInput) -> None:
         email = normalize_email(data.user_email)
@@ -46,4 +46,4 @@ class CreateUserUseCase:
 
             self.uow.audit_logs.create(log)
 
-        await self.event_bus.publish(event)
+        await self.integration_bus.publish(event)

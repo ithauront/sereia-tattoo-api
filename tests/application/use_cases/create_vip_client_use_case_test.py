@@ -18,7 +18,7 @@ from app.core.types.audit_actor_type import AuditActorType
 from app.domain.studio.users.events.create_vip_client_email_requested import (
     CreateVipClientEmailRequested,
 )
-from tests.fakes.fake_event_bus import FakeEventBus
+from tests.fakes.fake_event_bus import FakeIntegrationEventBus
 
 
 @pytest.mark.asyncio
@@ -26,7 +26,7 @@ async def test_create_vip_client_success(write_uow, read_uow, make_user):
     admin = make_user(is_admin=True)
     write_uow.users.create(admin)
 
-    event_bus = FakeEventBus()
+    event_bus = FakeIntegrationEventBus()
 
     use_case = CreateVipClientUseCase(write_uow, event_bus)
     input_data = CreateVipClientInput(
@@ -60,7 +60,7 @@ async def test_create_vip_client_log_action(write_uow, read_uow, make_user):
     admin = make_user(is_admin=True)
     write_uow.users.create(admin)
 
-    event_bus = FakeEventBus()
+    event_bus = FakeIntegrationEventBus()
 
     use_case = CreateVipClientUseCase(write_uow, event_bus)
     input_data = CreateVipClientInput(
@@ -101,7 +101,7 @@ async def test_create_vip_client_log_action(write_uow, read_uow, make_user):
 async def test_vip_client_invalid_phone(write_uow, read_uow, mocker, make_user):
     admin = make_user(is_admin=True)
     write_uow.users.create(admin)
-    event_bus = FakeEventBus()
+    event_bus = FakeIntegrationEventBus()
 
     spy = mocker.spy(write_uow.vip_clients, "create")
 
@@ -132,7 +132,7 @@ async def test_vip_client_email_taken(
     admin = make_user(is_admin=True)
     write_uow.users.create(admin)
 
-    event_bus = FakeEventBus()
+    event_bus = FakeIntegrationEventBus()
     vip_client = make_vip_client(
         email="jhon@doe.com",
         phone="11888888888",
@@ -168,7 +168,7 @@ async def test_vip_client_phone_taken(
     admin = make_user(is_admin=True)
     write_uow.users.create(admin)
 
-    event_bus = FakeEventBus()
+    event_bus = FakeIntegrationEventBus()
     vip_client = make_vip_client(
         email="other@doe.com", phone="11923456789", client_code="OTHER-CODE"
     )
@@ -202,7 +202,7 @@ async def test_vip_client_client_code_taken(
     admin = make_user(is_admin=True)
     write_uow.users.create(admin)
 
-    event_bus = FakeEventBus()
+    event_bus = FakeIntegrationEventBus()
     vip_client = make_vip_client(
         email="other@doe.com", phone="11888888888", client_code="JHON-AZUL"
     )

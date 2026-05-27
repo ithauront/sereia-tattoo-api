@@ -11,7 +11,7 @@ from app.core.types.audit_actor_type import AuditActorType
 from app.domain.studio.users.events.activation_email_requested import (
     ActivationEmailRequested,
 )
-from tests.fakes.fake_event_bus import FakeEventBus
+from tests.fakes.fake_event_bus import FakeIntegrationEventBus
 
 
 @pytest.mark.asyncio
@@ -19,7 +19,7 @@ async def test_create_user_success(write_uow, read_uow, make_user):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
 
-    event_bus = FakeEventBus()
+    event_bus = FakeIntegrationEventBus()
 
     use_case = CreateUserUseCase(write_uow, event_bus)
     input_data = CreateUserInput(user_email="jhon@doe.com", actor_id=admin.id)
@@ -48,7 +48,7 @@ async def test_create_user_create_log(write_uow, read_uow, make_user):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
 
-    event_bus = FakeEventBus()
+    event_bus = FakeIntegrationEventBus()
 
     use_case = CreateUserUseCase(write_uow, event_bus)
     input_data = CreateUserInput(user_email="jhon@doe.com", actor_id=admin.id)
@@ -84,7 +84,7 @@ async def test_user_already_exists(write_uow, make_user, mocker, read_uow):
     user = make_user(email="jhon@doe.com")
     write_uow.users.create(user)
 
-    event_bus = FakeEventBus()
+    event_bus = FakeIntegrationEventBus()
 
     spy = mocker.spy(write_uow.users, "create")
 
@@ -127,7 +127,7 @@ async def test_find_by_email_called_before_create(
 
     spy = mocker.spy(write_uow.users, "find_by_email")
 
-    event_bus = FakeEventBus()
+    event_bus = FakeIntegrationEventBus()
 
     use_case = CreateUserUseCase(write_uow, event_bus)
     await use_case.execute(

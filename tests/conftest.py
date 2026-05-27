@@ -2,7 +2,6 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from uuid import uuid4
 import pytest
-from app.application.event_bus.setup import setup_event_bus
 from app.application.studio.use_cases.DTO.audit_logs import AuditLogEntry
 from app.core.security import jwt_service
 from app.core.security.jwt_service import JWTService
@@ -30,6 +29,10 @@ from tests.fakes.fake_client_credit_entries_repository import (
     FakeClientCreditEntriesRepository,
 )
 from tests.fakes.fake_email_service import FakeEmailService
+from tests.fakes.fake_event_bus import (
+    FakeIntegrationEventBus,
+    FakeTransactionalEventBus,
+)
 from tests.fakes.fake_payments_repository import FakePaymentsRepository
 from tests.fakes.fake_read_unit_of_work import FakeReadUnitOfWork
 from tests.fakes.fake_users_repository import FakeUsersRepository
@@ -238,11 +241,13 @@ def fake_email_service():
 
 
 @pytest.fixture
-def fake_event_bus(fake_email_service):
-    return setup_event_bus(
-        email_service=fake_email_service,
-        token_service=jwt_service,
-    )
+def fake_transactional_event_bus():
+    return FakeTransactionalEventBus()
+
+
+@pytest.fixture
+def fake_integration_event_bus():
+    return FakeIntegrationEventBus()
 
 
 @pytest.fixture

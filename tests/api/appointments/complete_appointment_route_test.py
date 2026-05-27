@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from fastapi.testclient import TestClient
 
-from app.api.dependencies.events import get_event_bus
+from app.api.dependencies.events import get_transactional_event_bus
 from app.api.dependencies.read_unit_of_work import get_read_unit_of_work
 from app.api.dependencies.write_unit_of_work import get_write_unit_of_work
 from app.core.types.appointment_enums import AppointmentStatus
@@ -19,7 +19,7 @@ def test_complete_appointment_route_success(
     make_scheduled_appointment,
     write_uow,
     read_uow,
-    fake_event_bus,
+    fake_transactional_event_bus,
 ):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
@@ -31,7 +31,7 @@ def test_complete_appointment_route_success(
     payment = make_payment(appointment_id=appointment.id, amount=Decimal("700"))
     write_uow.payments.create(payment)
 
-    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
+    app.dependency_overrides[get_transactional_event_bus] = lambda: fake_transactional_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -59,7 +59,7 @@ def test_complete_appointment_route_double_call(
     make_scheduled_appointment,
     write_uow,
     read_uow,
-    fake_event_bus,
+    fake_transactional_event_bus,
 ):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
@@ -71,7 +71,7 @@ def test_complete_appointment_route_double_call(
     payment = make_payment(appointment_id=appointment.id, amount=Decimal("700"))
     write_uow.payments.create(payment)
 
-    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
+    app.dependency_overrides[get_transactional_event_bus] = lambda: fake_transactional_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -101,7 +101,7 @@ def test_complete_appointment_not_scheduled(
     make_quoted_appointment,
     write_uow,
     read_uow,
-    fake_event_bus,
+    fake_transactional_event_bus,
 ):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
@@ -113,7 +113,7 @@ def test_complete_appointment_not_scheduled(
     payment = make_payment(appointment_id=appointment.id, amount=Decimal("700"))
     write_uow.payments.create(payment)
 
-    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
+    app.dependency_overrides[get_transactional_event_bus] = lambda: fake_transactional_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -138,7 +138,7 @@ def test_complete_appointment_not_found(
     make_scheduled_appointment,
     write_uow,
     read_uow,
-    fake_event_bus,
+    fake_transactional_event_bus,
 ):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
@@ -150,7 +150,7 @@ def test_complete_appointment_not_found(
     payment = make_payment(appointment_id=appointment.id, amount=Decimal("700"))
     write_uow.payments.create(payment)
 
-    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
+    app.dependency_overrides[get_transactional_event_bus] = lambda: fake_transactional_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -171,7 +171,7 @@ def test_complete_appointment_not_fully_paid(
     make_scheduled_appointment,
     write_uow,
     read_uow,
-    fake_event_bus,
+    fake_transactional_event_bus,
 ):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
@@ -184,7 +184,7 @@ def test_complete_appointment_not_fully_paid(
     # payment is less than price
     write_uow.payments.create(payment)
 
-    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
+    app.dependency_overrides[get_transactional_event_bus] = lambda: fake_transactional_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -208,7 +208,7 @@ def test_complete_appointment_not_admin(
     make_scheduled_appointment,
     write_uow,
     read_uow,
-    fake_event_bus,
+    fake_transactional_event_bus,
 ):
     admin = make_user(is_admin=False, email="admin@admin.com")
     write_uow.users.create(admin)
@@ -220,7 +220,7 @@ def test_complete_appointment_not_admin(
     payment = make_payment(appointment_id=appointment.id, amount=Decimal("700"))
     write_uow.payments.create(payment)
 
-    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
+    app.dependency_overrides[get_transactional_event_bus] = lambda: fake_transactional_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -246,7 +246,7 @@ def test_complete_appointment_inactive_admin(
     make_scheduled_appointment,
     write_uow,
     read_uow,
-    fake_event_bus,
+    fake_transactional_event_bus,
 ):
     admin = make_user(is_admin=True, is_active=False, email="admin@admin.com")
     write_uow.users.create(admin)
@@ -258,7 +258,7 @@ def test_complete_appointment_inactive_admin(
     payment = make_payment(appointment_id=appointment.id, amount=Decimal("700"))
     write_uow.payments.create(payment)
 
-    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
+    app.dependency_overrides[get_transactional_event_bus] = lambda: fake_transactional_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -284,7 +284,7 @@ def test_complete_appointment_non_existent_user(
     make_scheduled_appointment,
     write_uow,
     read_uow,
-    fake_event_bus,
+    fake_transactional_event_bus,
 ):
     admin = make_user(is_admin=True, is_active=True, email="admin@admin.com")
     # we do not persist user for this test
@@ -296,7 +296,7 @@ def test_complete_appointment_non_existent_user(
     payment = make_payment(appointment_id=appointment.id, amount=Decimal("700"))
     write_uow.payments.create(payment)
 
-    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
+    app.dependency_overrides[get_transactional_event_bus] = lambda: fake_transactional_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 

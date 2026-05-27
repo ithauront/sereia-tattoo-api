@@ -13,9 +13,12 @@ async def lifespan(app: FastAPI):
     email_service = BrevoEmailService()
     token_service = jwt_service
 
-    app.state.event_bus = setup_event_bus(
+    transactional_bus, integration_bus = setup_event_bus(
         email_service=email_service, token_service=token_service
     )
+
+    app.state.transactional_bus = transactional_bus
+    app.state.integration_bus = integration_bus
 
     yield
 

@@ -24,10 +24,8 @@ of the financial consistency of the system. Hence the UoW in context.
 
 class AddCreditsFromCompletedAppointmentHandler:
     async def handle(
-        self, event: AppointmentCompleted, *, context: WriteUnitOfWork
+        self, event: AppointmentCompleted, *, uow: WriteUnitOfWork
     ) -> None:
-
-        uow = context
 
         vip_client = uow.vip_clients.find_by_client_code(event.referral_code.value)
         if vip_client is None:

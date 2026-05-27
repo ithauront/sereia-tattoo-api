@@ -13,7 +13,7 @@ from app.core.exceptions.users import (
 from app.domain.studio.users.events.password_reset_email_requested import (
     PasswordResetEmailRequested,
 )
-from tests.fakes.fake_event_bus import FakeEventBus
+from tests.fakes.fake_event_bus import FakeIntegrationEventBus
 
 
 @pytest.mark.asyncio
@@ -21,7 +21,7 @@ async def test_send_forgot_password_email_success(write_uow, make_user):
     user = make_user(email="jhon@doe.com")
     write_uow.users.create(user)
 
-    event_bus = FakeEventBus()
+    event_bus = FakeIntegrationEventBus()
 
     use_case = PrepareSendForgotPasswordEmailUseCase(write_uow, event_bus)
     input_data = PrepareSendForgotPasswordEmailInput(user_email="jhon@doe.com")
@@ -46,7 +46,7 @@ async def test_send_forgot_password_email_success(write_uow, make_user):
 
 @pytest.mark.asyncio
 async def test_send_forgot_password_email_user_not_found(write_uow):
-    event_bus = FakeEventBus()
+    event_bus = FakeIntegrationEventBus()
 
     use_case = PrepareSendForgotPasswordEmailUseCase(write_uow, event_bus)
     input_data = PrepareSendForgotPasswordEmailInput(user_email="jhon@doe.com")
@@ -60,7 +60,7 @@ async def test_send_forgot_password_email_user_inactive(write_uow, read_uow, mak
     user = make_user(email="jhon@doe.com", is_active=False)
     write_uow.users.create(user)
 
-    event_bus = FakeEventBus()
+    event_bus = FakeIntegrationEventBus()
 
     use_case = PrepareSendForgotPasswordEmailUseCase(read_uow, event_bus)
     input_data = PrepareSendForgotPasswordEmailInput(user_email="jhon@doe.com")

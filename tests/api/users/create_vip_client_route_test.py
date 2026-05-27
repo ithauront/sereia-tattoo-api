@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
-from app.api.dependencies.events import get_event_bus
+from app.api.dependencies.events import get_integration_event_bus
 from app.api.dependencies.read_unit_of_work import get_read_unit_of_work
 from app.api.dependencies.write_unit_of_work import get_write_unit_of_work
 from app.core.types.audit_actor_type import AuditActorType
@@ -11,7 +11,7 @@ client = TestClient(app)
 
 
 def test_create_vip_client_successful(
-    write_uow, read_uow, make_user, make_token, fake_event_bus
+    write_uow, read_uow, make_user, make_token, fake_integration_event_bus
 ):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
@@ -26,7 +26,7 @@ def test_create_vip_client_successful(
         "client_code": "JHON-AZUL",
     }
 
-    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
+    app.dependency_overrides[get_integration_event_bus] = lambda: fake_integration_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -46,7 +46,7 @@ def test_create_vip_client_successful(
 
 
 def test_create_vip_client_successful_makes_log(
-    write_uow, read_uow, make_user, make_token, fake_event_bus
+    write_uow, read_uow, make_user, make_token, fake_integration_event_bus
 ):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
@@ -61,7 +61,7 @@ def test_create_vip_client_successful_makes_log(
         "client_code": "JHON-AZUL",
     }
 
-    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
+    app.dependency_overrides[get_integration_event_bus] = lambda: fake_integration_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -97,7 +97,7 @@ def test_create_vip_client_successful_makes_log(
 
 
 def test_vip_client_email_taken(
-    write_uow, read_uow, make_user, make_token, make_vip_client, fake_event_bus
+    write_uow, read_uow, make_user, make_token, make_vip_client, fake_integration_event_bus
 ):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
@@ -120,7 +120,7 @@ def test_vip_client_email_taken(
         "client_code": "JHON-RED",
     }
 
-    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
+    app.dependency_overrides[get_integration_event_bus] = lambda: fake_integration_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -146,7 +146,7 @@ def test_vip_client_email_taken(
 
 
 def test_vip_client_phone_taken(
-    write_uow, read_uow, make_user, make_token, make_vip_client, fake_event_bus
+    write_uow, read_uow, make_user, make_token, make_vip_client, fake_integration_event_bus
 ):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
@@ -169,7 +169,7 @@ def test_vip_client_phone_taken(
         "client_code": "JHON-RED",
     }
 
-    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
+    app.dependency_overrides[get_integration_event_bus] = lambda: fake_integration_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -195,7 +195,7 @@ def test_vip_client_phone_taken(
 
 
 def test_vip_client_code_taken(
-    write_uow, read_uow, make_user, make_token, make_vip_client, fake_event_bus
+    write_uow, read_uow, make_user, make_token, make_vip_client, fake_integration_event_bus
 ):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
@@ -218,7 +218,7 @@ def test_vip_client_code_taken(
         "client_code": "JHON-AZUL",
     }
 
-    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
+    app.dependency_overrides[get_integration_event_bus] = lambda: fake_integration_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -246,7 +246,7 @@ def test_vip_client_code_taken(
 
 
 def test_invalid_email_triggers_validation_error(
-    write_uow, read_uow, make_user, make_token, fake_event_bus
+    write_uow, read_uow, make_user, make_token, fake_integration_event_bus
 ):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
@@ -261,7 +261,7 @@ def test_invalid_email_triggers_validation_error(
         "client_code": "JHON-AZUL",
     }
 
-    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
+    app.dependency_overrides[get_integration_event_bus] = lambda: fake_integration_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -282,7 +282,7 @@ def test_invalid_email_triggers_validation_error(
 
 
 def test_not_admin_create_vip_client(
-    write_uow, read_uow, make_user, make_token, fake_event_bus
+    write_uow, read_uow, make_user, make_token, fake_integration_event_bus
 ):
     admin = make_user(is_admin=False, email="admin@admin.com")
     write_uow.users.create(admin)
@@ -297,7 +297,7 @@ def test_not_admin_create_vip_client(
         "client_code": "JHON-AZUL",
     }
 
-    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
+    app.dependency_overrides[get_integration_event_bus] = lambda: fake_integration_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -320,7 +320,7 @@ def test_not_admin_create_vip_client(
 
 
 def test_inactive_admin_create_vip_client(
-    write_uow, read_uow, make_user, make_token, fake_event_bus
+    write_uow, read_uow, make_user, make_token, fake_integration_event_bus
 ):
     admin = make_user(is_admin=True, is_active=False, email="admin@admin.com")
     write_uow.users.create(admin)
@@ -335,7 +335,7 @@ def test_inactive_admin_create_vip_client(
         "client_code": "JHON-AZUL",
     }
 
-    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
+    app.dependency_overrides[get_integration_event_bus] = lambda: fake_integration_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -358,7 +358,7 @@ def test_inactive_admin_create_vip_client(
 
 
 def test_non_existent_user_create_vip_client(
-    write_uow, read_uow, make_user, make_token, fake_event_bus
+    write_uow, read_uow, make_user, make_token, fake_integration_event_bus
 ):
     admin = make_user(is_admin=True, email="admin@admin.com")
 
@@ -372,7 +372,7 @@ def test_non_existent_user_create_vip_client(
         "client_code": "JHON-AZUL",
     }
 
-    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
+    app.dependency_overrides[get_integration_event_bus] = lambda: fake_integration_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -395,7 +395,7 @@ def test_non_existent_user_create_vip_client(
 
 
 def test_wrong_token_type_create_vip_client(
-    write_uow, read_uow, make_user, make_token, fake_event_bus
+    write_uow, read_uow, make_user, make_token, fake_integration_event_bus
 ):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
@@ -409,7 +409,7 @@ def test_wrong_token_type_create_vip_client(
         "client_code": "JHON-AZUL",
     }
 
-    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
+    app.dependency_overrides[get_integration_event_bus] = lambda: fake_integration_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 

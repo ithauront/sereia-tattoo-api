@@ -4,7 +4,9 @@ from fastapi.testclient import TestClient
 from app.core.types.appointment_enums import AppointmentStatus
 from app.main import app
 
-from app.api.dependencies.events import get_event_bus
+from app.api.dependencies.events import (
+    get_transactional_event_bus,
+)
 from app.api.dependencies.read_unit_of_work import get_read_unit_of_work
 from app.api.dependencies.write_unit_of_work import get_write_unit_of_work
 
@@ -46,10 +48,13 @@ def test_complete_appointment_generates_referral_credits(
     )
     write_uow.payments.create(payment)
 
-    app.dependency_overrides[get_event_bus] = lambda: setup_event_bus(
+    transactional_bus, _ = setup_event_bus(
         email_service=None,
         token_service=jwt_service_instance,
     )
+
+    app.dependency_overrides[get_transactional_event_bus] = lambda: transactional_bus
+
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -110,10 +115,12 @@ def test_complete_appointment_failure_does_not_generate_credits(
     )
     write_uow.payments.create(payment)
 
-    app.dependency_overrides[get_event_bus] = lambda: setup_event_bus(
+    transactional_bus, _ = setup_event_bus(
         email_service=None,
         token_service=jwt_service_instance,
     )
+
+    app.dependency_overrides[get_transactional_event_bus] = lambda: transactional_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 

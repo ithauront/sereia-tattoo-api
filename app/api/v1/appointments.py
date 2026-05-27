@@ -5,12 +5,12 @@ from fastapi import (
     HTTPException,
     status,
 )
-from app.application.event_bus.event_bus import EventBus
+from app.application.event_bus.transactional_event_bus import TransactionalEventBus
 from app.application.studio.unit_of_work.write_unit_of_work import (
     WriteUnitOfWork,
 )
 from app.api.dependencies.auth import get_current_active_user
-from app.api.dependencies.events import get_event_bus
+from app.api.dependencies.events import get_transactional_event_bus
 from app.api.dependencies.write_unit_of_work import (
     get_write_unit_of_work,
 )
@@ -34,10 +34,12 @@ async def complete_paid_appointment(
     appointment_id: UUID,
     current_user=Depends(get_current_active_user),
     uow: WriteUnitOfWork = Depends(get_write_unit_of_work),
-    event_bus: EventBus = Depends(get_event_bus),
+    transactional_bus: TransactionalEventBus = Depends(get_transactional_event_bus),
 ):
     try:
-        use_case = CompletePaidAppointmentUseCase(uow=uow, event_bus=event_bus)
+        use_case = CompletePaidAppointmentUseCase(
+            uow=uow, transactional_bus=transactional_bus
+        )
         dto = CompletePaidAppointmentInput(
             appointment_id=appointment_id, actor_id=current_user.id
         )

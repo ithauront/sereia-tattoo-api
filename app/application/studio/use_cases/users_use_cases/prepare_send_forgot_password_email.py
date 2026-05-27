@@ -1,4 +1,4 @@
-from app.application.event_bus.event_bus import EventBus
+from app.application.event_bus.integration_event_bus import IntegrationEventBus
 from app.application.studio.unit_of_work.write_unit_of_work import WriteUnitOfWork
 from app.application.studio.use_cases.DTO.prepare_send_forgot_password_email_dto import (
     PrepareSendForgotPasswordEmailInput,
@@ -8,9 +8,9 @@ from app.core.normalize.normalize_email import normalize_email
 
 
 class PrepareSendForgotPasswordEmailUseCase:
-    def __init__(self, uow: WriteUnitOfWork, event_bus: EventBus):
+    def __init__(self, uow: WriteUnitOfWork, integration_bus: IntegrationEventBus):
         self.uow = uow
-        self.event_bus = event_bus
+        self.integration_bus = integration_bus
 
     async def execute(self, data: PrepareSendForgotPasswordEmailInput) -> None:
         with self.uow:
@@ -25,4 +25,4 @@ class PrepareSendForgotPasswordEmailUseCase:
 
             event = user.request_password_reset_email()
 
-        await self.event_bus.publish(event)
+        await self.integration_bus.publish(event)

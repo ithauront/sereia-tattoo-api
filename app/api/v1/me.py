@@ -1,4 +1,4 @@
-from app.api.dependencies.events import get_event_bus
+from app.api.dependencies.events import get_integration_event_bus
 from app.api.dependencies.read_unit_of_work import get_read_unit_of_work
 from app.api.dependencies.security import (
     get_access_token_service,
@@ -6,7 +6,8 @@ from app.api.dependencies.security import (
 )
 from app.api.dependencies.write_unit_of_work import get_write_unit_of_work
 from app.api.schemas.auth import TokenPair
-from app.application.event_bus.event_bus import EventBus
+
+from app.application.event_bus.integration_event_bus import IntegrationEventBus
 from app.application.studio.unit_of_work.read_unit_of_work import ReadUnitOfWork
 from app.application.studio.unit_of_work.write_unit_of_work import WriteUnitOfWork
 from app.application.studio.use_cases.DTO.change_email_dto import ChangeEmailInput
@@ -209,10 +210,12 @@ def change_email(
 async def send_reset_password(
     data: ResetPasswordEmailRequest,
     write_uow: WriteUnitOfWork = Depends(get_write_unit_of_work),
-    event_bus: EventBus = Depends(get_event_bus),
+    integration_bus: IntegrationEventBus = Depends(get_integration_event_bus),
 ):
     try:
-        prepare_use_case = PrepareSendForgotPasswordEmailUseCase(write_uow, event_bus)
+        prepare_use_case = PrepareSendForgotPasswordEmailUseCase(
+            write_uow, integration_bus=integration_bus
+        )
         dto = PrepareSendForgotPasswordEmailInput(user_email=data.email)
 
         await prepare_use_case.execute(dto)

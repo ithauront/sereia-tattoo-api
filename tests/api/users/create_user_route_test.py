@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 from fastapi.testclient import TestClient
-from app.api.dependencies.events import get_event_bus
+from app.api.dependencies.events import get_integration_event_bus
 from app.api.dependencies.read_unit_of_work import get_read_unit_of_work
 from app.api.dependencies.write_unit_of_work import get_write_unit_of_work
 from app.core.security import jwt_service
@@ -13,7 +13,7 @@ client = TestClient(app)
 
 
 def test_create_user_success(
-    write_uow, read_uow, make_user, make_token, fake_event_bus
+    write_uow, read_uow, make_user, make_token, fake_integration_event_bus
 ):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
@@ -22,7 +22,7 @@ def test_create_user_success(
 
     payload = {"email": "jhon@doe.com"}
 
-    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
+    app.dependency_overrides[get_integration_event_bus] = lambda: fake_integration_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -45,7 +45,7 @@ def test_create_user_success(
 
 
 def test_create_user_create_log(
-    write_uow, read_uow, make_user, make_token, fake_event_bus
+    write_uow, read_uow, make_user, make_token, fake_integration_event_bus
 ):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
@@ -54,7 +54,7 @@ def test_create_user_create_log(
 
     payload = {"email": "jhon@doe.com"}
 
-    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
+    app.dependency_overrides[get_integration_event_bus] = lambda: fake_integration_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -87,7 +87,7 @@ def test_create_user_create_log(
 
 
 def test_user_already_exists(
-    write_uow, read_uow, make_user, make_token, fake_event_bus
+    write_uow, read_uow, make_user, make_token, fake_integration_event_bus
 ):
     admin = make_user(is_admin=True, email="admin@admin.com")
     user = make_user(email="jhon@doe.com")
@@ -100,7 +100,7 @@ def test_user_already_exists(
 
     fake_email_service = FakeEmailService()
 
-    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
+    app.dependency_overrides[get_integration_event_bus] = lambda: fake_integration_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -121,7 +121,7 @@ def test_user_already_exists(
 
 
 def test_not_admin_create_user(
-    write_uow, read_uow, make_user, make_token, fake_event_bus
+    write_uow, read_uow, make_user, make_token, fake_integration_event_bus
 ):
     not_admin = make_user(is_admin=False, email="admin@admin.com")
     write_uow.users.create(not_admin)
@@ -130,7 +130,7 @@ def test_not_admin_create_user(
 
     payload = {"email": "jhon@doe.com"}
 
-    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
+    app.dependency_overrides[get_integration_event_bus] = lambda: fake_integration_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -153,7 +153,7 @@ def test_not_admin_create_user(
 
 
 def test_inactive_admin_create_user(
-    write_uow, read_uow, make_user, make_token, fake_event_bus
+    write_uow, read_uow, make_user, make_token, fake_integration_event_bus
 ):
     inactive_admin = make_user(is_admin=True, email="admin@admin.com", is_active=False)
     write_uow.users.create(inactive_admin)
@@ -162,7 +162,7 @@ def test_inactive_admin_create_user(
 
     payload = {"email": "jhon@doe.com"}
 
-    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
+    app.dependency_overrides[get_integration_event_bus] = lambda: fake_integration_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -185,7 +185,7 @@ def test_inactive_admin_create_user(
 
 
 def test_non_existent_user_create_user(
-    write_uow, read_uow, make_user, make_token, fake_event_bus
+    write_uow, read_uow, make_user, make_token, fake_integration_event_bus
 ):
     admin = make_user(is_admin=True, email="admin@admin.com")
 
@@ -193,7 +193,7 @@ def test_non_existent_user_create_user(
 
     payload = {"email": "jhon@doe.com"}
 
-    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
+    app.dependency_overrides[get_integration_event_bus] = lambda: fake_integration_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -216,7 +216,7 @@ def test_non_existent_user_create_user(
 
 
 def test_wrong_token_type_create_user(
-    write_uow, read_uow, make_user, make_token, fake_event_bus
+    write_uow, read_uow, make_user, make_token, fake_integration_event_bus
 ):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
@@ -225,7 +225,7 @@ def test_wrong_token_type_create_user(
 
     payload = {"email": "jhon@doe.com"}
 
-    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
+    app.dependency_overrides[get_integration_event_bus] = lambda: fake_integration_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -248,14 +248,14 @@ def test_wrong_token_type_create_user(
 
 
 def test_missing_authorization_header_create_user(
-    write_uow, read_uow, make_user, fake_event_bus
+    write_uow, read_uow, make_user, fake_integration_event_bus
 ):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
 
     payload = {"email": "jhon@doe.com"}
 
-    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
+    app.dependency_overrides[get_integration_event_bus] = lambda: fake_integration_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -277,7 +277,7 @@ def test_missing_authorization_header_create_user(
 
 
 def test_missing_bearer_prefix_create_user(
-    write_uow, read_uow, make_user, make_token, fake_event_bus
+    write_uow, read_uow, make_user, make_token, fake_integration_event_bus
 ):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
@@ -286,7 +286,7 @@ def test_missing_bearer_prefix_create_user(
 
     payload = {"email": "jhon@doe.com"}
 
-    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
+    app.dependency_overrides[get_integration_event_bus] = lambda: fake_integration_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -308,13 +308,13 @@ def test_missing_bearer_prefix_create_user(
     app.dependency_overrides = {}
 
 
-def test_invalid_jwt_format_create_user(write_uow, read_uow, make_user, fake_event_bus):
+def test_invalid_jwt_format_create_user(write_uow, read_uow, make_user, fake_integration_event_bus):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
 
     payload = {"email": "jhon@doe.com"}
 
-    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
+    app.dependency_overrides[get_integration_event_bus] = lambda: fake_integration_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -336,7 +336,7 @@ def test_invalid_jwt_format_create_user(write_uow, read_uow, make_user, fake_eve
     app.dependency_overrides = {}
 
 
-def test_invalid_token_sub_create_user(write_uow, read_uow, make_user, fake_event_bus):
+def test_invalid_token_sub_create_user(write_uow, read_uow, make_user, fake_integration_event_bus):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
 
@@ -344,7 +344,7 @@ def test_invalid_token_sub_create_user(write_uow, read_uow, make_user, fake_even
 
     payload = {"email": "jhon@doe.com"}
 
-    app.dependency_overrides[get_event_bus] = lambda: fake_event_bus
+    app.dependency_overrides[get_integration_event_bus] = lambda: fake_integration_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 

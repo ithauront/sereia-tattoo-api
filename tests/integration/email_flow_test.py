@@ -1,13 +1,12 @@
 from fastapi.testclient import TestClient
 
-from app.api.dependencies.events import get_event_bus
+from app.api.dependencies.events import get_integration_event_bus
 from app.api.dependencies.read_unit_of_work import get_read_unit_of_work
 from app.api.dependencies.write_unit_of_work import get_write_unit_of_work
 from app.application.event_bus.setup import setup_event_bus
 from tests.fakes.fake_email_service import FakeEmailService
 
 from app.main import app
-
 
 client = TestClient(app)
 
@@ -17,15 +16,17 @@ def test_create_user_triggers_email(
 ):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
-    
+
     token = make_token(admin)
 
     fake_email_service = FakeEmailService()
 
-    app.dependency_overrides[get_event_bus] = lambda: setup_event_bus(
+    _, integration_bus = setup_event_bus(
         email_service=fake_email_service,
         token_service=jwt_service_instance,
     )
+
+    app.dependency_overrides[get_integration_event_bus] = lambda: integration_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -56,10 +57,12 @@ def test_create_user_failure_does_not_trigger_email(
 
     fake_email_service = FakeEmailService()
 
-    app.dependency_overrides[get_event_bus] = lambda: setup_event_bus(
+    _, integration_bus = setup_event_bus(
         email_service=fake_email_service,
         token_service=jwt_service_instance,
     )
+
+    app.dependency_overrides[get_integration_event_bus] = lambda: integration_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -86,10 +89,11 @@ def test_resend_activation_email_triggers_email(
 
     fake_email_service = FakeEmailService()
 
-    app.dependency_overrides[get_event_bus] = lambda: setup_event_bus(
+    _, integration_bus = setup_event_bus(
         email_service=fake_email_service,
         token_service=jwt_service_instance,
     )
+    app.dependency_overrides[get_integration_event_bus] = lambda: integration_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -117,10 +121,12 @@ def test_resend_activation_email_error_does_not_triggers_email(
 
     fake_email_service = FakeEmailService()
 
-    app.dependency_overrides[get_event_bus] = lambda: setup_event_bus(
+    _, integration_bus = setup_event_bus(
         email_service=fake_email_service,
         token_service=jwt_service_instance,
     )
+
+    app.dependency_overrides[get_integration_event_bus] = lambda: integration_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -155,10 +161,12 @@ def test_create_vip_client_triggers_email(
         "client_code": "JHON-AZUL",
     }
 
-    app.dependency_overrides[get_event_bus] = lambda: setup_event_bus(
+    _, integration_bus = setup_event_bus(
         email_service=fake_email_service,
         token_service=jwt_service_instance,
     )
+
+    app.dependency_overrides[get_integration_event_bus] = lambda: integration_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -194,10 +202,12 @@ def test_create_vip_client_failure_does_not_trigger_email(
 
     fake_email_service = FakeEmailService()
 
-    app.dependency_overrides[get_event_bus] = lambda: setup_event_bus(
+    _, integration_bus = setup_event_bus(
         email_service=fake_email_service,
         token_service=jwt_service_instance,
     )
+
+    app.dependency_overrides[get_integration_event_bus] = lambda: integration_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -231,10 +241,12 @@ def test_reset_password_request_triggers_email(
 
     fake_email_service = FakeEmailService()
 
-    app.dependency_overrides[get_event_bus] = lambda: setup_event_bus(
+    _, integration_bus = setup_event_bus(
         email_service=fake_email_service,
         token_service=jwt_service_instance,
     )
+
+    app.dependency_overrides[get_integration_event_bus] = lambda: integration_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 
@@ -261,10 +273,12 @@ def test_reset_password_request_failure_does_not_trigger_email(
 
     fake_email_service = FakeEmailService()
 
-    app.dependency_overrides[get_event_bus] = lambda: setup_event_bus(
+    _, integration_bus = setup_event_bus(
         email_service=fake_email_service,
         token_service=jwt_service_instance,
     )
+
+    app.dependency_overrides[get_integration_event_bus] = lambda: integration_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
 

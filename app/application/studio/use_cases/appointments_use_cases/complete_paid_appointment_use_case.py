@@ -1,7 +1,7 @@
+from app.application.event_bus.transactional_event_bus import TransactionalEventBus
 from app.application.studio.unit_of_work.write_unit_of_work import WriteUnitOfWork
 
 from app.core.exceptions.appointments import AppointmentNotFoundError
-from app.application.event_bus.event_bus import EventBus
 from app.application.studio.use_cases.DTO.audit_logs import AuditLogEntry
 from app.core.types.audit_actor_type import AuditActorType
 from datetime import datetime, timezone
@@ -11,9 +11,9 @@ from app.application.studio.use_cases.DTO.complete_paid_appointment_dto import (
 
 
 class CompletePaidAppointmentUseCase:
-    def __init__(self, uow: WriteUnitOfWork, event_bus: EventBus):
+    def __init__(self, uow: WriteUnitOfWork, transactional_bus: TransactionalEventBus):
         self.uow = uow
-        self.event_bus = event_bus
+        self.transactional_bus = transactional_bus
 
     async def execute(self, data: CompletePaidAppointmentInput) -> None:
         with self.uow:
@@ -59,7 +59,7 @@ class CompletePaidAppointmentUseCase:
             self.uow.audit_logs.create(log)
 
             if event is not None:
-                await self.event_bus.publish(event, context=self.uow)
+                await self.transactional_bus.publish(event, uow=self.uow)
 
             """
             The event triggers a handler responsible for creating client credits

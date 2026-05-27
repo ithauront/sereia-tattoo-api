@@ -10,7 +10,7 @@ from app.core.exceptions.users import UserActivatedBeforeError, UserNotFoundErro
 from app.domain.studio.users.events.activation_email_requested import (
     ActivationEmailRequested,
 )
-from tests.fakes.fake_event_bus import FakeEventBus
+from tests.fakes.fake_event_bus import FakeIntegrationEventBus
 
 
 @pytest.mark.asyncio
@@ -21,7 +21,7 @@ async def test_resend_activation_email_success(
     user = make_user(email="jhon@doe.com")
     write_uow.users.create(user)
 
-    event_bus = FakeEventBus()
+    event_bus = FakeIntegrationEventBus()
 
     use_case = PrepareResendActivationEmailUseCase(write_uow, event_bus)
     input_data = PrepareResendActivationEmailInput(user_email="jhon@doe.com")
@@ -45,7 +45,7 @@ async def test_resend_activation_email_success(
 @pytest.mark.asyncio
 async def test_resend_activation_email_user_not_found(write_uow):
 
-    event_bus = FakeEventBus()
+    event_bus = FakeIntegrationEventBus()
 
     use_case = PrepareResendActivationEmailUseCase(write_uow, event_bus)
     input_data = PrepareResendActivationEmailInput(user_email="jhon@doe.com")
@@ -58,7 +58,7 @@ async def test_resend_activation_email_user_not_found(write_uow):
 async def test_user_already_activated_once(write_uow, make_user):
     user = make_user(email="jhon@doe.com", has_activated_once=True)
     write_uow.users.create(user)
-    event_bus = FakeEventBus()
+    event_bus = FakeIntegrationEventBus()
 
     use_case = PrepareResendActivationEmailUseCase(write_uow, event_bus)
     input_data = PrepareResendActivationEmailInput(user_email="jhon@doe.com")
@@ -71,7 +71,7 @@ async def test_user_already_activated_once(write_uow, make_user):
 async def test_find_by_email_called_before_resend(mocker, make_user, write_uow):
     user = make_user(email="jhon@doe.com", has_activated_once=False)
     write_uow.users.create(user)
-    event_bus = FakeEventBus()
+    event_bus = FakeIntegrationEventBus()
     spy = mocker.spy(write_uow.users, "find_by_email")
 
     use_case = PrepareResendActivationEmailUseCase(write_uow, event_bus)
