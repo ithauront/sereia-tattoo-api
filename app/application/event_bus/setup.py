@@ -36,9 +36,6 @@ from app.application.studio.handlers.add_credits_from_completed_appointment impo
 )
 
 
-# TODO: criar separação de eventos. os eventos transacionais (compartilham uow com a transação como o caso de criar creditos) e eventos de integração (são isolados e podem falhar independentemente como o caso de envio de emails)
-# #TODO: permitir a publicação de multiplos eventos
-# Os todos aqui não são necessariamente desse arquivo, mas sim do fluxo de eventbus
 def setup_event_bus(
     email_service,
     token_service,

@@ -8,3 +8,7 @@ class VipClientIdIsRequiredError(Exception):
 
 class DuplicateExternalReferenceError(Exception):
     pass
+
+
+class PaymentWithoutAppointmentRequireDescriptionError(Exception):
+    pass

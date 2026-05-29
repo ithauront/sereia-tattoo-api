@@ -4,6 +4,7 @@ from uuid import UUID, uuid4
 
 from app.core.exceptions.payment import (
     PaymentMustBeGreaterThanZeroError,
+    PaymentWithoutAppointmentRequireDescriptionError,
     VipClientIdIsRequiredError,
 )
 from app.domain.utils.ensure_enum import ensure_enum
@@ -32,6 +33,9 @@ class Payment:
 
         if payment_method == PaymentMethodType.CLIENT_CREDIT and not vip_client_id:
             raise VipClientIdIsRequiredError()
+
+        if not appointment_id and not (description and description.strip()):
+            raise PaymentWithoutAppointmentRequireDescriptionError()
 
         self.id = id or uuid4()
         self.amount = amount
