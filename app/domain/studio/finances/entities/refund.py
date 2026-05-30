@@ -17,6 +17,7 @@ net_paid = total_payments - total_refunds
 """
 
 
+# TODO talvez fazer letodos aqui para mudança de status, mark as completed, mark as pending etc.
 # TODO: no use_case de criar o refund temos que verificar o total da payment reference id e verificar se ja ha refunds desse payment o total de refunds não pode ter valor maior do que o total payment.
 # TODO: fazer repo e fazer model e implementar repo no sqlalchemy add o repo ao uow depois espelhar nos testes o repo e a adição ao uow e o teste do repo fake
 class Refund:
