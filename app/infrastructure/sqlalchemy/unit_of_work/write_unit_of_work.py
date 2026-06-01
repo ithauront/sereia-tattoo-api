@@ -1,3 +1,6 @@
+from app.infrastructure.sqlalchemy.repositories.refunds_repository_sqlalchemy import (
+    SQLAlchemyRefundsRepository,
+)
 from sqlalchemy.orm import Session
 
 from app.application.studio.unit_of_work.write_unit_of_work import WriteUnitOfWork
@@ -33,6 +36,7 @@ class SqlAlchemyWriteUnitOfWork(WriteUnitOfWork):
         self.payments = SQLAlchemyPaymentsRepository(self.session)
         self.appointments = SQLAlchemyAppointmentsRepository(self.session)
         self.audit_logs = SQLAlchemyAuditLogsRepository(self.session)
+        self.refunds = SQLAlchemyRefundsRepository(self.session)
 
     def __enter__(self):
         return self

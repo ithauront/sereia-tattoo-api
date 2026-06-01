@@ -13,6 +13,7 @@ from app.infrastructure.sqlalchemy.repositories.client_credit_entries_repository
 from app.infrastructure.sqlalchemy.repositories.payments_repository_sqlalchemy import (
     SQLAlchemyPaymentsRepository,
 )
+from app.infrastructure.sqlalchemy.repositories.refunds_repository_sqlalchemy import SQLAlchemyRefundsRepository
 from app.infrastructure.sqlalchemy.repositories.users_repository_sqlalchemy import (
     SQLAlchemyUsersRepository,
 )
@@ -33,6 +34,7 @@ class SqlAlchemyReadUnitOfWork(ReadUnitOfWork):
         self.payments = SQLAlchemyPaymentsRepository(self.session)
         self.appointments = SQLAlchemyAppointmentsRepository(self.session)
         self.audit_logs = SQLAlchemyAuditLogsRepository(self.session)
+        self.refunds = SQLAlchemyRefundsRepository(self.session)
 
     def __enter__(self):
         return self
