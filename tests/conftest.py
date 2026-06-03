@@ -1,28 +1,33 @@
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from uuid import uuid4
+
 import pytest
+
 from app.application.studio.use_cases.DTO.audit_logs import AuditLogEntry
+from app.core.config import settings
 from app.core.security import jwt_service
 from app.core.security.jwt_service import JWTService
 from app.core.security.passwords import hash_password
 from app.core.security.versioned_token_service import VersionedTokenService
-from app.core.types.audit_actor_type import AuditActorType
-from app.domain.studio.appointments.entities.appointment import Appointment
-from app.domain.studio.appointments.entities.value_objects.client_info import ClientInfo
 from app.core.types.appointment_enums import (
     AppointmentStatus,
     AppointmentType,
 )
-from app.domain.studio.finances.entities.client_credit_entry import ClientCreditEntry
-from app.domain.studio.finances.entities.payment import Payment
+from app.core.types.audit_actor_type import AuditActorType
 from app.core.types.client_credit_source_type import (
     ClientCreditSourceType,
 )
 from app.core.types.payment_enums import PaymentMethodType
+from app.core.types.refund_enums import RefundMethodType
+from app.domain.studio.appointments.entities.appointment import Appointment
+from app.domain.studio.appointments.entities.value_objects.client_info import ClientInfo
+from app.domain.studio.finances.entities.client_credit_entry import ClientCreditEntry
+from app.domain.studio.finances.entities.payment import Payment
+from app.domain.studio.finances.entities.refund import Refund
 from app.domain.studio.users.entities.user import User
-from app.domain.studio.value_objects.client_code import ClientCode
 from app.domain.studio.users.entities.vip_client import VipClient
+from app.domain.studio.value_objects.client_code import ClientCode
 from tests.fakes.fake_appointments_repository import FakeAppointmentsRepository
 from tests.fakes.fake_audit_logs_repository import FakeAuditLogsRepository
 from tests.fakes.fake_client_credit_entries_repository import (
@@ -35,10 +40,11 @@ from tests.fakes.fake_event_bus import (
 )
 from tests.fakes.fake_payments_repository import FakePaymentsRepository
 from tests.fakes.fake_read_unit_of_work import FakeReadUnitOfWork
+from tests.fakes.fake_refunds_repository import FakeRefundsRepository
 from tests.fakes.fake_users_repository import FakeUsersRepository
-from app.core.config import settings
 from tests.fakes.fake_vip_clients_repository import FakeVipClientsRepository
 from tests.fakes.fake_write_unit_of_work import FakeWriteUnitOfWork
+from app.core.types.refund_enums import RefundStatus
 
 
 @pytest.fixture
@@ -72,6 +78,11 @@ def shared_audit_logs_repo():
 
 
 @pytest.fixture
+def shared_refunds_repo():
+    return FakeRefundsRepository()
+
+
+@pytest.fixture
 def read_uow(
     shared_users_repo,
     shared_vip_clients_repo,
@@ -79,6 +90,7 @@ def read_uow(
     shared_appointments_repo,
     shared_payments_repo,
     shared_audit_logs_repo,
+    shared_refunds_repo,
 ):
     uow = FakeReadUnitOfWork()
     uow.users = shared_users_repo
@@ -87,6 +99,7 @@ def read_uow(
     uow.appointments = shared_appointments_repo
     uow.payments = shared_payments_repo
     uow.audit_logs = shared_audit_logs_repo
+    uow.refunds = shared_refunds_repo
     return uow
 
 
@@ -98,6 +111,7 @@ def write_uow(
     shared_appointments_repo,
     shared_payments_repo,
     shared_audit_logs_repo,
+    shared_refunds_repo,
 ):
     uow = FakeWriteUnitOfWork()
     uow.users = shared_users_repo
@@ -106,6 +120,7 @@ def write_uow(
     uow.appointments = shared_appointments_repo
     uow.payments = shared_payments_repo
     uow.audit_logs = shared_audit_logs_repo
+    uow.refunds = shared_refunds_repo
     return uow
 
 
@@ -264,6 +279,28 @@ def make_payment():
             vip_client_id=kwargs.get("vip_client_id", uuid4()),
             description=kwargs.get("description", "Pagamento da tatuagem"),
             external_reference=kwargs.get("external_reference", f"ref-{uuid4()}"),
+            created_at=kwargs.get("created_at", base_now),
+        )
+
+    return _factory
+
+
+@pytest.fixture
+def make_refund():
+    def _factory(**kwargs):
+        base_now = kwargs.get(
+            "base_now", datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc)
+        )
+        return Refund(
+            id=uuid4(),
+            amount=kwargs.get("amount", Decimal("10")),
+            refund_status=kwargs.get("refund_status", RefundStatus.COMPLETED),
+            refund_method=kwargs.get("refund_method", RefundMethodType.CLIENT_CREDIT),
+            appointment_id=kwargs.get("appointment_id", uuid4()),
+            payment_id=kwargs.get("payment_id", uuid4()),
+            vip_client_id=kwargs.get("vip_client_id", uuid4()),
+            reason=kwargs.get("reason", "Pagamento equivocado com valor superior"),
+            created_by_user_id=kwargs.get("created_by_user_id", uuid4()),
             created_at=kwargs.get("created_at", base_now),
         )
 
