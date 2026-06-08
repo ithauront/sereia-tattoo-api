@@ -2,16 +2,13 @@ from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID
 
-from sqlalchemy import func, literal, select
-
-
 from app.application.studio.repositories.refunds_repository import RefundsRepository
-from sqlalchemy.orm import Session
-
 from app.application.studio.use_cases.DTO.commun import Direction
 from app.core.types.refund_filter_types import RefundFilters
 from app.domain.studio.finances.entities.refund import Refund
 from app.infrastructure.sqlalchemy.models.refund import RefundModel
+from sqlalchemy import func, literal, select
+from sqlalchemy.orm import Session
 
 
 class SQLAlchemyRefundsRepository(RefundsRepository):
@@ -56,17 +53,10 @@ class SQLAlchemyRefundsRepository(RefundsRepository):
 
         conditions = self._build_filters(filters=filters)
         refunds_in_question = select(RefundModel).where(*conditions)
-        refunds_in_question = self._apply_order(
-            refunds_in_question, direction=direction
-        )
-        refunds_in_question = refunds_in_question.limit(defensive_limit).offset(
-            defensive_offset
-        )
+        refunds_in_question = self._apply_order(refunds_in_question, direction=direction)
+        refunds_in_question = refunds_in_question.limit(defensive_limit).offset(defensive_offset)
 
-        return [
-            self._to_entity(orm_refund)
-            for orm_refund in self.session.scalars(refunds_in_question)
-        ]
+        return [self._to_entity(orm_refund) for orm_refund in self.session.scalars(refunds_in_question)]
 
     def count(self, *, filters: RefundFilters) -> int:
         conditions = self._build_filters(filters=filters)
@@ -115,14 +105,10 @@ class SQLAlchemyRefundsRepository(RefundsRepository):
             refund_method=orm_refund.refund_method,
             refund_status=orm_refund.refund_status,
             appointment_id=(
-                UUID(str(orm_refund.appointment_id))
-                if orm_refund.appointment_id is not None
-                else None
+                UUID(str(orm_refund.appointment_id)) if orm_refund.appointment_id is not None else None
             ),
             vip_client_id=(
-                UUID(str(orm_refund.vip_client_id))
-                if orm_refund.vip_client_id is not None
-                else None
+                UUID(str(orm_refund.vip_client_id)) if orm_refund.vip_client_id is not None else None
             ),
             payment_id=UUID(str(orm_refund.payment_id)),
             reason=orm_refund.reason,

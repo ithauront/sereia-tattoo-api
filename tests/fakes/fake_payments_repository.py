@@ -13,9 +13,8 @@ class FakePaymentsRepository(PaymentsRepository):
         self._payments: List[Payment] = []
 
     def create(self, payment: Payment) -> None:
-        if (
-            payment.external_reference is not None
-            and self.exists_by_external_reference(payment.external_reference)
+        if payment.external_reference is not None and self.exists_by_external_reference(
+            payment.external_reference
         ):
             raise DuplicateExternalReferenceError()
         # This simulates the constraint unique=True of the model for payment in sqlAlchemy layer
@@ -30,28 +29,14 @@ class FakePaymentsRepository(PaymentsRepository):
     def find_many_by_vip_client_id(
         self, *, vip_client_id: UUID, limit=100, offset=0, direction=Direction.desc
     ) -> List[Payment]:
-        payments = [
-            payment
-            for payment in self._payments
-            if payment.vip_client_id == vip_client_id
-        ]
+        payments = [payment for payment in self._payments if payment.vip_client_id == vip_client_id]
         return self._order(payments, direction)[offset : offset + limit]
 
     def count_by_vip_client_id(self, vip_client_id: UUID) -> int:
-        return len(
-            [
-                payment
-                for payment in self._payments
-                if payment.vip_client_id == vip_client_id
-            ]
-        )
+        return len([payment for payment in self._payments if payment.vip_client_id == vip_client_id])
 
     def find_many_by_appointment_id(self, appointment_id: UUID) -> List[Payment]:
-        payments = [
-            payment
-            for payment in self._payments
-            if payment.appointment_id == appointment_id
-        ]
+        payments = [payment for payment in self._payments if payment.appointment_id == appointment_id]
 
         return payments
 

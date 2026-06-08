@@ -1,7 +1,9 @@
 from typing import Generator
+
 import pytest
 from sqlalchemy import StaticPool, create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
+
 from app.infrastructure.sqlalchemy.base_class import Base
 from app.infrastructure.sqlalchemy.repositories.appointments_repository_sqlalchemy import (
     SQLAlchemyAppointmentsRepository,
@@ -14,6 +16,9 @@ from app.infrastructure.sqlalchemy.repositories.client_credit_entries_repository
 )
 from app.infrastructure.sqlalchemy.repositories.payments_repository_sqlalchemy import (
     SQLAlchemyPaymentsRepository,
+)
+from app.infrastructure.sqlalchemy.repositories.refunds_repository_sqlalchemy import (
+    SQLAlchemyRefundsRepository,
 )
 from app.infrastructure.sqlalchemy.repositories.users_repository_sqlalchemy import (
     SQLAlchemyUsersRepository,
@@ -81,6 +86,11 @@ def sqlalchemy_vip_clients_repo(db_session: Session) -> SQLAlchemyVipClientsRepo
 @pytest.fixture
 def sqlalchemy_payments_repo(db_session: Session) -> SQLAlchemyPaymentsRepository:
     return SQLAlchemyPaymentsRepository(session=db_session)
+
+
+@pytest.fixture
+def sqlalchemy_refunds_repo(db_session: Session) -> SQLAlchemyRefundsRepository:
+    return SQLAlchemyRefundsRepository(session=db_session)
 
 
 @pytest.fixture

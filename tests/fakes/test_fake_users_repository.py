@@ -67,15 +67,9 @@ def test_update_not_found(repo, make_user):
 
 
 def test_find_many(repo, make_user):
-    user1 = make_user(
-        is_active=True, is_admin=True, username="jhonDoe", email="jhon@doe.com"
-    )
-    user2 = make_user(
-        is_active=True, is_admin=False, username="janeDoe", email="jane@doe.com"
-    )
-    user3 = make_user(
-        is_active=False, is_admin=False, username="jamesDoe", email="james@doe.com"
-    )
+    user1 = make_user(is_active=True, is_admin=True, username="jhonDoe", email="jhon@doe.com")
+    user2 = make_user(is_active=True, is_admin=False, username="janeDoe", email="jane@doe.com")
+    user3 = make_user(is_active=False, is_admin=False, username="jamesDoe", email="james@doe.com")
 
     repo.create(user1)
     repo.create(user2)

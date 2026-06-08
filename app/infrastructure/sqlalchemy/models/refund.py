@@ -1,20 +1,19 @@
+from datetime import datetime
 from decimal import Decimal
-from uuid import uuid4, UUID as pyUUID
-from sqlalchemy import Enum, ForeignKey, Numeric, Text, DateTime
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from uuid import UUID as pyUUID
+from uuid import uuid4
 
 from app.core.types.refund_enums import RefundMethodType, RefundStatus
 from app.infrastructure.sqlalchemy.base_class import Base
-from datetime import datetime
+from sqlalchemy import DateTime, Enum, ForeignKey, Numeric, Text
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column
 
 
 class RefundModel(Base):
     __tablename__ = "refunds"
 
-    id: Mapped[pyUUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid4
-    )
+    id: Mapped[pyUUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     refund_status: Mapped[RefundStatus] = mapped_column(
         Enum(RefundStatus, name="refund_status_enum"), nullable=False

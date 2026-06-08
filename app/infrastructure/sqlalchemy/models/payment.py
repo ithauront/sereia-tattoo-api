@@ -1,20 +1,19 @@
+from datetime import datetime
 from decimal import Decimal
+from uuid import UUID as pyUUID
+from uuid import uuid4
 
 from app.core.types.payment_enums import PaymentMethodType
 from app.infrastructure.sqlalchemy.base_class import Base
-from uuid import uuid4, UUID as pyUUID
+from sqlalchemy import DateTime, Enum, ForeignKey, Numeric, String, Text
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy import Enum, ForeignKey, Numeric, String, DateTime, Text
 from sqlalchemy.orm import Mapped, mapped_column
-from datetime import datetime
 
 
 class PaymentModel(Base):
     __tablename__ = "payments"
 
-    id: Mapped[pyUUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid4
-    )
+    id: Mapped[pyUUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     payment_method: Mapped[PaymentMethodType] = mapped_column(
         Enum(PaymentMethodType, name="payment_method_enum"), nullable=False

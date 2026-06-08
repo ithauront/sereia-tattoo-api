@@ -1,7 +1,7 @@
 from decimal import Decimal
-from sqlalchemy.exc import IntegrityError
 
 import pytest
+from sqlalchemy.exc import IntegrityError
 
 from app.core.types.payment_enums import PaymentMethodType
 from app.infrastructure.sqlalchemy.repositories.appointments_repository_sqlalchemy import (

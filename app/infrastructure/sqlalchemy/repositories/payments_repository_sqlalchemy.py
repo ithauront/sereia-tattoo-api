@@ -2,15 +2,12 @@ from decimal import Decimal
 from typing import List, Optional
 from uuid import UUID
 
-from sqlalchemy import exists, func, literal, select
-
 from app.application.studio.repositories.payments_repository import PaymentsRepository
-
-from sqlalchemy.orm import Session
-
 from app.application.studio.use_cases.DTO.commun import Direction
 from app.domain.studio.finances.entities.payment import Payment
 from app.infrastructure.sqlalchemy.models.payment import PaymentModel
+from sqlalchemy import exists, func, literal, select
+from sqlalchemy.orm import Session
 
 
 class SQLAlchemyPaymentsRepository(PaymentsRepository):
@@ -48,9 +45,7 @@ class SQLAlchemyPaymentsRepository(PaymentsRepository):
         offset: int = 0,
         direction: Direction = Direction.desc,
     ) -> List[Payment]:
-        payments_in_question = select(PaymentModel).where(
-            PaymentModel.vip_client_id == vip_client_id
-        )
+        payments_in_question = select(PaymentModel).where(PaymentModel.vip_client_id == vip_client_id)
         payments_in_question = self._apply_order(payments_in_question, direction)
         payments_in_question = payments_in_question.limit(limit).offset(offset)
 
@@ -59,16 +54,12 @@ class SQLAlchemyPaymentsRepository(PaymentsRepository):
         return [self._to_entity(payment) for payment in orm_payments]
 
     def count_by_vip_client_id(self, vip_client_id: UUID) -> int:
-        total = select(func.count(PaymentModel.id)).where(
-            PaymentModel.vip_client_id == vip_client_id
-        )
+        total = select(func.count(PaymentModel.id)).where(PaymentModel.vip_client_id == vip_client_id)
 
         return self.session.scalar(total) or 0
 
     def find_many_by_appointment_id(self, appointment_id: UUID) -> List[Payment]:
-        payments_in_question = select(PaymentModel).where(
-            PaymentModel.appointment_id == appointment_id
-        )
+        payments_in_question = select(PaymentModel).where(PaymentModel.appointment_id == appointment_id)
 
         orm_payment = self.session.scalars(payments_in_question).all()
 
@@ -78,7 +69,7 @@ class SQLAlchemyPaymentsRepository(PaymentsRepository):
         sum_of_payments = select(
             func.coalesce(func.sum(PaymentModel.amount), literal(Decimal("0")))
         ).where(PaymentModel.vip_client_id == vip_client_id)
-        result = Decimal(self.session.scalar(sum_of_payments))
+        result = self.session.scalar(sum_of_payments) or Decimal("0")
         return result
 
     def sum_by_appointment_id(self, appointment_id: UUID) -> Decimal:
@@ -86,7 +77,7 @@ class SQLAlchemyPaymentsRepository(PaymentsRepository):
             func.coalesce(func.sum(PaymentModel.amount), literal(Decimal("0")))
         ).where(PaymentModel.appointment_id == appointment_id)
 
-        result = Decimal(self.session.scalar(sum_of_payments))
+        result = self.session.scalar(sum_of_payments) or Decimal("0")
         return result
 
     def find_by_external_reference(self, external_reference: str) -> Optional[Payment]:
@@ -101,9 +92,7 @@ class SQLAlchemyPaymentsRepository(PaymentsRepository):
         return self._to_entity(orm_payment)
 
     def exists_by_external_reference(self, external_reference: str) -> bool:
-        payment = select(
-            exists().where(PaymentModel.external_reference == external_reference)
-        )
+        payment = select(exists().where(PaymentModel.external_reference == external_reference))
 
         return self.session.scalar(payment) or False
 
@@ -114,14 +103,10 @@ class SQLAlchemyPaymentsRepository(PaymentsRepository):
             amount=orm_payment.amount,
             payment_method=orm_payment.payment_method,
             vip_client_id=(
-                UUID(str(orm_payment.vip_client_id))
-                if orm_payment.vip_client_id is not None
-                else None
+                UUID(str(orm_payment.vip_client_id)) if orm_payment.vip_client_id is not None else None
             ),
             appointment_id=(
-                UUID(str(orm_payment.appointment_id))
-                if orm_payment.appointment_id is not None
-                else None
+                UUID(str(orm_payment.appointment_id)) if orm_payment.appointment_id is not None else None
             ),
             external_reference=orm_payment.external_reference,
             description=orm_payment.description,

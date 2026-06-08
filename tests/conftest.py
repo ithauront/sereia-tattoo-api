@@ -19,7 +19,7 @@ from app.core.types.client_credit_source_type import (
     ClientCreditSourceType,
 )
 from app.core.types.payment_enums import PaymentMethodType
-from app.core.types.refund_enums import RefundMethodType
+from app.core.types.refund_enums import RefundMethodType, RefundStatus
 from app.domain.studio.appointments.entities.appointment import Appointment
 from app.domain.studio.appointments.entities.value_objects.client_info import ClientInfo
 from app.domain.studio.finances.entities.client_credit_entry import ClientCreditEntry
@@ -44,7 +44,6 @@ from tests.fakes.fake_refunds_repository import FakeRefundsRepository
 from tests.fakes.fake_users_repository import FakeUsersRepository
 from tests.fakes.fake_vip_clients_repository import FakeVipClientsRepository
 from tests.fakes.fake_write_unit_of_work import FakeWriteUnitOfWork
-from app.core.types.refund_enums import RefundStatus
 
 
 @pytest.fixture
@@ -169,16 +168,12 @@ def jwt_service_instance():
 
 @pytest.fixture
 def access_token_service(jwt_service_instance):
-    return VersionedTokenService(
-        jwt_service_instance, token_type="access", ttl_minutes=60
-    )
+    return VersionedTokenService(jwt_service_instance, token_type="access", ttl_minutes=60)
 
 
 @pytest.fixture
 def refresh_token_service(jwt_service_instance):
-    return VersionedTokenService(
-        jwt_service_instance, token_type="refresh", ttl_minutes=60
-    )
+    return VersionedTokenService(jwt_service_instance, token_type="refresh", ttl_minutes=60)
 
 
 @pytest.fixture
@@ -268,9 +263,7 @@ def fake_integration_event_bus():
 @pytest.fixture
 def make_payment():
     def _factory(**kwargs):
-        base_now = kwargs.get(
-            "base_now", datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc)
-        )
+        base_now = kwargs.get("base_now", datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc))
         return Payment(
             id=uuid4(),
             amount=kwargs.get("amount", Decimal("10")),
@@ -288,9 +281,7 @@ def make_payment():
 @pytest.fixture
 def make_refund():
     def _factory(**kwargs):
-        base_now = kwargs.get(
-            "base_now", datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc)
-        )
+        base_now = kwargs.get("base_now", datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc))
         return Refund(
             id=uuid4(),
             amount=kwargs.get("amount", Decimal("10")),
@@ -310,17 +301,13 @@ def make_refund():
 @pytest.fixture
 def make_appointment_base():
     def _factory(**kwargs):
-        base_now = kwargs.get(
-            "base_now", datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc)
-        )
+        base_now = kwargs.get("base_now", datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc))
 
         start_at = kwargs.get(
             "start_at", base_now + timedelta(days=7, hours=3)
         )  # 13h of january 1st 2026
 
-        end_at = kwargs.get(
-            "end_at", base_now + timedelta(days=7, hours=6)
-        )  # 16h of january 1st 2026
+        end_at = kwargs.get("end_at", base_now + timedelta(days=7, hours=6))  # 16h of january 1st 2026
 
         return Appointment(
             id=kwargs.get("id", uuid4()),
@@ -392,9 +379,7 @@ def make_completed_appointment(make_scheduled_appointment):
 @pytest.fixture
 def make_audit_log():
     def _factory(**kwargs):
-        base_now = kwargs.get(
-            "base_now", datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc)
-        )
+        base_now = kwargs.get("base_now", datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc))
         return AuditLogEntry(
             entity_name=kwargs.get("entity_name", "users"),
             entity_id=kwargs.get("entity_id", uuid4()),

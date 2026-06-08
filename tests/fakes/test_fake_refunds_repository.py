@@ -1,42 +1,39 @@
-import pytest
-
-from app.core.types.refund_enums import RefundStatus
-from app.core.types.refund_filter_types import RefundFilters
-from app.domain.studio.finances.entities.refund import Refund
-
-from tests.fakes.fake_payments_repository import FakePaymentsRepository
-from tests.fakes.fake_refunds_repository import FakeRefundsRepository
-from tests.fakes.test_fake_appointment_repository import FakeAppointmentsRepository
-from tests.fakes.fake_users_repository import FakeUsersRepository
-
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
-from app.core.types.refund_enums import RefundMethodType
+import pytest
+
 from app.application.studio.use_cases.DTO.commun import Direction
+from app.core.types.refund_enums import RefundMethodType, RefundStatus
+from app.core.types.refund_filter_types import RefundFilters
+from app.domain.studio.finances.entities.refund import Refund
+from tests.fakes.fake_payments_repository import FakePaymentsRepository
+from tests.fakes.fake_refunds_repository import FakeRefundsRepository
+from tests.fakes.fake_users_repository import FakeUsersRepository
+from tests.fakes.test_fake_appointment_repository import FakeAppointmentsRepository
+
 
 @pytest.fixture
 def payments_repo():
     return FakePaymentsRepository()
 
+
 @pytest.fixture
 def refunds_repo():
     return FakeRefundsRepository()
+
 
 @pytest.fixture
 def appointments_repo():
     return FakeAppointmentsRepository()
 
+
 @pytest.fixture
 def users_repo():
     return FakeUsersRepository()
 
-def test_create_and_find_by_id(
-    make_refund,
-    make_payment,
-    payments_repo,
-    refunds_repo
-):
+
+def test_create_and_find_by_id(make_refund, make_payment, payments_repo, refunds_repo):
     payment = make_payment()
     payments_repo.create(payment)
 
@@ -51,12 +48,7 @@ def test_create_and_find_by_id(
     assert found.reason == "Pagamento equivocado com valor superior"
 
 
-def test_find_many(
-    make_payment,
-    make_refund,
-    payments_repo,
-    refunds_repo
-):
+def test_find_many(make_payment, make_refund, payments_repo, refunds_repo):
     payment = make_payment()
     payments_repo.create(payment)
 
@@ -68,11 +60,9 @@ def test_find_many(
             payment_id=payment.id,
             reason=f"reason {i}",
             refund_status=RefundStatus.PENDING,
-            created_at=created_at
+            created_at=created_at,
         )
         refunds_repo.create(refund)
-
-    
 
     for i in range(5):
         created_at = base_now + timedelta(seconds=i)
@@ -80,30 +70,27 @@ def test_find_many(
             payment_id=payment.id,
             reason=f"reason {i}",
             refund_status=RefundStatus.COMPLETED,
-            created_at=created_at
-
+            created_at=created_at,
         )
         refunds_repo.create(refund)
 
     filters = RefundFilters(
-    payment_id=payment.id,
-    refund_status=RefundStatus.PENDING,
-)
+        payment_id=payment.id,
+        refund_status=RefundStatus.PENDING,
+    )
 
     founds = refunds_repo.find_many(filters=filters)
 
     assert [r.reason for r in founds] == [
-    "reason 4",
-    "reason 3",
-    "reason 2",
-    "reason 1",
-    "reason 0",
-]
+        "reason 4",
+        "reason 3",
+        "reason 2",
+        "reason 1",
+        "reason 0",
+    ]
 
-def test_count(make_payment,
-    make_refund,
-    payments_repo,
-    refunds_repo):
+
+def test_count(make_payment, make_refund, payments_repo, refunds_repo):
 
     payment = make_payment()
     payments_repo.create(payment)
@@ -116,11 +103,9 @@ def test_count(make_payment,
             payment_id=payment.id,
             reason=f"reason {i}",
             refund_status=RefundStatus.PENDING,
-            created_at=created_at
+            created_at=created_at,
         )
         refunds_repo.create(refund)
-
-    
 
     for i in range(5):
         created_at = base_now + timedelta(seconds=i)
@@ -128,30 +113,27 @@ def test_count(make_payment,
             payment_id=payment.id,
             reason=f"reason {i}",
             refund_status=RefundStatus.COMPLETED,
-            created_at=created_at
-
+            created_at=created_at,
         )
         refunds_repo.create(refund)
 
     filters = RefundFilters(
-    payment_id=payment.id,
-    refund_status=RefundStatus.PENDING,
-)
+        payment_id=payment.id,
+        refund_status=RefundStatus.PENDING,
+    )
 
     total = refunds_repo.count(filters=filters)
 
     assert total == 5
 
-def test_sum(make_payment,
-    make_refund,
-    payments_repo,
-    refunds_repo):
+
+def test_sum(make_payment, make_refund, payments_repo, refunds_repo):
 
     payment = make_payment()
     payments_repo.create(payment)
 
     for i in range(5):
-        amount = 1 + Decimal(f'{i}')
+        amount = 1 + Decimal(f"{i}")
         refund = make_refund(
             payment_id=payment.id,
             amount=amount,
@@ -159,31 +141,26 @@ def test_sum(make_payment,
         )
         refunds_repo.create(refund)
 
-    
-
     for i in range(5):
-        amount = 1 + Decimal(f'{i}')
+        amount = 1 + Decimal(f"{i}")
         refund = make_refund(
             payment_id=payment.id,
             amount=amount,
             refund_status=RefundStatus.COMPLETED,
-
         )
         refunds_repo.create(refund)
 
     filters = RefundFilters(
-    payment_id=payment.id,
-    refund_status=RefundStatus.PENDING,
+        payment_id=payment.id,
+        refund_status=RefundStatus.PENDING,
     )
 
     total_sum = refunds_repo.sum_amount(filters=filters)
 
     assert total_sum == Decimal("15")
 
-def test_filter_by_payment(make_payment,
-    make_refund,
-    payments_repo,
-    refunds_repo):
+
+def test_filter_by_payment(make_payment, make_refund, payments_repo, refunds_repo):
 
     payment_1 = make_payment()
     payments_repo.create(payment_1)
@@ -199,11 +176,9 @@ def test_filter_by_payment(make_payment,
             payment_id=payment_1.id,
             reason=f"reason {i}",
             refund_status=RefundStatus.PENDING,
-            created_at=created_at
+            created_at=created_at,
         )
         refunds_repo.create(refund)
-
-    
 
     for i in range(5):
         created_at = base_now + timedelta(seconds=i)
@@ -211,8 +186,7 @@ def test_filter_by_payment(make_payment,
             payment_id=payment_2.id,
             reason=f"reason {i}",
             refund_status=RefundStatus.PENDING,
-            created_at=created_at
-
+            created_at=created_at,
         )
         refunds_repo.create(refund)
 
@@ -223,10 +197,8 @@ def test_filter_by_payment(make_payment,
     assert len(founds) == 3
     assert refunds_repo.count(filters=filters) == 3
 
-    assert all(
-        refund.payment_id == payment_1.id
-        for refund in founds
-    )
+    assert all(refund.payment_id == payment_1.id for refund in founds)
+
 
 def test_filter_by_appointment(
     make_payment,
@@ -234,7 +206,7 @@ def test_filter_by_appointment(
     make_quoted_appointment,
     payments_repo,
     refunds_repo,
-    appointments_repo
+    appointments_repo,
 ):
     payment = make_payment()
     payments_repo.create(payment)
@@ -269,19 +241,11 @@ def test_filter_by_appointment(
     assert len(founds) == 3
     assert refunds_repo.count(filters=filters) == 3
 
-    assert all(
-        refund.appointment_id == appointment_1.id
-        for refund in founds
-    )
+    assert all(refund.appointment_id == appointment_1.id for refund in founds)
 
 
 def test_filter_by_creator(
-    make_payment,
-    make_refund,
-    make_user,
-    payments_repo,
-    refunds_repo,
-    users_repo
+    make_payment, make_refund, make_user, payments_repo, refunds_repo, users_repo
 ):
     payment = make_payment()
     payments_repo.create(payment)
@@ -316,10 +280,8 @@ def test_filter_by_creator(
     assert len(founds) == 2
     assert refunds_repo.count(filters=filters) == 2
 
-    assert all(
-        refund.created_by_user_id == creator_1.id
-        for refund in founds
-    )
+    assert all(refund.created_by_user_id == creator_1.id for refund in founds)
+
 
 def test_filter_by_refund_method(
     make_payment,
@@ -346,27 +308,18 @@ def test_filter_by_refund_method(
             )
         )
 
-    filters = RefundFilters.by_refund_method(
-        RefundMethodType.PIX
-    )
+    filters = RefundFilters.by_refund_method(RefundMethodType.PIX)
 
     founds = refunds_repo.find_many(filters=filters)
 
     assert len(founds) == 3
     assert refunds_repo.count(filters=filters) == 3
 
-    assert all(
-        refund.refund_method == RefundMethodType.PIX
-        for refund in founds
-    )
+    assert all(refund.refund_method == RefundMethodType.PIX for refund in founds)
+
 
 def test_zero_filter(
-    make_payment,
-    make_refund,
-    make_user,
-    payments_repo,
-    refunds_repo,
-    users_repo
+    make_payment, make_refund, make_user, payments_repo, refunds_repo, users_repo
 ):
     payment = make_payment()
     payments_repo.create(payment)
@@ -398,8 +351,8 @@ def test_zero_filter(
 
     founds = refunds_repo.find_many(filters=filters)
 
-    assert len(founds) == 6 # without filters find all entries
-  
+    assert len(founds) == 6  # without filters find all entries
+
 
 def test_find_many_order_asc(
     make_payment,
@@ -410,10 +363,7 @@ def test_find_many_order_asc(
     payment = make_payment()
     payments_repo.create(payment)
 
-    base_now = datetime(
-        2026, 1, 1, 10, 0,
-        tzinfo=timezone.utc
-    )
+    base_now = datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc)
 
     for i in range(5):
         refunds_repo.create(
@@ -437,6 +387,7 @@ def test_find_many_order_asc(
         "reason 4",
     ]
 
+
 def test_find_many_pagination(
     make_payment,
     make_refund,
@@ -446,10 +397,7 @@ def test_find_many_pagination(
     payment = make_payment()
     payments_repo.create(payment)
 
-    base_now = datetime(
-        2026, 1, 1, 10, 0,
-        tzinfo=timezone.utc
-    )
+    base_now = datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc)
 
     for i in range(5):
         refunds_repo.create(
@@ -472,6 +420,7 @@ def test_find_many_pagination(
         "reason 2",
     ]
 
+
 def test_filter_by_date_range(
     make_payment,
     make_refund,
@@ -481,10 +430,7 @@ def test_filter_by_date_range(
     payment = make_payment()
     payments_repo.create(payment)
 
-    base_now = datetime(
-        2026, 1, 1, 10, 0,
-        tzinfo=timezone.utc
-    )
+    base_now = datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc)
 
     for i in range(5):
         refunds_repo.create(
@@ -504,10 +450,7 @@ def test_filter_by_date_range(
 
     assert len(founds) == 3
 
-    assert {
-        refund.reason
-        for refund in founds
-    } == {
+    assert {refund.reason for refund in founds} == {
         "reason 1",
         "reason 2",
         "reason 3",

@@ -5,10 +5,10 @@ from app.application.studio.repositories.client_credit_entries_repository import
     ClientCreditEntriesRepository,
 )
 from app.application.studio.use_cases.DTO.commun import Direction
-from app.domain.studio.finances.entities.client_credit_entry import ClientCreditEntry
 from app.core.types.client_credit_source_type import (
     ClientCreditSourceType,
 )
+from app.domain.studio.finances.entities.client_credit_entry import ClientCreditEntry
 
 
 class FakeClientCreditEntriesRepository(ClientCreditEntriesRepository):
@@ -39,16 +39,12 @@ class FakeClientCreditEntriesRepository(ClientCreditEntriesRepository):
         offset: int = 0,
         direction: Direction = Direction.desc,
     ) -> list[ClientCreditEntry]:
-        entries = [
-            entry for entry in self._entries if entry.vip_client_id == vip_client_id
-        ]
+        entries = [entry for entry in self._entries if entry.vip_client_id == vip_client_id]
 
         return self._order(entries, direction)[offset : offset + limit]
 
     def count_by_vip_client_id(self, *, vip_client_id: UUID):
-        return len(
-            [entry for entry in self._entries if entry.vip_client_id == vip_client_id]
-        )
+        return len([entry for entry in self._entries if entry.vip_client_id == vip_client_id])
 
     def find_many_by_source_id(
         self,
@@ -89,8 +85,7 @@ class FakeClientCreditEntriesRepository(ClientCreditEntriesRepository):
             [
                 entry
                 for entry in self._entries
-                if entry.source_type == source_type
-                and entry.vip_client_id == vip_client_id
+                if entry.source_type == source_type and entry.vip_client_id == vip_client_id
             ]
         )
 
