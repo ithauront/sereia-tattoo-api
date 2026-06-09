@@ -1,4 +1,7 @@
-class FakeTransactionalEventBus:
+from app.application.event_bus.transactional_event_bus import TransactionalEventBus
+
+
+class FakeTransactionalEventBus(TransactionalEventBus):
     def __init__(self):
         self.events = []
 

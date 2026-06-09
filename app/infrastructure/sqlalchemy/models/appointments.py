@@ -1,8 +1,13 @@
 from datetime import datetime
 from decimal import Decimal
-from uuid import uuid4, UUID as pyUUID
+from uuid import UUID as pyUUID
+from uuid import uuid4
 
-from sqlalchemy.dialects.postgresql import UUID
+from app.core.types.appointment_enums import (
+    AppointmentStatus,
+    AppointmentType,
+)
+from app.infrastructure.sqlalchemy.base_class import Base
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
@@ -14,13 +19,8 @@ from sqlalchemy import (
     Text,
     text,
 )
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
-
-from app.core.types.appointment_enums import (
-    AppointmentStatus,
-    AppointmentType,
-)
-from app.infrastructure.sqlalchemy.base_class import Base
 
 
 class AppointmentModel(Base):
@@ -40,9 +40,7 @@ class AppointmentModel(Base):
         ),
     )
 
-    id: Mapped[pyUUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid4
-    )
+    id: Mapped[pyUUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     status: Mapped[AppointmentStatus] = mapped_column(
         Enum(AppointmentStatus, name="appointment_status_enum"),
         nullable=False,
@@ -81,23 +79,15 @@ class AppointmentModel(Base):
         DateTime(timezone=True), nullable=True, index=True
     )
 
-    vip_client_id: Mapped[pyUUID | None] = mapped_column(
-        UUID(as_uuid=True), nullable=True, index=True
-    )
+    vip_client_id: Mapped[pyUUID | None] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)
     client_name: Mapped[str | None] = mapped_column(
         String(255),
         nullable=True,
     )
-    client_email: Mapped[str | None] = mapped_column(
-        String(255), nullable=True, index=True
-    )
-    client_phone: Mapped[str | None] = mapped_column(
-        String(50), nullable=True, index=True
-    )
+    client_email: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+    client_phone: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
 
-    referral_code: Mapped[str | None] = mapped_column(
-        String(50), nullable=True, index=True
-    )
+    referral_code: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
     is_posted_on_socials: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=text("false"), index=True
     )
@@ -105,9 +95,7 @@ class AppointmentModel(Base):
         Text,
         nullable=True,
     )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

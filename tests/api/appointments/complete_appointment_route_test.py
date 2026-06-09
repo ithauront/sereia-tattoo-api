@@ -6,7 +6,6 @@ from app.api.dependencies.events import get_transactional_event_bus
 from app.api.dependencies.read_unit_of_work import get_read_unit_of_work
 from app.api.dependencies.write_unit_of_work import get_write_unit_of_work
 from app.core.types.appointment_enums import AppointmentStatus
-
 from app.main import app
 
 client = TestClient(app)
@@ -41,9 +40,7 @@ def test_complete_appointment_route_success(
     )
     assert response.status_code == 204
 
-    appointment_in_repo = read_uow.appointments.find_by_id(
-        appointment_id=appointment.id
-    )
+    appointment_in_repo = read_uow.appointments.find_by_id(appointment_id=appointment.id)
     assert appointment_in_repo.status == AppointmentStatus.COMPLETED
 
     logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="appointments")
@@ -86,10 +83,7 @@ def test_complete_appointment_route_double_call(
         headers={"Authorization": f"Bearer {token}"},
     )
     assert second_call.status_code == 409
-    assert (
-        second_call.json()["detail"]
-        == "only_appointments_in_scheduled_status_can_be_completed"
-    )
+    assert second_call.json()["detail"] == "only_appointments_in_scheduled_status_can_be_completed"
 
     app.dependency_overrides = {}
 
@@ -123,10 +117,7 @@ def test_complete_appointment_not_scheduled(
     )
 
     assert response.status_code == 409
-    assert (
-        response.json()["detail"]
-        == "only_appointments_in_scheduled_status_can_be_completed"
-    )
+    assert response.json()["detail"] == "only_appointments_in_scheduled_status_can_be_completed"
 
     app.dependency_overrides = {}
 
@@ -194,8 +185,7 @@ def test_complete_appointment_not_fully_paid(
     )
     assert response.status_code == 409
     assert (
-        response.json()["detail"]
-        == "appointment_was_not_fully_paid_check_payments_and_possible_refunds"
+        response.json()["detail"] == "appointment_was_not_fully_paid_check_payments_and_possible_refunds"
     )
 
     app.dependency_overrides = {}
@@ -231,9 +221,7 @@ def test_complete_appointment_not_admin(
     assert response.status_code == 204
     # evry user -admin or not) can complete an appointment user != client
 
-    appointment_in_repo = read_uow.appointments.find_by_id(
-        appointment_id=appointment.id
-    )
+    appointment_in_repo = read_uow.appointments.find_by_id(appointment_id=appointment.id)
     assert appointment_in_repo.status == AppointmentStatus.COMPLETED
 
     app.dependency_overrides = {}
@@ -269,9 +257,7 @@ def test_complete_appointment_inactive_admin(
     assert response.status_code == 403
     assert response.json()["detail"] == "inactive_user"
 
-    appointment_in_repo = read_uow.appointments.find_by_id(
-        appointment_id=appointment.id
-    )
+    appointment_in_repo = read_uow.appointments.find_by_id(appointment_id=appointment.id)
     assert appointment_in_repo.status == AppointmentStatus.SCHEDULED
 
     app.dependency_overrides = {}
@@ -307,9 +293,7 @@ def test_complete_appointment_non_existent_user(
     assert response.status_code == 401
     assert response.json()["detail"] == "invalid_credentials"
 
-    appointment_in_repo = read_uow.appointments.find_by_id(
-        appointment_id=appointment.id
-    )
+    appointment_in_repo = read_uow.appointments.find_by_id(appointment_id=appointment.id)
     assert appointment_in_repo.status == AppointmentStatus.SCHEDULED
 
     app.dependency_overrides = {}

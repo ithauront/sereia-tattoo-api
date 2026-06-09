@@ -1,6 +1,8 @@
 from datetime import datetime, timezone
 from decimal import Decimal
+from typing import Optional
 from uuid import UUID, uuid4
+
 from app.core.exceptions.appointments import (
     AppointmentMustBeInCorrectPreviousStatusError,
     AppointmentMustBeScheduledError,
@@ -14,17 +16,16 @@ from app.core.exceptions.appointments import (
     TotalSessionsNumberMustBeDefineError,
     TotalSessionsNumberMustBePositiveError,
 )
-from app.domain.utils.ensure_enum import ensure_enum
 from app.core.types.appointment_enums import (
     AppointmentStatus,
     AppointmentType,
 )
 from app.domain.studio.appointments.entities.value_objects.client_info import ClientInfo
-from app.domain.studio.value_objects.client_code import ClientCode
 from app.domain.studio.appointments.events.appointment_completed import (
     AppointmentCompleted,
 )
-from typing import Optional
+from app.domain.studio.value_objects.client_code import ClientCode
+from app.domain.utils.ensure_enum import ensure_enum
 
 
 class Appointment:
@@ -170,9 +171,7 @@ class Appointment:
             raise AppointmentMustBeScheduledError()
 
         if total_paid < self.price:
-            raise AppointmentWasNotFullyPaidError(
-                "please_check_payments_and_possible_refunds"
-            )
+            raise AppointmentWasNotFullyPaidError("please_check_payments_and_possible_refunds")
 
         self.status = AppointmentStatus.COMPLETED
         self._touch()
@@ -202,33 +201,21 @@ class Appointment:
     def _validate_state(self):
         if self.status == AppointmentStatus.REQUESTED:
             if self.price is not None:
-                raise AppointmentStatusBreakingDomainRules(
-                    "status_requested_does_not_suport_price"
-                )
+                raise AppointmentStatusBreakingDomainRules("status_requested_does_not_suport_price")
             if self.deposit_confirmed_at is not None:
-                raise AppointmentStatusBreakingDomainRules(
-                    "status_requested_does_not_suport_deposit"
-                )
+                raise AppointmentStatusBreakingDomainRules("status_requested_does_not_suport_deposit")
 
         elif self.status == AppointmentStatus.QUOTED:
             if self.price is None:
-                raise AppointmentStatusBreakingDomainRules(
-                    "status_quoted_must_have_price"
-                )
+                raise AppointmentStatusBreakingDomainRules("status_quoted_must_have_price")
             if self.deposit_confirmed_at is not None:
-                raise AppointmentStatusBreakingDomainRules(
-                    "status_quoted_does_not_suport_deposit"
-                )
+                raise AppointmentStatusBreakingDomainRules("status_quoted_does_not_suport_deposit")
 
         elif self.status == AppointmentStatus.SCHEDULED:
             if self.price is None:
-                raise AppointmentStatusBreakingDomainRules(
-                    "status_scheduled_must_have_price"
-                )
+                raise AppointmentStatusBreakingDomainRules("status_scheduled_must_have_price")
             if self.deposit_confirmed_at is None:
-                raise AppointmentStatusBreakingDomainRules(
-                    "status_scheduled_must_have_deposit"
-                )
+                raise AppointmentStatusBreakingDomainRules("status_scheduled_must_have_deposit")
 
         if self.end_at <= self.start_at:
             raise AppointmentMustHaveRealisticTimeAndDateError()

@@ -7,8 +7,8 @@ from app.core.exceptions.payment import (
     PaymentWithoutAppointmentRequireDescriptionError,
     VipClientIdIsRequiredError,
 )
-from app.domain.utils.ensure_enum import ensure_enum
 from app.core.types.payment_enums import PaymentMethodType
+from app.domain.utils.ensure_enum import ensure_enum
 
 
 class Payment:

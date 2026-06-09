@@ -1,4 +1,4 @@
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -13,9 +13,7 @@ from app.core.exceptions.validation import ValidationError
 from app.core.types.audit_actor_type import AuditActorType
 
 
-def test_change_vip_client_phone_success(
-    write_uow, read_uow, make_vip_client, make_user
-):
+def test_change_vip_client_phone_success(write_uow, read_uow, make_vip_client, make_user):
     admin = make_user(is_admin=True)
     write_uow.users.create(admin)
 
@@ -34,9 +32,7 @@ def test_change_vip_client_phone_success(
     assert read_uow.vip_clients.find_by_phone("71999999999") is None
 
 
-def test_change_vip_client_phone_create_log(
-    write_uow, read_uow, make_vip_client, make_user
-):
+def test_change_vip_client_phone_create_log(write_uow, read_uow, make_vip_client, make_user):
     admin = make_user(is_admin=True)
     write_uow.users.create(admin)
 
@@ -68,9 +64,7 @@ def test_change_vip_client_phone_create_log(
     assert abs(log.performed_at - datetime.now(timezone.utc)) < timedelta(seconds=2)
 
 
-def test_change_vip_client_phone_to_same_phone_success(
-    write_uow, read_uow, make_vip_client, make_user
-):
+def test_change_vip_client_phone_to_same_phone_success(write_uow, read_uow, make_vip_client, make_user):
     admin = make_user(is_admin=True)
     write_uow.users.create(admin)
 
@@ -91,9 +85,7 @@ def test_change_vip_client_phone_to_same_phone_success(
     assert logs == []
 
 
-def test_change_vip_client_phone_client_not_found(
-    write_uow, make_vip_client, make_user, read_uow
-):
+def test_change_vip_client_phone_client_not_found(write_uow, make_vip_client, make_user, read_uow):
     admin = make_user(is_admin=True)
     write_uow.users.create(admin)
 
@@ -111,9 +103,7 @@ def test_change_vip_client_phone_client_not_found(
     assert logs == []
 
 
-def test_change_vip_client_phone_validation_error(
-    write_uow, read_uow, make_vip_client, make_user
-):
+def test_change_vip_client_phone_validation_error(write_uow, read_uow, make_vip_client, make_user):
     admin = make_user(is_admin=True)
     write_uow.users.create(admin)
 
@@ -135,9 +125,7 @@ def test_change_vip_client_phone_validation_error(
     assert logs == []
 
 
-def test_change_vip_client_phone_already_taken(
-    write_uow, read_uow, make_vip_client, make_user
-):
+def test_change_vip_client_phone_already_taken(write_uow, read_uow, make_vip_client, make_user):
     admin = make_user(is_admin=True)
     write_uow.users.create(admin)
 

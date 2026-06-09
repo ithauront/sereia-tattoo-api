@@ -1,15 +1,16 @@
-from app.application.studio.unit_of_work.write_unit_of_work import WriteUnitOfWork
-from app.domain.studio.appointments.events.appointment_completed import (
-    AppointmentCompleted,
-)
-from app.core.types.payment_enums import PaymentMethodType
+from datetime import datetime, timezone
 from decimal import Decimal
-from app.domain.studio.finances.entities.client_credit_entry import ClientCreditEntry
+from math import ceil
+
+from app.application.studio.unit_of_work.write_unit_of_work import WriteUnitOfWork
 from app.application.studio.use_cases.DTO.audit_logs import AuditLogEntry
 from app.core.types.audit_actor_type import AuditActorType
 from app.core.types.client_credit_source_type import ClientCreditSourceType
-from datetime import datetime, timezone
-from math import ceil
+from app.core.types.payment_enums import PaymentMethodType
+from app.domain.studio.appointments.events.appointment_completed import (
+    AppointmentCompleted,
+)
+from app.domain.studio.finances.entities.client_credit_entry import ClientCreditEntry
 
 """
 Silent returns in this handler prevent expected business cases
@@ -23,9 +24,7 @@ of the financial consistency of the system. Hence the UoW in context.
 
 
 class AddCreditsFromCompletedAppointmentHandler:
-    async def handle(
-        self, event: AppointmentCompleted, *, uow: WriteUnitOfWork
-    ) -> None:
+    async def handle(self, event: AppointmentCompleted, *, uow: WriteUnitOfWork) -> None:
 
         vip_client = uow.vip_clients.find_by_client_code(event.referral_code.value)
         if vip_client is None:
@@ -42,17 +41,11 @@ class AddCreditsFromCompletedAppointmentHandler:
             ):
                 return
 
-        total_credits_before = uow.client_credit_entries.get_balance(
-            vip_client_id=vip_client.id
-        )
+        total_credits_before = uow.client_credit_entries.get_balance(vip_client_id=vip_client.id)
 
-        payments = uow.payments.find_many_by_appointment_id(
-            appointment_id=event.appointment_id
-        )
+        payments = uow.payments.find_many_by_appointment_id(appointment_id=event.appointment_id)
         payments_in_money = [
-            payment
-            for payment in payments
-            if payment.payment_method != PaymentMethodType.CLIENT_CREDIT
+            payment for payment in payments if payment.payment_method != PaymentMethodType.CLIENT_CREDIT
         ]
 
         total_in_money = sum(
@@ -79,9 +72,7 @@ class AddCreditsFromCompletedAppointmentHandler:
 
         uow.client_credit_entries.create(client_credit_entry=client_credits)
 
-        total_credits_after = uow.client_credit_entries.get_balance(
-            vip_client_id=vip_client.id
-        )
+        total_credits_after = uow.client_credit_entries.get_balance(vip_client_id=vip_client.id)
 
         log = AuditLogEntry(
             entity_name="client_credit_entry",
