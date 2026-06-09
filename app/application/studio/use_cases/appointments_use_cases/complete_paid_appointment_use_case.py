@@ -1,13 +1,14 @@
+from datetime import datetime, timezone
+
 from app.application.event_bus.transactional_event_bus import TransactionalEventBus
 from app.application.studio.unit_of_work.write_unit_of_work import WriteUnitOfWork
-
-from app.core.exceptions.appointments import AppointmentNotFoundError
 from app.application.studio.use_cases.DTO.audit_logs import AuditLogEntry
-from app.core.types.audit_actor_type import AuditActorType
-from datetime import datetime, timezone
 from app.application.studio.use_cases.DTO.complete_paid_appointment_dto import (
     CompletePaidAppointmentInput,
 )
+from app.core.exceptions.appointments import AppointmentNotFoundError
+from app.core.types.audit_actor_type import AuditActorType
+from app.core.types.refund_filter_types import RefundFilters
 
 
 class CompletePaidAppointmentUseCase:
@@ -17,24 +18,21 @@ class CompletePaidAppointmentUseCase:
 
     async def execute(self, data: CompletePaidAppointmentInput) -> None:
         with self.uow:
-            appointment = self.uow.appointments.find_by_id(
-                appointment_id=data.appointment_id
-            )
+            appointment = self.uow.appointments.find_by_id(appointment_id=data.appointment_id)
 
             if appointment is None:
                 raise AppointmentNotFoundError()
 
             previous_status = appointment.status
 
-            total_paid = self.uow.payments.sum_by_appointment_id(
-                appointment_id=appointment.id
-            )
-            # TODO: fazer refund depois de implementarmos a entity e repo total_refund = self.uow.refunds.sum_by_appointment_id(appointment_id=appointment.id)
-            # TODO: total_net = total_paid - total_refund
-            # TODO: mudar os total paid por total_net quando ja houver refund
-            # TODO: quando houver refunds testar nos testes desse use_case se os regunds são levados em conta
+            total_paid = self.uow.payments.sum_by_appointment_id(appointment_id=appointment.id)
 
-            event = appointment.complete(total_paid=total_paid)
+            refundFilter = RefundFilters.by_appointment(appointment.id)
+            total_refund = self.uow.refunds.sum_amount(filters=refundFilter)
+
+            net_paid_amount = total_paid - total_refund
+
+            event = appointment.complete(total_paid=net_paid_amount)
 
             self.uow.appointments.update(appointment=appointment)
 
@@ -50,7 +48,7 @@ class CompletePaidAppointmentUseCase:
                         "to": appointment.status.value,
                     },
                     "payment": {
-                        "total_paid": total_paid,
+                        "total_paid": net_paid_amount,
                     },
                 },
                 performed_at=datetime.now(timezone.utc),

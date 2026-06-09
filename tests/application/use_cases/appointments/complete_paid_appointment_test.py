@@ -1,24 +1,24 @@
 from decimal import Decimal
-from app.application.studio.use_cases.appointments_use_cases.complete_paid_appointment_use_case import (
-    CompletePaidAppointmentUseCase,
-    CompletePaidAppointmentInput,
-)
 
+import pytest
+from pydantic import ValidationError
+
+from app.application.studio.use_cases.appointments_use_cases.complete_paid_appointment_use_case import (
+    CompletePaidAppointmentInput,
+    CompletePaidAppointmentUseCase,
+)
+from app.core.exceptions.appointments import (
+    AppointmentMustBeScheduledError,
+    AppointmentNotFoundError,
+    AppointmentWasNotFullyPaidError,
+)
 from app.core.types.appointment_enums import (
     AppointmentStatus,
 )
-import pytest
+from app.domain.studio.appointments.entities.value_objects.client_info import ClientInfo
 from app.domain.studio.appointments.events.appointment_completed import (
     AppointmentCompleted,
 )
-from app.domain.studio.appointments.entities.value_objects.client_info import ClientInfo
-from app.core.exceptions.appointments import (
-    AppointmentWasNotFullyPaidError,
-    AppointmentMustBeScheduledError,
-    AppointmentNotFoundError,
-)
-from pydantic import ValidationError
-
 from tests.fakes.fake_event_bus import FakeTransactionalEventBus
 
 
@@ -37,16 +37,12 @@ async def test_complete_paid_appointment_successful(
 
     transactional_bus = FakeTransactionalEventBus()
 
-    use_case = CompletePaidAppointmentUseCase(
-        uow=write_uow, transactional_bus=transactional_bus
-    )
+    use_case = CompletePaidAppointmentUseCase(uow=write_uow, transactional_bus=transactional_bus)
     dto = CompletePaidAppointmentInput(actor_id=user.id, appointment_id=appointment.id)
 
     await use_case.execute(dto)
 
-    appointment_in_repo = read_uow.appointments.find_by_id(
-        appointment_id=appointment.id
-    )
+    appointment_in_repo = read_uow.appointments.find_by_id(appointment_id=appointment.id)
 
     assert appointment_in_repo.status == AppointmentStatus.COMPLETED
 
@@ -56,6 +52,68 @@ async def test_complete_paid_appointment_successful(
     logs = read_uow.audit_logs.find_many_by_entity_id(appointment.id)
 
     assert len(logs) == 1
+
+
+@pytest.mark.asyncio
+async def test_complete_with_refund_successful(
+    make_user, make_scheduled_appointment, make_payment, write_uow, read_uow, make_refund
+):
+    user = make_user()
+    write_uow.users.create(user)
+
+    appointment = make_scheduled_appointment(price=Decimal("700"))
+    write_uow.appointments.create(appointment)
+
+    payment = make_payment(appointment_id=appointment.id, amount=Decimal("800"))
+    write_uow.payments.create(payment)
+
+    refund = make_refund(appointment_id=appointment.id, amount=Decimal("100"), payment_id=payment.id)
+    write_uow.refunds.create(refund)
+
+    transactional_bus = FakeTransactionalEventBus()
+
+    use_case = CompletePaidAppointmentUseCase(uow=write_uow, transactional_bus=transactional_bus)
+    dto = CompletePaidAppointmentInput(actor_id=user.id, appointment_id=appointment.id)
+
+    await use_case.execute(dto)
+
+    appointment_in_repo = read_uow.appointments.find_by_id(appointment_id=appointment.id)
+
+    assert appointment_in_repo.status == AppointmentStatus.COMPLETED
+
+    # Appointment without referral_code should not create event
+    assert len(transactional_bus.events) == 0
+
+    logs = read_uow.audit_logs.find_many_by_entity_id(appointment.id)
+
+    assert len(logs) == 1
+
+
+@pytest.mark.asyncio
+async def test_refund_makes_paid_inferior_to_price_error(
+    make_user, make_scheduled_appointment, make_payment, write_uow, read_uow, make_refund
+):
+    user = make_user()
+    write_uow.users.create(user)
+
+    appointment = make_scheduled_appointment(price=Decimal("700"))
+    write_uow.appointments.create(appointment)
+
+    payment = make_payment(appointment_id=appointment.id, amount=Decimal("700"))
+    write_uow.payments.create(payment)
+
+    refund = make_refund(appointment_id=appointment.id, amount=Decimal("100"), payment_id=payment.id)
+    write_uow.refunds.create(refund)
+
+    transactional_bus = FakeTransactionalEventBus()
+
+    use_case = CompletePaidAppointmentUseCase(uow=write_uow, transactional_bus=transactional_bus)
+    dto = CompletePaidAppointmentInput(actor_id=user.id, appointment_id=appointment.id)
+
+    with pytest.raises(AppointmentWasNotFullyPaidError) as exception:
+        await use_case.execute(dto)
+
+    assert str(exception.value) == "please_check_payments_and_possible_refunds"
 
 
 @pytest.mark.asyncio
@@ -74,16 +132,12 @@ async def test_complete_paid_more(
 
     transactional_bus = FakeTransactionalEventBus()
 
-    use_case = CompletePaidAppointmentUseCase(
-        uow=write_uow, transactional_bus=transactional_bus
-    )
+    use_case = CompletePaidAppointmentUseCase(uow=write_uow, transactional_bus=transactional_bus)
     dto = CompletePaidAppointmentInput(actor_id=user.id, appointment_id=appointment.id)
 
     await use_case.execute(dto)
 
-    appointment_in_repo = read_uow.appointments.find_by_id(
-        appointment_id=appointment.id
-    )
+    appointment_in_repo = read_uow.appointments.find_by_id(appointment_id=appointment.id)
 
     assert appointment_in_repo.status == AppointmentStatus.COMPLETED
 
@@ -103,9 +157,7 @@ async def test_complete_paid_appointment_with_referral_successful(
     vip_client = make_vip_client()
     write_uow.vip_clients.create(vip_client)
 
-    appointment = make_scheduled_appointment(
-        price=Decimal("700"), referral_code=vip_client.client_code
-    )
+    appointment = make_scheduled_appointment(price=Decimal("700"), referral_code=vip_client.client_code)
     write_uow.appointments.create(appointment)
 
     payment = make_payment(appointment_id=appointment.id, amount=Decimal("700"))
@@ -113,16 +165,12 @@ async def test_complete_paid_appointment_with_referral_successful(
 
     transactional_bus = FakeTransactionalEventBus()
 
-    use_case = CompletePaidAppointmentUseCase(
-        uow=write_uow, transactional_bus=transactional_bus
-    )
+    use_case = CompletePaidAppointmentUseCase(uow=write_uow, transactional_bus=transactional_bus)
     dto = CompletePaidAppointmentInput(actor_id=user.id, appointment_id=appointment.id)
 
     await use_case.execute(dto)
 
-    appointment_in_repo = read_uow.appointments.find_by_id(
-        appointment_id=appointment.id
-    )
+    appointment_in_repo = read_uow.appointments.find_by_id(appointment_id=appointment.id)
 
     assert appointment_in_repo.status == AppointmentStatus.COMPLETED
 
@@ -171,16 +219,12 @@ async def test_complete_paid_appointment_with_self_referral_successful(
 
     transactional_bus = FakeTransactionalEventBus()
 
-    use_case = CompletePaidAppointmentUseCase(
-        uow=write_uow, transactional_bus=transactional_bus
-    )
+    use_case = CompletePaidAppointmentUseCase(uow=write_uow, transactional_bus=transactional_bus)
     dto = CompletePaidAppointmentInput(actor_id=user.id, appointment_id=appointment.id)
 
     await use_case.execute(dto)
 
-    appointment_in_repo = read_uow.appointments.find_by_id(
-        appointment_id=appointment.id
-    )
+    appointment_in_repo = read_uow.appointments.find_by_id(appointment_id=appointment.id)
 
     assert appointment_in_repo.status == AppointmentStatus.COMPLETED
 
@@ -215,9 +259,7 @@ async def test_complete_paid_appointment_create_log(
 
     transactional_bus = FakeTransactionalEventBus()
 
-    use_case = CompletePaidAppointmentUseCase(
-        uow=write_uow, transactional_bus=transactional_bus
-    )
+    use_case = CompletePaidAppointmentUseCase(uow=write_uow, transactional_bus=transactional_bus)
     dto = CompletePaidAppointmentInput(actor_id=user.id, appointment_id=appointment.id)
 
     await use_case.execute(dto)
@@ -249,17 +291,13 @@ async def test_appointment_not_fully_paid(
 
     transactional_bus = FakeTransactionalEventBus()
 
-    use_case = CompletePaidAppointmentUseCase(
-        uow=write_uow, transactional_bus=transactional_bus
-    )
+    use_case = CompletePaidAppointmentUseCase(uow=write_uow, transactional_bus=transactional_bus)
     dto = CompletePaidAppointmentInput(actor_id=user.id, appointment_id=appointment.id)
 
     with pytest.raises(AppointmentWasNotFullyPaidError):
         await use_case.execute(dto)
 
-    appointment_in_repo = read_uow.appointments.find_by_id(
-        appointment_id=appointment.id
-    )
+    appointment_in_repo = read_uow.appointments.find_by_id(appointment_id=appointment.id)
 
     assert appointment_in_repo.status == AppointmentStatus.SCHEDULED
 
@@ -286,17 +324,13 @@ async def test_appointment_was_not_in_correct_status(
 
     transactional_bus = FakeTransactionalEventBus()
 
-    use_case = CompletePaidAppointmentUseCase(
-        uow=write_uow, transactional_bus=transactional_bus
-    )
+    use_case = CompletePaidAppointmentUseCase(uow=write_uow, transactional_bus=transactional_bus)
     dto = CompletePaidAppointmentInput(actor_id=user.id, appointment_id=appointment.id)
 
     with pytest.raises(AppointmentMustBeScheduledError):
         await use_case.execute(dto)
 
-    appointment_in_repo = read_uow.appointments.find_by_id(
-        appointment_id=appointment.id
-    )
+    appointment_in_repo = read_uow.appointments.find_by_id(appointment_id=appointment.id)
 
     assert appointment_in_repo.status == AppointmentStatus.QUOTED
 
@@ -322,9 +356,7 @@ async def test_appointment_not_persisted_paid(
 
     transactional_bus = FakeTransactionalEventBus()
 
-    use_case = CompletePaidAppointmentUseCase(
-        uow=write_uow, transactional_bus=transactional_bus
-    )
+    use_case = CompletePaidAppointmentUseCase(uow=write_uow, transactional_bus=transactional_bus)
     dto = CompletePaidAppointmentInput(actor_id=user.id, appointment_id=appointment.id)
 
     with pytest.raises(AppointmentNotFoundError):
@@ -342,6 +374,6 @@ async def test_appointment_not_persisted_paid(
 def test_complete_paid_appointment_input_requires_valid_uuids():
     with pytest.raises(ValidationError):
         CompletePaidAppointmentInput(
-            actor_id="not_a_uuid",
-            appointment_id="not_a_uuid",
+            actor_id="not_a_uuid",  # type: ignore
+            appointment_id="not_a_uuid",  # type: ignore
         )
