@@ -1,12 +1,12 @@
 from abc import ABC, abstractmethod
-from typing import Optional, List
+from typing import List, Optional
 from uuid import UUID
 
 from app.application.studio.use_cases.DTO.list_client_credit_entries import Direction
-from app.domain.studio.finances.entities.client_credit_entry import ClientCreditEntry
 from app.core.types.client_credit_source_type import (
     ClientCreditSourceType,
 )
+from app.domain.studio.finances.entities.client_credit_entry import ClientCreditEntry
 
 
 class ClientCreditEntriesRepository(ABC):
@@ -60,3 +60,9 @@ class ClientCreditEntriesRepository(ABC):
     def count_by_source_type_and_vip_client_id(
         self, *, source_type: ClientCreditSourceType, vip_client_id: UUID
     ) -> int: ...
+
+    @abstractmethod
+    def find_by_related_entry(
+        self,
+        related_entry_id: UUID,
+    ) -> Optional[ClientCreditEntry]: ...

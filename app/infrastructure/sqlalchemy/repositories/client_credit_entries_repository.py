@@ -1,21 +1,19 @@
 from typing import List, Optional
 from uuid import UUID
 
-from sqlalchemy import select, func
-
 from app.application.studio.repositories.client_credit_entries_repository import (
     ClientCreditEntriesRepository,
 )
-from sqlalchemy.orm import Session
-
 from app.application.studio.use_cases.DTO.commun import Direction
-from app.domain.studio.finances.entities.client_credit_entry import ClientCreditEntry
 from app.core.types.client_credit_source_type import (
     ClientCreditSourceType,
 )
+from app.domain.studio.finances.entities.client_credit_entry import ClientCreditEntry
 from app.infrastructure.sqlalchemy.models.client_credit_entry import (
     ClientCreditEntryModel,
 )
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
 
 
 class SQLAlchemyClientCreditEntriesRepository(ClientCreditEntriesRepository):
@@ -37,18 +35,16 @@ class SQLAlchemyClientCreditEntriesRepository(ClientCreditEntriesRepository):
         self.session.flush()
 
     def get_balance(self, *, vip_client_id: UUID) -> int:
-        credits_to_sum = select(
-            func.coalesce(func.sum(ClientCreditEntryModel.quantity), 0)
-        ).where(ClientCreditEntryModel.vip_client_id == vip_client_id)
+        credits_to_sum = select(func.coalesce(func.sum(ClientCreditEntryModel.quantity), 0)).where(
+            ClientCreditEntryModel.vip_client_id == vip_client_id
+        )
 
         balance = self.session.scalar(credits_to_sum)
 
         return balance or 0
 
     def find_by_id(self, credit_id: UUID) -> Optional[ClientCreditEntry]:
-        credit_in_question = select(ClientCreditEntryModel).where(
-            ClientCreditEntryModel.id == credit_id
-        )
+        credit_in_question = select(ClientCreditEntryModel).where(ClientCreditEntryModel.id == credit_id)
         orm_client_credit_entry = self.session.scalar(credit_in_question)
 
         if orm_client_credit_entry is None:
@@ -139,9 +135,21 @@ class SQLAlchemyClientCreditEntriesRepository(ClientCreditEntriesRepository):
 
         return self.session.scalar(total) or 0
 
-    def _to_entity(
-        self, orm_client_credit_entry: ClientCreditEntryModel
-    ) -> ClientCreditEntry:
+    def find_by_related_entry(
+        self,
+        related_entry_id: UUID,
+    ) -> Optional[ClientCreditEntry]:
+        credit_in_question = select(ClientCreditEntryModel).where(
+            ClientCreditEntryModel.related_entry_id == related_entry_id
+        )
+        orm_client_credit_entry = self.session.scalar(credit_in_question)
+
+        if orm_client_credit_entry is None:
+            return None
+
+        return self._to_entity(orm_client_credit_entry)
+
+    def _to_entity(self, orm_client_credit_entry: ClientCreditEntryModel) -> ClientCreditEntry:
 
         return ClientCreditEntry(
             id=UUID(str(orm_client_credit_entry.id)),

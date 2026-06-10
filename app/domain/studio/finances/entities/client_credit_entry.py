@@ -5,10 +5,10 @@ from app.core.exceptions.marketing import (
     CreditMustBePositiveError,
     ZeroCreditQuantityNotAllowedError,
 )
-from app.domain.utils.ensure_enum import ensure_enum
 from app.core.types.client_credit_source_type import (
     ClientCreditSourceType,
 )
+from app.domain.utils.ensure_enum import ensure_enum
 
 """
 Represents a credit ledger entry for a VIP client.
@@ -48,9 +48,7 @@ class ClientCreditEntry:
         now = datetime.now(timezone.utc)
 
         if quantity == 0:
-            raise ZeroCreditQuantityNotAllowedError(
-                "Credit entry quantity cannot be zero"
-            )
+            raise ZeroCreditQuantityNotAllowedError("Credit entry quantity cannot be zero")
 
         self.id = id or uuid4()
         self.vip_client_id = vip_client_id
@@ -177,7 +175,7 @@ class ClientCreditEntry:
             vip_client_id=vip_client_id,
             source_id=admin_id,
             source_type=ClientCreditSourceType.REVERSED_BY_ADMIN,
-            quantity=-abs(quantity),
+            quantity=-abs(quantity),  # - in front of abs to ensure negative value
             reason=reason,
             related_entry_id=original_entry_id,
             created_at=created_at,

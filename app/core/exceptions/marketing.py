@@ -8,3 +8,11 @@ class CreditMustBePositiveError(Exception):
 
 class CreditEntryNotFoundError(Exception):
     pass
+
+
+class CannotReverseNegativeEntryError(Exception):
+    pass
+
+
+class CreditAlreadyReversedError(Exception):
+    pass
