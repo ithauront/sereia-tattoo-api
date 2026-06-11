@@ -9,6 +9,8 @@ from app.api.dependencies.write_unit_of_work import get_write_unit_of_work
 from app.api.schemas.client_credit_entries import (
     AddClientCreditsRequest,
     AddClientCreditsResponse,
+    ReverseClientCreditsRequest,
+    ReverseClientCreditsResponse,
 )
 from app.application.studio.unit_of_work.read_unit_of_work import ReadUnitOfWork
 from app.application.studio.unit_of_work.write_unit_of_work import WriteUnitOfWork
@@ -24,6 +26,7 @@ from app.application.studio.use_cases.DTO.list_client_credit_entries import (
     ListCreditEntriesByClientIdInput,
     ListCreditEntriesOutput,
 )
+from app.application.studio.use_cases.DTO.reverse_client_credits import ReverseClientCreditByAdminInput
 from app.application.studio.use_cases.finances_use_cases.add_client_credit_by_admin import (
     AddClientCreditByAdminUseCase,
 )
@@ -33,7 +36,12 @@ from app.application.studio.use_cases.finances_use_cases.get_credit_entry_detail
 from app.application.studio.use_cases.finances_use_cases.list_credit_entries_by_client_id import (
     ListCreditEntriesByClientIdUseCase,
 )
+from app.application.studio.use_cases.finances_use_cases.reverse_client_credit_by_admin import (
+    ReverseClientCreditByAdminUseCase,
+)
 from app.core.exceptions.marketing import (
+    CannotReverseNegativeEntryError,
+    CreditAlreadyReversedError,
     CreditEntryNotFoundError,
     CreditMustBePositiveError,
 )
@@ -69,13 +77,66 @@ def add_client_credits_by_admin(
             detail="vip_client_not_found",
         )
     except CreditMustBePositiveError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="invalid_credit_quantity"
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="invalid_credit_quantity")
 
     return {
         "vip_client": vip_client_id,
         "quantity_added": data.quantity,
+        "total_credits_before": result.before,
+        "total_credits_after": result.after,
+    }
+
+
+@router.post(
+    "/{client_credit_id}/reverse_credits",
+    status_code=status.HTTP_201_CREATED,
+    response_model=ReverseClientCreditsResponse,
+)
+def reverse_client_credits_by_admin(
+    data: ReverseClientCreditsRequest,
+    client_credit_id: UUID,
+    current_user=Depends(get_current_admin_user),
+    uow: WriteUnitOfWork = Depends(get_write_unit_of_work),
+):
+    use_case = ReverseClientCreditByAdminUseCase(uow)
+    dto = ReverseClientCreditByAdminInput(
+        vip_client_id=data.vip_client_id,
+        actor_id=current_user.id,
+        reason=data.reason,
+        credit_id=client_credit_id,
+    )
+
+    try:
+        result = use_case.execute(dto)
+    except VipClientNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="vip_client_not_found",
+        )
+    except CannotReverseNegativeEntryError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "cannot_reverse_negative_credit",
+                "message": "This credit is negative and cannot be reversed.",
+                "hint": "Create an opposite credit entry and provide a reason and related_entry_id.",
+            },
+        )
+    except CreditAlreadyReversedError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="credit_was_already_reversed_before",
+        )
+    except CreditEntryNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="credit_not_found",
+        )
+
+    return {
+        "vip_client_id": data.vip_client_id,
+        "original_credit_id": client_credit_id,
+        "reversed_credit_id": result.reversed_credit_id,
         "total_credits_before": result.before,
         "total_credits_after": result.after,
     }
