@@ -1,4 +1,5 @@
 from uuid import UUID
+
 from fastapi import (
     APIRouter,
     Depends,
@@ -6,6 +7,7 @@ from fastapi import (
     Query,
     status,
 )
+
 from app.api.dependencies.auth import (
     get_current_active_user,
     get_current_admin_user,
@@ -91,13 +93,9 @@ async def create_user(
         await use_case.execute(dto)
 
     except UserAlreadyExistsError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail="user_already_exists"
-        )
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="user_already_exists")
 
-    return {
-        "message": "User created if you dont recive an email please try resend email option"
-    }
+    return {"message": "User created if you dont recive an email please try resend email option"}
 
 
 @router.post(
@@ -121,9 +119,7 @@ async def resend_email(
         await prepare_use_case.execute(dto)
 
     except UserNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="user_not_found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user_not_found")
     except UserActivatedBeforeError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -174,9 +170,7 @@ def get_user(
     try:
         return use_case.execute(dto)
     except UserNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="user_not_found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user_not_found")
 
 
 @router.patch("/{user_id}/deactivate", status_code=status.HTTP_204_NO_CONTENT)
@@ -191,18 +185,14 @@ def deactivate_user(
     try:
         use_case.execute(dto)
     except UserNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="user_not_found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user_not_found")
     except LastAdminCannotBeDeactivatedError:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="last_admin_cannot_be_deactivated",
         )
     except CannotDeactivateYourselfError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail="cannot_deactivate_yourself"
-        )
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="cannot_deactivate_yourself")
 
 
 @router.patch("/{user_id}/activate", status_code=status.HTTP_204_NO_CONTENT)
@@ -217,9 +207,7 @@ def activate_user(
     try:
         use_case.execute(dto)
     except UserNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="user_not_found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user_not_found")
 
 
 @router.patch("/{user_id}/demote", status_code=status.HTTP_204_NO_CONTENT)
@@ -234,17 +222,11 @@ def demote_user(
     try:
         use_case.execute(dto)
     except UserNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="user_not_found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user_not_found")
     except LastAdminCannotBeDemotedError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail="last_admin_cannot_be_demoted"
-        )
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="last_admin_cannot_be_demoted")
     except CannotDemoteYourselfError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail="cannot_demote_yourself"
-        )
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="cannot_demote_yourself")
 
 
 @router.patch("/{user_id}/promote", status_code=status.HTTP_204_NO_CONTENT)
@@ -259,7 +241,4 @@ def promote_user(
     try:
         use_case.execute(dto)
     except UserNotFoundError:
-
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="user_not_found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user_not_found")

@@ -1,19 +1,17 @@
 from decimal import Decimal
-from fastapi.testclient import TestClient
 
-from app.core.types.appointment_enums import AppointmentStatus
-from app.main import app
+from fastapi.testclient import TestClient
 
 from app.api.dependencies.events import (
     get_transactional_event_bus,
 )
 from app.api.dependencies.read_unit_of_work import get_read_unit_of_work
 from app.api.dependencies.write_unit_of_work import get_write_unit_of_work
-
 from app.application.event_bus.setup import setup_event_bus
-
-from app.core.types.payment_enums import PaymentMethodType
+from app.core.types.appointment_enums import AppointmentStatus
 from app.core.types.client_credit_source_type import ClientCreditSourceType
+from app.core.types.payment_enums import PaymentMethodType
+from app.main import app
 
 client = TestClient(app)
 
@@ -36,9 +34,7 @@ def test_complete_appointment_generates_referral_credits(
     vip_client = make_vip_client()
     write_uow.vip_clients.create(vip_client)
 
-    appointment = make_scheduled_appointment(
-        referral_code=vip_client.client_code, price=Decimal("700")
-    )
+    appointment = make_scheduled_appointment(referral_code=vip_client.client_code, price=Decimal("700"))
     write_uow.appointments.create(appointment)
 
     payment = make_payment(
@@ -69,9 +65,7 @@ def test_complete_appointment_generates_referral_credits(
 
     assert updated_appointment.status == AppointmentStatus.COMPLETED
 
-    entries = write_uow.client_credit_entries.find_many_by_source_id(
-        source_id=appointment.id
-    )
+    entries = write_uow.client_credit_entries.find_many_by_source_id(source_id=appointment.id)
 
     assert len(entries) == 1
 
@@ -103,9 +97,7 @@ def test_complete_appointment_failure_does_not_generate_credits(
     vip_client = make_vip_client()
     write_uow.vip_clients.create(vip_client)
 
-    appointment = make_scheduled_appointment(
-        referral_code=vip_client.client_code, price=Decimal("700")
-    )
+    appointment = make_scheduled_appointment(referral_code=vip_client.client_code, price=Decimal("700"))
     write_uow.appointments.create(appointment)
 
     payment = make_payment(
@@ -135,9 +127,7 @@ def test_complete_appointment_failure_does_not_generate_credits(
 
     assert not_updated_appointment.status == AppointmentStatus.SCHEDULED
 
-    entries = write_uow.client_credit_entries.find_many_by_source_id(
-        source_id=appointment.id
-    )
+    entries = write_uow.client_credit_entries.find_many_by_source_id(source_id=appointment.id)
 
     assert len(entries) == 0
 

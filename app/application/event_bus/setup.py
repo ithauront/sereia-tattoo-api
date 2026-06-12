@@ -1,5 +1,3 @@
-from app.application.event_bus import integration_event_bus, transactional_event_bus
-from app.application.event_bus.event_bus import EventBus
 from app.application.event_bus.integration_event_bus import IntegrationEventBus
 from app.application.event_bus.transactional_event_bus import TransactionalEventBus
 from app.application.notifications.handlers.send_activation_confirmation_email import (
@@ -14,7 +12,13 @@ from app.application.notifications.handlers.send_user_activation_email import (
 from app.application.notifications.handlers.send_vip_client_creation_notification_email import (
     SendVipClientCreationNotificationEmailHandler,
 )
+from app.application.studio.handlers.add_credits_from_completed_appointment import (
+    AddCreditsFromCompletedAppointmentHandler,
+)
 from app.core.security.versioned_token_service import VersionedTokenService
+from app.domain.studio.appointments.events.appointment_completed import (
+    AppointmentCompleted,
+)
 from app.domain.studio.users.events.activation_email_requested import (
     ActivationEmailRequested,
 )
@@ -26,13 +30,6 @@ from app.domain.studio.users.events.password_reset_email_requested import (
 )
 from app.domain.studio.users.events.send_action_made_email_requested import (
     SendActionMadeEmailRequested,
-)
-
-from app.domain.studio.appointments.events.appointment_completed import (
-    AppointmentCompleted,
-)
-from app.application.studio.handlers.add_credits_from_completed_appointment import (
-    AddCreditsFromCompletedAppointmentHandler,
 )
 
 
@@ -54,16 +51,12 @@ def setup_event_bus(
 
     integration_bus.register(
         ActivationEmailRequested,
-        SendUserActivationHandler(
-            email_service=email_service, token_service=activation_token_service
-        ),
+        SendUserActivationHandler(email_service=email_service, token_service=activation_token_service),
     )
 
     integration_bus.register(
         PasswordResetEmailRequested,
-        SendPasswordResetEmailHandler(
-            email_service=email_service, token_service=password_token_service
-        ),
+        SendPasswordResetEmailHandler(email_service=email_service, token_service=password_token_service),
     )
 
     integration_bus.register(
