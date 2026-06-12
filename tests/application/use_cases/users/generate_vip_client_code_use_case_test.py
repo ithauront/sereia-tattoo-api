@@ -1,4 +1,5 @@
 import pytest
+
 from app.application.studio.services.client_code_generator import ClientCodeGenerator
 from app.application.studio.use_cases.users_use_cases.generate_vip_client_code import (
     GenerateVipClientCodeUseCase,

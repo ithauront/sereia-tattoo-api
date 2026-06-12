@@ -1,5 +1,7 @@
-import pytest
 from uuid import uuid4
+
+import pytest
+
 from app.application.studio.use_cases.DTO.get_users_dto import GetUserInput
 from app.application.studio.use_cases.DTO.user_output_dto import UserOutput
 from app.application.studio.use_cases.users_use_cases.get_user import GetUserUseCase

@@ -1,8 +1,9 @@
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
-from pydantic import ValidationError
 import pytest
+from pydantic import ValidationError
+
 from app.application.studio.use_cases.DTO.change_email_dto import ChangeEmailInput
 from app.application.studio.use_cases.users_use_cases.change_email import (
     ChangeEmailUseCase,
@@ -16,9 +17,7 @@ def test_change_email(write_uow, read_uow, make_user):
     write_uow.users.create(user)
 
     use_case = ChangeEmailUseCase(write_uow)
-    input_data = ChangeEmailInput(
-        user_id=user.id, password="123456", new_email="new@email.com"
-    )
+    input_data = ChangeEmailInput(user_id=user.id, password="123456", new_email="new@email.com")
 
     use_case.execute(input_data)
 
@@ -34,9 +33,7 @@ def test_change_email_create_log(write_uow, read_uow, make_user):
     old_email = user.email
 
     use_case = ChangeEmailUseCase(write_uow)
-    input_data = ChangeEmailInput(
-        user_id=user.id, password="123456", new_email="new@email.com"
-    )
+    input_data = ChangeEmailInput(user_id=user.id, password="123456", new_email="new@email.com")
 
     use_case.execute(input_data)
 
@@ -62,9 +59,7 @@ def test_change_to_same_email_should_pass(write_uow, read_uow, make_user):
     write_uow.users.create(user)
 
     use_case = ChangeEmailUseCase(write_uow)
-    input_data = ChangeEmailInput(
-        user_id=user.id, password="123456", new_email="jhon@doe.com"
-    )
+    input_data = ChangeEmailInput(user_id=user.id, password="123456", new_email="jhon@doe.com")
 
     use_case.execute(input_data)
 
@@ -80,9 +75,7 @@ def test_change_email_wrond_password(write_uow, make_user, read_uow):
     write_uow.users.create(user)
 
     use_case = ChangeEmailUseCase(write_uow)
-    input_data = ChangeEmailInput(
-        user_id=user.id, password="wrong_password", new_email="new@email.com"
-    )
+    input_data = ChangeEmailInput(user_id=user.id, password="wrong_password", new_email="new@email.com")
 
     with pytest.raises(AuthenticationFailedError):
         use_case.execute(input_data)
@@ -101,9 +94,7 @@ def test_change_email_already_in_use(write_uow, make_user, read_uow):
     write_uow.users.create(user2)
 
     use_case = ChangeEmailUseCase(write_uow)
-    input_data = ChangeEmailInput(
-        user_id=user2.id, password="123456", new_email="taken@email.com"
-    )
+    input_data = ChangeEmailInput(user_id=user2.id, password="123456", new_email="taken@email.com")
 
     with pytest.raises(EmailAlreadyTakenError):
         use_case.execute(input_data)
@@ -116,6 +107,4 @@ def test_change_email_email_not_valid():
     # dto test
     fake_id = uuid4()
     with pytest.raises(ValidationError):
-        ChangeEmailInput(
-            user_id=fake_id, password="wrong_password", new_email="wrong_email_format"
-        )
+        ChangeEmailInput(user_id=fake_id, password="wrong_password", new_email="wrong_email_format")

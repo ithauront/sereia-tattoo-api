@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
+
 import pytest
+
 from app.application.studio.use_cases.DTO.user_status_dto import ActivateUserInput
 from app.application.studio.use_cases.users_use_cases.activate_user import (
     ActivateUserUseCase,
@@ -55,9 +57,7 @@ def test_activate_user_create_log(write_uow, make_user, read_uow):
     assert abs(log.performed_at - datetime.now(timezone.utc)) < timedelta(seconds=2)
 
 
-def reactivate_inactive_user_that_has_been_activated_once_success(
-    write_uow, make_user, read_uow
-):
+def reactivate_inactive_user_that_has_been_activated_once_success(write_uow, make_user, read_uow):
     admin = make_user(is_admin=True, email="admin@admin.com")
     user = make_user(is_active=False, has_activated_once=True)
 

@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta, timezone
 
-from pydantic import ValidationError
 import pytest
+from pydantic import ValidationError
+
 from app.application.studio.use_cases.DTO.change_email_dto import (
     ChangeVipClientEmailInput,
 )
@@ -12,9 +13,7 @@ from app.core.exceptions.users import EmailAlreadyTakenError, VipClientNotFoundE
 from app.core.types.audit_actor_type import AuditActorType
 
 
-def test_vip_client_change_email_success(
-    write_uow, read_uow, make_vip_client, make_user
-):
+def test_vip_client_change_email_success(write_uow, read_uow, make_vip_client, make_user):
     admin = make_user(is_admin=True)
     vip_client = make_vip_client(email="jhon@doe.com")
     write_uow.vip_clients.create(vip_client)
@@ -61,9 +60,7 @@ def test_verify_log_created_success(write_uow, read_uow, make_vip_client, make_u
     assert abs(log.performed_at - datetime.now(timezone.utc)) < timedelta(seconds=2)
 
 
-def test_vip_client_change_to_same_email_should_pass(
-    write_uow, read_uow, make_vip_client, make_user
-):
+def test_vip_client_change_to_same_email_should_pass(write_uow, read_uow, make_vip_client, make_user):
     admin = make_user(is_admin=True)
     vip_client = make_vip_client(email="jhon@doe.com")
     write_uow.vip_clients.create(vip_client)
@@ -116,9 +113,7 @@ def test_email_is_normalized(write_uow, read_uow, make_vip_client, make_user):
     assert saved.email == "new@email.com"
 
 
-def test_vip_client_not_exists_change_email(
-    write_uow, make_vip_client, make_user, read_uow
-):
+def test_vip_client_not_exists_change_email(write_uow, make_vip_client, make_user, read_uow):
     admin = make_user(is_admin=True)
     vip_client = make_vip_client(email="jhon@doe.com")
     # vip_client not created in repo
@@ -135,9 +130,7 @@ def test_vip_client_not_exists_change_email(
     assert logs == []
 
 
-def test_vip_client_email_already_in_use(
-    write_uow, read_uow, make_vip_client, make_user
-):
+def test_vip_client_email_already_in_use(write_uow, read_uow, make_vip_client, make_user):
     admin = make_user(is_admin=True)
     vip_client_1 = make_vip_client(email="jhon@doe.com")
     vip_client_2 = make_vip_client(email="jane@doe.com")

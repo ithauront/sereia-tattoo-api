@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
-from pydantic import ValidationError
+
 import pytest
+from pydantic import ValidationError
+
 from app.application.studio.use_cases.DTO.create_user_dto import CreateUserInput
 from app.application.studio.use_cases.users_use_cases.create_user import (
     CreateUserUseCase,
@@ -119,9 +121,7 @@ def test_user_email_not_valid(write_uow, read_uow, mocker, make_user):
 
 
 @pytest.mark.asyncio
-async def test_find_by_email_called_before_create(
-    mocker, write_uow, make_user, read_uow
-):
+async def test_find_by_email_called_before_create(mocker, write_uow, make_user, read_uow):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
 
@@ -130,9 +130,7 @@ async def test_find_by_email_called_before_create(
     event_bus = FakeIntegrationEventBus()
 
     use_case = CreateUserUseCase(write_uow, event_bus)
-    await use_case.execute(
-        CreateUserInput(user_email="jhon@doe.com", actor_id=admin.id)
-    )
+    await use_case.execute(CreateUserInput(user_email="jhon@doe.com", actor_id=admin.id))
 
     spy.assert_called_once_with("jhon@doe.com")
 

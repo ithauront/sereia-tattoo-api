@@ -1,9 +1,11 @@
-from pydantic import ValidationError
 import pytest
 from freezegun import freeze_time
+from pydantic import ValidationError
 
+from app.application.studio.use_cases.DTO.commun import Direction
 from app.application.studio.use_cases.DTO.get_users_dto import (
     ListVipClientsInput,
+    VipClientsOrderBy,
 )
 from app.application.studio.use_cases.users_use_cases.list_vip_clients import (
     ListVipClientsUseCase,
@@ -43,7 +45,7 @@ def test_list_vip_clients_descendent_success(read_uow, write_uow, make_vip_clien
     write_uow.vip_clients.create(vip_client3)
     write_uow.vip_clients.create(vip_client4)
     use_case = ListVipClientsUseCase(read_uow)
-    input_data = ListVipClientsInput(direction="desc")
+    input_data = ListVipClientsInput(direction=Direction.desc)
 
     result = use_case.execute(input_data)
 
@@ -65,7 +67,7 @@ def test_list_vip_clients_last_name_success(read_uow, write_uow, make_vip_client
     write_uow.vip_clients.create(vip_client3)
     write_uow.vip_clients.create(vip_client4)
     use_case = ListVipClientsUseCase(read_uow)
-    input_data = ListVipClientsInput(order_by="last_name")
+    input_data = ListVipClientsInput(order_by=VipClientsOrderBy.last_name)
 
     result = use_case.execute(input_data)
 
@@ -94,7 +96,7 @@ def test_list_by_created_at_success(read_uow, write_uow, make_vip_client):
         write_uow.vip_clients.create(vip_client4)
 
     use_case = ListVipClientsUseCase(read_uow)
-    input_data = ListVipClientsInput(order_by="created_at")
+    input_data = ListVipClientsInput(order_by=VipClientsOrderBy.created_at)
 
     result = use_case.execute(input_data)
 

@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 import pytest
+
 from app.application.studio.use_cases.DTO.password_dto import ResetPasswordInput
 from app.application.studio.use_cases.users_use_cases.reset_password import (
     ResetPasswordUseCase,
@@ -16,9 +17,7 @@ from app.core.types.audit_actor_type import AuditActorType
 
 
 def test_reset_password_success(read_uow, write_uow, make_user):
-    user = make_user(
-        password_token_version=0, access_token_version=0, refresh_token_version=0
-    )
+    user = make_user(password_token_version=0, access_token_version=0, refresh_token_version=0)
     write_uow.users.create(user)
     old_hash = user.hashed_password
 
@@ -39,9 +38,7 @@ def test_reset_password_success(read_uow, write_uow, make_user):
 
 
 def test_reset_password_create_log(read_uow, write_uow, make_user):
-    user = make_user(
-        password_token_version=0, access_token_version=0, refresh_token_version=0
-    )
+    user = make_user(password_token_version=0, access_token_version=0, refresh_token_version=0)
     write_uow.users.create(user)
 
     use_case = ResetPasswordUseCase(write_uow)

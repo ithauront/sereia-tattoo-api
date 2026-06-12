@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 import pytest
+
 from app.application.studio.use_cases.DTO.password_dto import ChangePasswordInput
 from app.application.studio.use_cases.users_use_cases.change_password import (
     ChangePasswordUseCase,
@@ -11,9 +12,7 @@ from app.core.types.audit_actor_type import AuditActorType
 
 
 def test_change_password(write_uow, read_uow, make_user):
-    user = make_user(
-        password_token_version=0, access_token_version=0, refresh_token_version=0
-    )
+    user = make_user(password_token_version=0, access_token_version=0, refresh_token_version=0)
     write_uow.users.create(user)
 
     use_case = ChangePasswordUseCase(write_uow)
@@ -37,9 +36,7 @@ def test_change_password(write_uow, read_uow, make_user):
 
 
 def test_change_password_create_log(write_uow, read_uow, make_user):
-    user = make_user(
-        password_token_version=0, access_token_version=0, refresh_token_version=0
-    )
+    user = make_user(password_token_version=0, access_token_version=0, refresh_token_version=0)
     write_uow.users.create(user)
 
     use_case = ChangePasswordUseCase(write_uow)
@@ -62,9 +59,7 @@ def test_change_password_create_log(write_uow, read_uow, make_user):
 
 
 def test_wrong_old_password(write_uow, make_user, read_uow):
-    user = make_user(
-        password_token_version=0, access_token_version=0, refresh_token_version=0
-    )
+    user = make_user(password_token_version=0, access_token_version=0, refresh_token_version=0)
     write_uow.users.create(user)
 
     use_case = ChangePasswordUseCase(write_uow)

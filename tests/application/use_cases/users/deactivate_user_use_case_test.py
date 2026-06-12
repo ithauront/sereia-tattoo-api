@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
+
 import pytest
+
 from app.application.studio.use_cases.DTO.user_status_dto import DeactivateUserInput
 from app.application.studio.use_cases.users_use_cases.deactivate_user import (
     DeactivateUserUseCase,
@@ -92,9 +94,7 @@ def test_last_active_admin_cannot_be_deactivated(write_uow, make_user, read_uow)
     write_uow.users.create(last_active_admin)
 
     use_case = DeactivateUserUseCase(write_uow)
-    input_data = DeactivateUserInput(
-        user_id=last_active_admin.id, actor_id=inactive_admin.id
-    )
+    input_data = DeactivateUserInput(user_id=last_active_admin.id, actor_id=inactive_admin.id)
 
     with pytest.raises(LastAdminCannotBeDeactivatedError):
         use_case.execute(input_data)

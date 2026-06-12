@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 import pytest
+
 from app.application.studio.use_cases.DTO.login_dto import LogoutInput
 from app.application.studio.use_cases.users_use_cases.logout_user import (
     LogoutUserUseCase,
@@ -9,9 +10,7 @@ from app.core.exceptions.users import UserNotFoundError
 
 
 def test_logout_success(write_uow, read_uow, make_user):
-    user = make_user(
-        access_token_version=0, refresh_token_version=0, email="jhon@doe.com"
-    )
+    user = make_user(access_token_version=0, refresh_token_version=0, email="jhon@doe.com")
     write_uow.users.create(user)
 
     old_updated_at = user.updated_at

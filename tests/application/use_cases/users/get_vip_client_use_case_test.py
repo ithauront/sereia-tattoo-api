@@ -5,7 +5,6 @@ from app.application.studio.use_cases.DTO.vip_client_output import (
     VipClientOutput,
     VipClientOutputWithDetails,
 )
-
 from app.application.studio.use_cases.users_use_cases.get_vip_client import (
     GetVipClientUseCase,
 )
@@ -13,9 +12,7 @@ from app.core.exceptions.users import VipClientNotFoundError
 from app.core.types.client_credit_source_type import ClientCreditSourceType
 
 
-def test_get_vip_client_success(
-    read_uow, write_uow, make_vip_client, make_client_credit_entry
-):
+def test_get_vip_client_success(read_uow, write_uow, make_vip_client, make_client_credit_entry):
     vip_client = make_vip_client()
     write_uow.vip_clients.create(vip_client)
 

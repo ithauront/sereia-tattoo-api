@@ -1,6 +1,8 @@
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
+
 import pytest
+
 from app.application.studio.use_cases.DTO.user_status_dto import PromoteUserInput
 from app.application.studio.use_cases.users_use_cases.promote_user_to_admin import (
     PromoteUserToAdminUseCase,

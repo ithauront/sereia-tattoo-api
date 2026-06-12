@@ -1,5 +1,7 @@
 from uuid import uuid4
+
 import pytest
+
 from app.application.studio.use_cases.DTO.login_dto import RefreshInput
 from app.application.studio.use_cases.users_use_cases.refresh_user import (
     RefreshUserUseCase,
@@ -8,9 +10,7 @@ from app.core.exceptions.security import TokenError
 from app.core.exceptions.users import AuthenticationFailedError
 
 
-def test_refresh_user(
-    read_uow, write_uow, make_user, refresh_token_service, access_token_service
-):
+def test_refresh_user(read_uow, write_uow, make_user, refresh_token_service, access_token_service):
     user = make_user(access_token_version=1, refresh_token_version=0)
     write_uow.users.create(user)
 
@@ -65,9 +65,7 @@ def test_refresh_after_logout(
     assert str(exception.value) == "token_revoked"
 
 
-def test_wrong_token(
-    read_uow, write_uow, make_user, refresh_token_service, access_token_service
-):
+def test_wrong_token(read_uow, write_uow, make_user, refresh_token_service, access_token_service):
     user = make_user()
     write_uow.users.create(user)
     use_case = RefreshUserUseCase(read_uow, refresh_token_service, access_token_service)
@@ -79,9 +77,7 @@ def test_wrong_token(
     assert str(exception.value) == "invalid_token"
 
 
-def test_wrong_token_type(
-    read_uow, write_uow, make_user, refresh_token_service, access_token_service
-):
+def test_wrong_token_type(read_uow, write_uow, make_user, refresh_token_service, access_token_service):
     user = make_user()
     write_uow.users.create(user)
 
@@ -95,9 +91,7 @@ def test_wrong_token_type(
     assert str(exception.value) == "invalid_token"
 
 
-def test_expired_token(
-    write_uow, read_uow, make_user, refresh_token_service, access_token_service
-):
+def test_expired_token(write_uow, read_uow, make_user, refresh_token_service, access_token_service):
     user = make_user()
     write_uow.users.create(user)
 

@@ -1,3 +1,4 @@
+from app.application.studio.use_cases.DTO.commun import Direction
 from app.application.studio.use_cases.DTO.list_client_credit_entries import (
     ListCreditEntriesByClientIdInput,
     ListCreditEntriesOutput,
@@ -14,9 +15,7 @@ def test_list_credit_entries_by_client_id_default_success(
     write_uow.vip_clients.create(vip_client)
 
     for i in range(1, 11):
-        client_credit_entry = make_client_credit_entry(
-            vip_client_id=vip_client.id, quantity=i
-        )
+        client_credit_entry = make_client_credit_entry(vip_client_id=vip_client.id, quantity=i)
         write_uow.client_credit_entries.create(client_credit_entry)
 
     use_case = ListCreditEntriesByClientIdUseCase(read_uow)
@@ -40,15 +39,11 @@ def test_list_credit_entries_by_client_id_custom_success(
     write_uow.vip_clients.create(vip_client)
 
     for i in range(1, 31):
-        client_credit_entry = make_client_credit_entry(
-            vip_client_id=vip_client.id, quantity=i
-        )
+        client_credit_entry = make_client_credit_entry(vip_client_id=vip_client.id, quantity=i)
         write_uow.client_credit_entries.create(client_credit_entry)
 
     use_case = ListCreditEntriesByClientIdUseCase(read_uow)
-    input_data = ListCreditEntriesByClientIdInput(
-        vip_client_id=vip_client.id, page=2, limit=5
-    )
+    input_data = ListCreditEntriesByClientIdInput(vip_client_id=vip_client.id, page=2, limit=5)
 
     result = use_case.execute(input_data)
 
@@ -68,9 +63,7 @@ def test_list_result_limit_should_not_exceed_100(
     write_uow.vip_clients.create(vip_client)
 
     for i in range(1, 151):
-        client_credit_entry = make_client_credit_entry(
-            vip_client_id=vip_client.id, quantity=i
-        )
+        client_credit_entry = make_client_credit_entry(vip_client_id=vip_client.id, quantity=i)
         write_uow.client_credit_entries.create(client_credit_entry)
 
     use_case = ListCreditEntriesByClientIdUseCase(read_uow)
@@ -100,16 +93,12 @@ def test_returns_empty_list_when_no_entries(make_vip_client, read_uow, write_uow
     assert result.entries == []
 
 
-def test_page_out_of_range_returns_empty(
-    make_vip_client, make_client_credit_entry, read_uow, write_uow
-):
+def test_page_out_of_range_returns_empty(make_vip_client, make_client_credit_entry, read_uow, write_uow):
     vip_client = make_vip_client()
     write_uow.vip_clients.create(vip_client)
 
     for i in range(1, 11):
-        write_uow.client_credit_entries.create(
-            make_client_credit_entry(vip_client_id=vip_client.id)
-        )
+        write_uow.client_credit_entries.create(make_client_credit_entry(vip_client_id=vip_client.id))
 
     use_case = ListCreditEntriesByClientIdUseCase(read_uow)
 
@@ -140,7 +129,7 @@ def test_direction_desc(make_vip_client, make_client_credit_entry, read_uow, wri
 
     input_data = ListCreditEntriesByClientIdInput(
         vip_client_id=vip_client.id,
-        direction="desc",
+        direction=Direction.desc,
     )
 
     result = use_case.execute(input_data)

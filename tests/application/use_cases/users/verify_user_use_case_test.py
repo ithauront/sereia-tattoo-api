@@ -1,5 +1,7 @@
 from uuid import uuid4
+
 import pytest
+
 from app.application.studio.use_cases.DTO.login_dto import VerifyInput
 from app.application.studio.use_cases.users_use_cases.verify_user import (
     VerifyUserUseCase,
@@ -21,9 +23,7 @@ def test_verify_user(read_uow, write_uow, make_user, access_token_service):
     assert result.type == "access"
 
 
-def test_verify_user_wrong_token_version(
-    read_uow, write_uow, make_user, access_token_service
-):
+def test_verify_user_wrong_token_version(read_uow, write_uow, make_user, access_token_service):
     user = make_user(access_token_version=0)
     write_uow.users.create(user)
 
@@ -63,9 +63,7 @@ def test_invalid_token(read_uow, access_token_service):
     assert str(exception.value) == "invalid_token"
 
 
-def test_wrong_token_type(
-    read_uow, write_uow, make_user, access_token_service, refresh_token_service
-):
+def test_wrong_token_type(read_uow, write_uow, make_user, access_token_service, refresh_token_service):
     user = make_user()
     write_uow.users.create(user)
 

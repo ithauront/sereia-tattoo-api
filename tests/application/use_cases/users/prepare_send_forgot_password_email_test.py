@@ -1,5 +1,7 @@
 from uuid import UUID
+
 import pytest
+
 from app.application.studio.use_cases.DTO.prepare_send_forgot_password_email_dto import (
     PrepareSendForgotPasswordEmailInput,
 )

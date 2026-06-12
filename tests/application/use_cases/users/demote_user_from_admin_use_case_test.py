@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
+
 import pytest
+
 from app.application.studio.use_cases.DTO.user_status_dto import DemoteUserInput
 from app.application.studio.use_cases.users_use_cases.demote_user_from_admin import (
     DemoteUserFromAdminUseCase,
@@ -92,9 +94,7 @@ def test_last_active_admin_cannot_be_demoted(write_uow, make_user, read_uow):
     write_uow.users.create(last_active_admin)
 
     use_case = DemoteUserFromAdminUseCase(write_uow)
-    input_data = DemoteUserInput(
-        user_id=last_active_admin.id, actor_id=inactive_admin.id
-    )
+    input_data = DemoteUserInput(user_id=last_active_admin.id, actor_id=inactive_admin.id)
 
     with pytest.raises(LastAdminCannotBeDemotedError):
         use_case.execute(input_data)

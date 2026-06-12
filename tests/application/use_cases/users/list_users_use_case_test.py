@@ -1,8 +1,9 @@
-from pydantic import ValidationError
 import pytest
 from freezegun import freeze_time
+from pydantic import ValidationError
 
-from app.application.studio.use_cases.DTO.get_users_dto import ListUsersInput
+from app.application.studio.use_cases.DTO.commun import Direction
+from app.application.studio.use_cases.DTO.get_users_dto import ListUsersInput, UsersOrderBy
 from app.application.studio.use_cases.users_use_cases.list_users import ListUsersUseCase
 
 
@@ -39,14 +40,12 @@ def test_list_users_descendent_success(read_uow, write_uow, make_user):
     write_uow.users.create(user3)
     write_uow.users.create(user4)
     use_case = ListUsersUseCase(read_uow)
-    input_data = ListUsersInput(direction="desc")
+    input_data = ListUsersInput(direction=Direction.desc)
 
     result = use_case.execute(input_data)
 
     assert result.users is not None
-    assert (
-        result.users[0].username == "Daniela"
-    )  # sort admins first alphabetical descendent
+    assert result.users[0].username == "Daniela"  # sort admins first alphabetical descendent
     assert result.users[1].username == "Bernard"  # sort admins first
     assert result.users[2].username == "Carla"  # sort alphabetical descendent
     assert result.users[3].username == "Adonis"
@@ -132,7 +131,7 @@ def test_list_by_created_at_success(read_uow, write_uow, make_user):
         write_uow.users.create(user4)
 
     use_case = ListUsersUseCase(read_uow)
-    input_data = ListUsersInput(order_by="created_at")
+    input_data = ListUsersInput(order_by=UsersOrderBy.created_at)
 
     result = use_case.execute(input_data)
 

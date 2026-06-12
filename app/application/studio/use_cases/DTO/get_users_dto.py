@@ -1,9 +1,8 @@
+from enum import Enum
 from typing import List
 from uuid import UUID
+
 from pydantic import BaseModel, Field
-
-
-from enum import Enum
 
 from app.application.studio.use_cases.DTO.commun import Direction
 from app.application.studio.use_cases.DTO.user_output_dto import UserOutput

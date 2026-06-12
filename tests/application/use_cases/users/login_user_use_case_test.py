@@ -1,13 +1,12 @@
 import pytest
+
 from app.application.studio.use_cases.DTO.login_dto import LoginInput
 from app.application.studio.use_cases.users_use_cases.login_user import LoginUserUseCase
 from app.core.exceptions.users import AuthenticationFailedError, UserInactiveError
 from app.core.security import jwt_service
 
 
-def test_login_sucess(
-    read_uow, write_uow, make_user, access_token_service, refresh_token_service
-):
+def test_login_sucess(read_uow, write_uow, make_user, access_token_service, refresh_token_service):
     user = make_user(access_token_version=0, refresh_token_version=0)
     write_uow.users.create(user)
 
@@ -28,9 +27,7 @@ def test_login_sucess(
     assert len(result.refresh_token) > 10
 
 
-def test_user_not_found(
-    read_uow, write_uow, make_user, access_token_service, refresh_token_service
-):
+def test_user_not_found(read_uow, write_uow, make_user, access_token_service, refresh_token_service):
     user = make_user()
     write_uow.users.create(user)
 
@@ -42,9 +39,7 @@ def test_user_not_found(
         use_case.execute(input_data)
 
 
-def test_wrong_password(
-    read_uow, write_uow, make_user, access_token_service, refresh_token_service
-):
+def test_wrong_password(read_uow, write_uow, make_user, access_token_service, refresh_token_service):
     user = make_user()
     write_uow.users.create(user)
 
@@ -55,9 +50,7 @@ def test_wrong_password(
         use_case.execute(input_data)
 
 
-def test_inactive_user(
-    read_uow, write_uow, make_user, access_token_service, refresh_token_service
-):
+def test_inactive_user(read_uow, write_uow, make_user, access_token_service, refresh_token_service):
     user = make_user(is_active=False)
     write_uow.users.create(user)
 

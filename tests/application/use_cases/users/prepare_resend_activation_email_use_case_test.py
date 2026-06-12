@@ -1,5 +1,7 @@
 from uuid import UUID
+
 import pytest
+
 from app.application.studio.use_cases.DTO.prepare_resend_activation_email_dto import (
     PrepareResendActivationEmailInput,
 )
