@@ -89,6 +89,15 @@ class FakeClientCreditEntriesRepository(ClientCreditEntriesRepository):
             ]
         )
 
+    def find_by_related_entry(
+        self,
+        related_entry_id: UUID,
+    ) -> Optional[ClientCreditEntry]:
+        for entry in self._entries:
+            if entry.related_entry_id == related_entry_id:
+                return entry
+        return None
+
     def _order(self, entries, direction: Direction = Direction.desc):
         reverse = direction == Direction.desc
         return sorted(

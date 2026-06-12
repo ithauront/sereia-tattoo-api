@@ -23,9 +23,7 @@ def vip_client_repo():
     return FakeVipClientsRepository()
 
 
-def test_create_and_find_by_id(
-    make_client_credit_entry, entry_repo, make_vip_client, vip_client_repo
-):
+def test_create_and_find_by_id(make_client_credit_entry, entry_repo, make_vip_client, vip_client_repo):
     vip_client = make_vip_client()
     vip_client_repo.create(vip_client)
 
@@ -38,15 +36,49 @@ def test_create_and_find_by_id(
     assert found.quantity == entry.quantity
 
 
+def test_find_by_related_entry(make_client_credit_entry, entry_repo, make_vip_client, vip_client_repo):
+    vip_client = make_vip_client()
+    vip_client_repo.create(vip_client)
+
+    related_entry = make_client_credit_entry(vip_client_id=vip_client.id)
+    entry_repo.create(related_entry)
+
+    entry = make_client_credit_entry(
+        vip_client_id=vip_client.id,
+        source_type=ClientCreditSourceType.REVERSED_BY_ADMIN,
+        related_entry_id=related_entry.id,
+    )
+    entry_repo.create(entry)
+
+    found = entry_repo.find_by_related_entry(related_entry.id)
+
+    assert found is not None
+    assert found.id == entry.id
+    assert found.id != related_entry.id
+
+
+def test_find_by_related_entry_returns_none_when_not_found(
+    make_client_credit_entry, entry_repo, make_vip_client, vip_client_repo
+):
+    vip_client = make_vip_client()
+    vip_client_repo.create(vip_client)
+
+    related_entry_id = uuid4()
+    entry = make_client_credit_entry(vip_client_id=vip_client.id, related_entry_id=related_entry_id)
+    entry_repo.create(entry)
+
+    found = entry_repo.find_by_related_entry(related_entry_id)
+
+    assert found is None
+
+
 def test_find_by_id_returns_none_when_not_found(entry_repo):
     result = entry_repo.find_by_id(uuid4())
 
     assert result is None
 
 
-def test_get_balance(
-    make_client_credit_entry, entry_repo, make_vip_client, vip_client_repo
-):
+def test_get_balance(make_client_credit_entry, entry_repo, make_vip_client, vip_client_repo):
     vip_client = make_vip_client()
     vip_client_repo.create(vip_client)
 
@@ -108,9 +140,7 @@ def test_find_many_by_vip_client_id(
     assert len(entries) == 2
 
 
-def test_count_by_vip_client_id(
-    make_client_credit_entry, entry_repo, make_vip_client, vip_client_repo
-):
+def test_count_by_vip_client_id(make_client_credit_entry, entry_repo, make_vip_client, vip_client_repo):
     vip_client1 = make_vip_client()
     vip_client_repo.create(vip_client1)
 
@@ -126,9 +156,7 @@ def test_count_by_vip_client_id(
     assert count == 2
 
 
-def test_find_many_by_source_id(
-    make_client_credit_entry, entry_repo, make_vip_client, vip_client_repo
-):
+def test_find_many_by_source_id(make_client_credit_entry, entry_repo, make_vip_client, vip_client_repo):
     vip_client1 = make_vip_client()
     vip_client_repo.create(vip_client1)
     vip_client2 = make_vip_client()
@@ -159,9 +187,7 @@ def test_find_many_by_source_id(
     assert len(entries) == 2
 
 
-def test_count_by_source_id(
-    make_client_credit_entry, entry_repo, make_vip_client, vip_client_repo
-):
+def test_count_by_source_id(make_client_credit_entry, entry_repo, make_vip_client, vip_client_repo):
     vip_client1 = make_vip_client()
     vip_client_repo.create(vip_client1)
 
@@ -170,15 +196,9 @@ def test_count_by_source_id(
 
     source_id = uuid4()
 
-    entry_repo.create(
-        make_client_credit_entry(vip_client_id=vip_client1.id, source_id=source_id)
-    )
-    entry_repo.create(
-        make_client_credit_entry(vip_client_id=vip_client1.id, source_id=source_id)
-    )
-    entry_repo.create(
-        make_client_credit_entry(vip_client_id=vip_client2.id, source_id=source_id)
-    )
+    entry_repo.create(make_client_credit_entry(vip_client_id=vip_client1.id, source_id=source_id))
+    entry_repo.create(make_client_credit_entry(vip_client_id=vip_client1.id, source_id=source_id))
+    entry_repo.create(make_client_credit_entry(vip_client_id=vip_client2.id, source_id=source_id))
 
     count = entry_repo.count_by_source_id(source_id=source_id)
 
@@ -327,18 +347,14 @@ def test_entries_are_ordered_by_created_at_asc(
     entry_repo.create(entry_middle)
     entry_repo.create(entry_new)
 
-    entries = entry_repo.find_many_by_vip_client_id(
-        vip_client_id=vip_client.id, direction=Direction.asc
-    )
+    entries = entry_repo.find_many_by_vip_client_id(vip_client_id=vip_client.id, direction=Direction.asc)
 
     assert entries[2].id == entry_new.id
     assert entries[1].id == entry_middle.id
     assert entries[0].id == entry_old.id
 
 
-def test_pagination_works(
-    make_vip_client, make_client_credit_entry, entry_repo, vip_client_repo
-):
+def test_pagination_works(make_vip_client, make_client_credit_entry, entry_repo, vip_client_repo):
     vip_client = make_vip_client()
     vip_client_repo.create(vip_client)
 
@@ -384,9 +400,7 @@ def test_pagination_works(
     assert len(entries) == 2
 
 
-def test_order_tie_break_by_id(
-    make_client_credit_entry, entry_repo, make_vip_client, vip_client_repo
-):
+def test_order_tie_break_by_id(make_client_credit_entry, entry_repo, make_vip_client, vip_client_repo):
     vip_client = make_vip_client()
     vip_client_repo.create(vip_client)
 
