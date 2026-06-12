@@ -4,16 +4,14 @@ from app.api.dependencies.events import get_integration_event_bus
 from app.api.dependencies.read_unit_of_work import get_read_unit_of_work
 from app.api.dependencies.write_unit_of_work import get_write_unit_of_work
 from app.application.event_bus.setup import setup_event_bus
-from tests.fakes.fake_email_service import FakeEmailService
-
 from app.main import app
+from tests.fakes.fake_email_service import FakeEmailService
+from tests.integration.utils.wait_until import wait_until
 
 client = TestClient(app)
 
 
-def test_create_user_triggers_email(
-    write_uow, read_uow, make_user, make_token, jwt_service_instance
-):
+def test_create_user_triggers_email(write_uow, read_uow, make_user, make_token, jwt_service_instance):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
 
@@ -38,7 +36,11 @@ def test_create_user_triggers_email(
         )
 
         assert response.status_code == 201
+
+        wait_until(lambda: fake_email_service.sent)
+
         assert fake_email_service.sent is True
+        assert fake_email_service.last_payload is not None
         assert fake_email_service.last_payload["to"] == "jhon@doe.com"
 
     app.dependency_overrides = {}
@@ -105,7 +107,11 @@ def test_resend_activation_email_triggers_email(
         )
 
         assert response.status_code == 200
+
+        wait_until(lambda: fake_email_service.sent)
+
         assert fake_email_service.sent is True
+        assert fake_email_service.last_payload is not None
         assert fake_email_service.last_payload["to"] == "admin@admin.com"
 
     app.dependency_overrides = {}
@@ -177,7 +183,11 @@ def test_create_vip_client_triggers_email(
     )
 
     assert response.status_code == 201
+
+    wait_until(lambda: fake_email_service.sent)
+
     assert fake_email_service.sent is True
+    assert fake_email_service.last_payload is not None
     assert fake_email_service.last_payload["to"] == "jhon@doe.com"
 
     app.dependency_overrides = {}
@@ -257,7 +267,11 @@ def test_reset_password_request_triggers_email(
     )
 
     assert response.status_code == 200
+
+    wait_until(lambda: fake_email_service.sent)
+
     assert fake_email_service.sent is True
+    assert fake_email_service.last_payload is not None
     assert fake_email_service.last_payload["to"] == "admin@admin.com"
 
     app.dependency_overrides = {}
