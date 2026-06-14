@@ -24,6 +24,7 @@ from app.application.studio.use_cases.DTO.get_client_credit_entries import (
 )
 from app.application.studio.use_cases.DTO.list_client_credit_entries import (
     ListCreditEntriesByClientIdInput,
+    ListCreditEntriesBySourceIdInput,
     ListCreditEntriesOutput,
 )
 from app.application.studio.use_cases.DTO.reverse_client_credits import ReverseClientCreditByAdminInput
@@ -36,6 +37,9 @@ from app.application.studio.use_cases.finances_use_cases.get_credit_entry_detail
 from app.application.studio.use_cases.finances_use_cases.list_credit_entries_by_client_id import (
     ListCreditEntriesByClientIdUseCase,
 )
+from app.application.studio.use_cases.finances_use_cases.list_credits_entries_by_source_id import (
+    ListClientCreditEntriesBySourceIdUseCase,
+)
 from app.application.studio.use_cases.finances_use_cases.reverse_client_credit_by_admin import (
     ReverseClientCreditByAdminUseCase,
 )
@@ -46,6 +50,7 @@ from app.core.exceptions.marketing import (
     CreditMustBePositiveError,
 )
 from app.core.exceptions.users import UserNotFoundError, VipClientNotFoundError
+from app.core.types.client_credit_source_type import ClientCreditSourceType
 
 router = APIRouter(prefix="/client-credit-entries")
 
@@ -181,6 +186,7 @@ def get_credit_entry_by_id(
 )
 def list_credit_entries_by_vip_client_id(
     vip_client_id: UUID,
+    source_type: ClientCreditSourceType | None = Query(None),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
     direction: Direction = Direction.asc,
@@ -189,7 +195,34 @@ def list_credit_entries_by_vip_client_id(
 ):
     use_case = ListCreditEntriesByClientIdUseCase(uow)
     dto = ListCreditEntriesByClientIdInput(
-        vip_client_id=vip_client_id, page=page, limit=limit, direction=direction
+        vip_client_id=vip_client_id, source_type=source_type, page=page, limit=limit, direction=direction
+    )
+
+    try:
+        return use_case.execute(dto)
+    except ValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(exc),
+        )
+
+
+@router.get(
+    "/by-source/{source_id}",
+    status_code=status.HTTP_200_OK,
+    response_model=ListCreditEntriesOutput,
+)
+def list_credit_entries_by_source_id(
+    source_id: UUID,
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    direction: Direction = Direction.asc,
+    current_user=Depends(get_current_active_user),
+    uow: ReadUnitOfWork = Depends(get_read_unit_of_work),
+):
+    use_case = ListClientCreditEntriesBySourceIdUseCase(uow)
+    dto = ListCreditEntriesBySourceIdInput(
+        source_id=source_id, page=page, limit=limit, direction=direction
     )
 
     try:
