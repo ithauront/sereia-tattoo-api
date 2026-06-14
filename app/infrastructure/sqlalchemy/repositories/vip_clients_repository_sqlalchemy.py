@@ -1,14 +1,14 @@
 from typing import List, Optional
 from uuid import UUID
-from sqlalchemy import select
-from sqlalchemy.orm import Session
 
 from app.application.studio.repositories.vip_clients_repository import (
     VipClientsRepository,
 )
-from app.domain.studio.value_objects.client_code import ClientCode
 from app.domain.studio.users.entities.vip_client import VipClient
+from app.domain.studio.value_objects.client_code import ClientCode
 from app.infrastructure.sqlalchemy.models.vip_client import VipClientModel
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 
 class SQLAlchemyVipClientsRepository(VipClientsRepository):
@@ -30,9 +30,7 @@ class SQLAlchemyVipClientsRepository(VipClientsRepository):
         self.session.flush()
 
     def update(self, vip_client: VipClient) -> None:
-        vip_client_in_question = select(VipClientModel).where(
-            VipClientModel.id == vip_client.id
-        )
+        vip_client_in_question = select(VipClientModel).where(VipClientModel.id == vip_client.id)
         orm_vip_client = self.session.scalar(vip_client_in_question)
         if orm_vip_client is None:
             return
@@ -47,33 +45,25 @@ class SQLAlchemyVipClientsRepository(VipClientsRepository):
         self.session.flush()
 
     def find_by_id(self, vip_client_id: UUID) -> Optional[VipClient]:
-        vip_client_in_question = select(VipClientModel).where(
-            VipClientModel.id == vip_client_id
-        )
+        vip_client_in_question = select(VipClientModel).where(VipClientModel.id == vip_client_id)
         orm_vip_client = self.session.scalar(vip_client_in_question)
 
         return self._to_entity(orm_vip_client)
 
     def find_by_email(self, email: str) -> Optional[VipClient]:
-        vip_client_in_question = select(VipClientModel).where(
-            VipClientModel.email == email
-        )
+        vip_client_in_question = select(VipClientModel).where(VipClientModel.email == email)
         orm_vip_client = self.session.scalar(vip_client_in_question)
 
         return self._to_entity(orm_vip_client)
 
     def find_by_phone(self, phone: str) -> Optional[VipClient]:
-        vip_client_in_question = select(VipClientModel).where(
-            VipClientModel.phone == phone
-        )
+        vip_client_in_question = select(VipClientModel).where(VipClientModel.phone == phone)
         orm_vip_client = self.session.scalar(vip_client_in_question)
 
         return self._to_entity(orm_vip_client)
 
     def find_by_client_code(self, client_code: str) -> Optional[VipClient]:
-        vip_client_in_question = select(VipClientModel).where(
-            VipClientModel.client_code == client_code
-        )
+        vip_client_in_question = select(VipClientModel).where(VipClientModel.client_code == client_code)
         orm_vip_client = self.session.scalar(vip_client_in_question)
 
         return self._to_entity(orm_vip_client)
@@ -89,9 +79,7 @@ class SQLAlchemyVipClientsRepository(VipClientsRepository):
 
         return entities
 
-    def _to_entity(
-        self, orm_vip_client: Optional[VipClientModel]
-    ) -> Optional[VipClient]:
+    def _to_entity(self, orm_vip_client: Optional[VipClientModel]) -> Optional[VipClient]:
         if orm_vip_client is None:
             return None
 

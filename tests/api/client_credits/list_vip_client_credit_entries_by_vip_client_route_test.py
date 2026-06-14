@@ -3,7 +3,6 @@ from fastapi.testclient import TestClient
 from app.api.dependencies.read_unit_of_work import get_read_unit_of_work
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -23,9 +22,7 @@ def test_list_vip_client_credit_entries_by_vip_client_default(
     write_uow.vip_clients.create(vip_client)
 
     for i in range(1, 6):
-        client_redit_entry = make_client_credit_entry(
-            vip_client_id=vip_client.id, quantity=i
-        )
+        client_redit_entry = make_client_credit_entry(vip_client_id=vip_client.id, quantity=i)
         write_uow.client_credit_entries.create(client_redit_entry)
 
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
@@ -159,9 +156,7 @@ def test_list_vip_client_credit_entries_by_vip_client_by_admin(
     write_uow.vip_clients.create(vip_client)
 
     for i in range(1, 6):
-        client_redit_entry = make_client_credit_entry(
-            vip_client_id=vip_client.id, quantity=i
-        )
+        client_redit_entry = make_client_credit_entry(vip_client_id=vip_client.id, quantity=i)
         write_uow.client_credit_entries.create(client_redit_entry)
 
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
@@ -192,9 +187,7 @@ def test_list_vip_client_credit_entries_by_vip_client_by_non_user(
     write_uow.vip_clients.create(vip_client)
 
     for i in range(1, 6):
-        client_redit_entry = make_client_credit_entry(
-            vip_client_id=vip_client.id, quantity=i
-        )
+        client_redit_entry = make_client_credit_entry(vip_client_id=vip_client.id, quantity=i)
         write_uow.client_credit_entries.create(client_redit_entry)
 
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
@@ -226,9 +219,7 @@ def test_list_vip_client_credit_entries_by_vip_client_by_inactive_user(
     write_uow.vip_clients.create(vip_client)
 
     for i in range(1, 6):
-        client_redit_entry = make_client_credit_entry(
-            vip_client_id=vip_client.id, quantity=i
-        )
+        client_redit_entry = make_client_credit_entry(vip_client_id=vip_client.id, quantity=i)
         write_uow.client_credit_entries.create(client_redit_entry)
 
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
@@ -260,9 +251,7 @@ def test_list_vip_client_credit_entries_by_vip_client_wrong_page_param(
     write_uow.vip_clients.create(vip_client)
 
     for i in range(1, 6):
-        client_redit_entry = make_client_credit_entry(
-            vip_client_id=vip_client.id, quantity=i
-        )
+        client_redit_entry = make_client_credit_entry(vip_client_id=vip_client.id, quantity=i)
         write_uow.client_credit_entries.create(client_redit_entry)
 
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
@@ -298,9 +287,7 @@ def test_list_vip_client_credit_entries_by_vip_client_wrong_limit_param(
     write_uow.vip_clients.create(vip_client)
 
     for i in range(1, 6):
-        client_redit_entry = make_client_credit_entry(
-            vip_client_id=vip_client.id, quantity=i
-        )
+        client_redit_entry = make_client_credit_entry(vip_client_id=vip_client.id, quantity=i)
         write_uow.client_credit_entries.create(client_redit_entry)
 
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
@@ -336,9 +323,7 @@ def test_list_vip_client_credit_entries_by_vip_client_wrong_direction_param(
     write_uow.vip_clients.create(vip_client)
 
     for i in range(1, 6):
-        client_redit_entry = make_client_credit_entry(
-            vip_client_id=vip_client.id, quantity=i
-        )
+        client_redit_entry = make_client_credit_entry(vip_client_id=vip_client.id, quantity=i)
         write_uow.client_credit_entries.create(client_redit_entry)
 
     app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
