@@ -17,7 +17,6 @@ from app.core.types.client_credit_source_type import ClientCreditSourceType
 from app.domain.studio.finances.entities.client_credit_entry import ClientCreditEntry
 
 
-# TODO: criar, rota e teste da rota
 class ReverseClientCreditByAdminUseCase:
     def __init__(self, uow: WriteUnitOfWork):
         self.uow = uow

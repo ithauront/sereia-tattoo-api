@@ -6,7 +6,6 @@ from app.application.studio.use_cases.DTO.list_client_credit_entries import (
 )
 
 
-# TODO: teste e teste de rota
 class ListClientCreditEntriesBySourceIdUseCase:
     def __init__(self, uow: ReadUnitOfWork):
         self.uow = uow
