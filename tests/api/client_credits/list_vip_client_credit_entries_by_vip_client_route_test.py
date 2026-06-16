@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from app.api.dependencies.read_unit_of_work import get_read_unit_of_work
+from app.core.types.client_credit_source_type import ClientCreditSourceType
 from app.main import app
 
 client = TestClient(app)
@@ -29,6 +30,59 @@ def test_list_vip_client_credit_entries_by_vip_client_default(
 
     response = client.get(
         f"/client-credit-entries/by-client/{vip_client.id}",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert "entries" in data
+    assert "total" in data
+    assert "page" in data
+    assert "limit" in data
+
+    assert data["total"] == 5
+    assert data["page"] == 1
+    assert data["limit"] == 20
+
+    assert len(data["entries"]) == 5
+    assert data["entries"][0]["quantity"] == 1
+
+    app.dependency_overrides = {}
+
+
+def test_list_vip_client_credit_entries_by_vip_client_source_type_filter(
+    write_uow,
+    read_uow,
+    make_user,
+    make_token,
+    make_vip_client,
+    make_client_credit_entry,
+):
+    user = make_user(is_admin=False, is_active=True)
+    write_uow.users.create(user)
+    token = make_token(user)
+
+    vip_client = make_vip_client()
+    write_uow.vip_clients.create(vip_client)
+
+    for i in range(1, 6):
+        client_redit_entry = make_client_credit_entry(
+            vip_client_id=vip_client.id, quantity=i, source_type=ClientCreditSourceType.ADDED_BY_ADMIN
+        )
+        write_uow.client_credit_entries.create(client_redit_entry)
+
+    for i in range(1, 6):
+        client_redit_entry = make_client_credit_entry(
+            vip_client_id=vip_client.id, quantity=i, source_type=ClientCreditSourceType.INDICATION
+        )
+        write_uow.client_credit_entries.create(client_redit_entry)
+
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
+
+    response = client.get(
+        f"/client-credit-entries/by-client/{vip_client.id}",
+        params={"source_type": "added_by_admin"},
         headers={"Authorization": f"Bearer {token}"},
     )
 

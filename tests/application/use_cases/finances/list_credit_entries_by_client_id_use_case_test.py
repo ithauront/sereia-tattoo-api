@@ -6,6 +6,7 @@ from app.application.studio.use_cases.DTO.list_client_credit_entries import (
 from app.application.studio.use_cases.finances_use_cases.list_credit_entries_by_client_id import (
     ListCreditEntriesByClientIdUseCase,
 )
+from app.core.types.client_credit_source_type import ClientCreditSourceType
 
 
 def test_list_credit_entries_by_client_id_default_success(
@@ -20,6 +21,40 @@ def test_list_credit_entries_by_client_id_default_success(
 
     use_case = ListCreditEntriesByClientIdUseCase(read_uow)
     input_data = ListCreditEntriesByClientIdInput(vip_client_id=vip_client.id)
+
+    result = use_case.execute(input_data)
+
+    assert isinstance(result, ListCreditEntriesOutput)
+
+    assert result.total == 10
+    assert result.page == 1
+    assert result.limit == 20
+
+    assert result.entries[0].quantity == 1
+
+
+def test_list_credit_entries_by_client_id_and_source_type_success(
+    make_vip_client, make_client_credit_entry, read_uow, write_uow
+):
+    vip_client = make_vip_client()
+    write_uow.vip_clients.create(vip_client)
+
+    for i in range(1, 11):
+        client_credit_entry = make_client_credit_entry(
+            vip_client_id=vip_client.id, quantity=i, source_type=ClientCreditSourceType.ADDED_BY_ADMIN
+        )
+        write_uow.client_credit_entries.create(client_credit_entry)
+
+    for i in range(1, 11):
+        client_credit_entry = make_client_credit_entry(
+            vip_client_id=vip_client.id, quantity=i, source_type=ClientCreditSourceType.INDICATION
+        )
+        write_uow.client_credit_entries.create(client_credit_entry)
+
+    use_case = ListCreditEntriesByClientIdUseCase(read_uow)
+    input_data = ListCreditEntriesByClientIdInput(
+        vip_client_id=vip_client.id, source_type=ClientCreditSourceType.ADDED_BY_ADMIN
+    )
 
     result = use_case.execute(input_data)
 

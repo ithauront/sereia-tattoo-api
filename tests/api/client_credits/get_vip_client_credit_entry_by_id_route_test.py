@@ -8,7 +8,6 @@ from app.core.types.client_credit_source_type import (
 )
 from app.main import app
 
-
 client = TestClient(app)
 
 
@@ -32,9 +31,7 @@ def test_get_vip_client_credit_entries_by_id_default(
         quantity=10,
         source_type=ClientCreditSourceType.INDICATION,
     )
-    client_credit_entry_2 = make_client_credit_entry(
-        vip_client_id=vip_client.id, quantity=20
-    )
+    client_credit_entry_2 = make_client_credit_entry(vip_client_id=vip_client.id, quantity=20)
 
     write_uow.client_credit_entries.create(client_credit_entry_1)
     write_uow.client_credit_entries.create(client_credit_entry_2)
@@ -209,9 +206,7 @@ def test_get_vip_client_credit_entries_by_id_not_user_request(
         quantity=10,
         source_type=ClientCreditSourceType.INDICATION,
     )
-    client_credit_entry_2 = make_client_credit_entry(
-        vip_client_id=vip_client.id, quantity=20
-    )
+    client_credit_entry_2 = make_client_credit_entry(vip_client_id=vip_client.id, quantity=20)
 
     write_uow.client_credit_entries.create(client_credit_entry_1)
     write_uow.client_credit_entries.create(client_credit_entry_2)
@@ -249,9 +244,7 @@ def test_get_vip_client_credit_entries_by_id_inactive_user_request(
         quantity=10,
         source_type=ClientCreditSourceType.INDICATION,
     )
-    client_credit_entry_2 = make_client_credit_entry(
-        vip_client_id=vip_client.id, quantity=20
-    )
+    client_credit_entry_2 = make_client_credit_entry(vip_client_id=vip_client.id, quantity=20)
 
     write_uow.client_credit_entries.create(client_credit_entry_1)
     write_uow.client_credit_entries.create(client_credit_entry_2)

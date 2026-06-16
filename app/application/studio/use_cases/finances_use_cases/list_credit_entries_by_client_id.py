@@ -16,20 +16,33 @@ class ListCreditEntriesByClientIdUseCase:
             limit = min(data.limit, MAX_LIMIT)
             offset = (data.page - 1) * limit
 
-            credits_entries = self.uow.client_credit_entries.find_many_by_vip_client_id(
-                vip_client_id=data.vip_client_id,
-                limit=limit,
-                offset=offset,
-                direction=data.direction,
-            )
+            if data.source_type is not None:
+                credits_entries = (
+                    self.uow.client_credit_entries.find_many_by_source_type_and_vip_client_id(
+                        source_type=data.source_type,
+                        vip_client_id=data.vip_client_id,
+                        limit=limit,
+                        offset=offset,
+                        direction=data.direction,
+                    )
+                )
+                total_entries = self.uow.client_credit_entries.count_by_source_type_and_vip_client_id(
+                    source_type=data.source_type, vip_client_id=data.vip_client_id
+                )
 
-            total_entries = self.uow.client_credit_entries.count_by_vip_client_id(
-                vip_client_id=data.vip_client_id
-            )
+            else:
+                credits_entries = self.uow.client_credit_entries.find_many_by_vip_client_id(
+                    vip_client_id=data.vip_client_id,
+                    limit=limit,
+                    offset=offset,
+                    direction=data.direction,
+                )
 
-        entries_output = [
-            CreditEntryOutput.from_entity(entry) for entry in credits_entries
-        ]
+                total_entries = self.uow.client_credit_entries.count_by_vip_client_id(
+                    vip_client_id=data.vip_client_id
+                )
+
+        entries_output = [CreditEntryOutput.from_entity(entry) for entry in credits_entries]
 
         return ListCreditEntriesOutput(
             entries=entries_output,
