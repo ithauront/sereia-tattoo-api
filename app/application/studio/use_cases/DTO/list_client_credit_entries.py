@@ -4,11 +4,20 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.application.studio.use_cases.DTO.commun import Direction
+from app.core.types.client_credit_source_type import ClientCreditSourceType
 from app.domain.studio.finances.entities.client_credit_entry import ClientCreditEntry
 
 
 class ListCreditEntriesByClientIdInput(BaseModel):
     vip_client_id: UUID
+    source_type: ClientCreditSourceType | None = None
+    page: int = Field(default=1, ge=1)
+    limit: int = Field(default=20, ge=1)
+    direction: Direction = Direction.asc
+
+
+class ListCreditEntriesBySourceIdInput(BaseModel):
+    source_id: UUID
     page: int = Field(default=1, ge=1)
     limit: int = Field(default=20, ge=1)
     direction: Direction = Direction.asc
