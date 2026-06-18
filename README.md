@@ -207,6 +207,65 @@ No fluxo de criação de um cliente VIP, o frontend precisa preencher um formul�
 - Caso o backend retorne o erro 409: "please_try_creating_client_code_with_last_name", o frontend deve tentar enviar o lastname.
 - A decisão de automatizar o envio do firstname e, no retry enviar o lastname, ou de deixar o usuário escolher, fica a cargo do frontend. O importante é sugerir enviar o firstname inicialmente e o lastname apenas em caso de erro.
 
+### Fluxo de Pagamento de Appointment (VIP Context)
+
+Visão geral:
+O fechamento de um appointment exige que todos os pagamentos sejam processados antes de marcá-lo como done.
+O sistema suporta pagamentos via múltiplos métodos, incluindo créditos de clientes VIP.
+
+Contexto de VIP Client (temporário):
+Ao iniciar o fluxo de pagamento de um appointment, o frontend pode opcionalmente buscar um VIP Client.
+
+Quando encontrado, o frontend deve:
+
+- Exibir o saldo de créditos do cliente VIP
+- Manter esse cliente ativo apenas durante o fluxo do appointment atual
+- Exibir um cabeçalho persistente com:
+- nome do cliente
+- saldo de créditos
+- identificação do appointment ativo
+
+Esse contexto NÃO representa autenticação, apenas estado de UI.
+
+Fluxo recomendado:
+
+1. Seleção do appointment
+
+O usuário seleciona um appointment na interface.
+
+2. Resolução de cliente VIP (opcional)
+
+O frontend pode buscar um VIP client e anexá-lo ao contexto do appointment.
+
+3. Exibição do contexto de pagamento
+
+O sistema deve exibir:
+
+- valor total do appointment
+- saldo de créditos (se existir VIP client)
+- opções de pagamento:
+  dinheiro/cartão/etc
+- créditos do cliente VIP
+- valor ja pago
+
+4 Pagamento (obrigatório antes de finalizar)
+
+O frontend deve realizar chamadas para a api realizando pagamentos. multiplos pagamentos com diferentes typos (credito, dinheiro, cartão) são possiveis. e o saldo pago vai se somando e mostrando o quanto resta pagar.
+
+5. Finalização do appointment
+
+Somente após pagamentos concluídos:
+
+o frontend pode chamar mark appointment as done
+
+6. Limpeza de contexto
+
+Após finalização:
+
+remover VIP client da tela
+resetar estado de pagamento (os pagamentos reais foram persistidos no B.E)
+voltar para lista de appointments ou agenda ou pagina inicial
+
 ## AUDIT
 
 Os logs de auditoria não fazem parte do domínio neste projeto.
