@@ -26,3 +26,7 @@ class ReverseClientCreditsResponse(BaseModel):
     reversed_credit_id: UUID
     total_credits_before: int
     total_credits_after: int
+
+
+class GetClientCreditBalanceResponse(BaseModel):
+    balance: int

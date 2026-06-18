@@ -9,6 +9,7 @@ from app.api.dependencies.write_unit_of_work import get_write_unit_of_work
 from app.api.schemas.client_credit_entries import (
     AddClientCreditsRequest,
     AddClientCreditsResponse,
+    GetClientCreditBalanceResponse,
     ReverseClientCreditsRequest,
     ReverseClientCreditsResponse,
 )
@@ -30,6 +31,9 @@ from app.application.studio.use_cases.DTO.list_client_credit_entries import (
 from app.application.studio.use_cases.DTO.reverse_client_credits import ReverseClientCreditByAdminInput
 from app.application.studio.use_cases.finances_use_cases.add_client_credit_by_admin import (
     AddClientCreditByAdminUseCase,
+)
+from app.application.studio.use_cases.finances_use_cases.get_client_credit_balance import (
+    GetClientCreditBalanceUseCase,
 )
 from app.application.studio.use_cases.finances_use_cases.get_credit_entry_details_by_id import (
     GetCreditEntryDetailsByIdUseCase,
@@ -231,4 +235,28 @@ def list_credit_entries_by_source_id(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(exc),
+        )
+
+
+@router.get(
+    "/balance/{vip_client_id}",
+    status_code=status.HTTP_200_OK,
+    response_model=GetClientCreditBalanceResponse,
+)
+def get_balance_by_vip_client_id(
+    vip_client_id: UUID,
+    current_user=Depends(get_current_active_user),
+    uow: ReadUnitOfWork = Depends(get_read_unit_of_work),
+):
+    use_case = GetClientCreditBalanceUseCase(uow)
+
+    try:
+        balance = use_case.execute(vip_client_id=vip_client_id)
+
+        return GetClientCreditBalanceResponse(balance=balance)
+
+    except VipClientNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="vip_client_not_found",
         )
