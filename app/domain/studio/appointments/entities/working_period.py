@@ -1,19 +1,22 @@
-# TODO: completar fazendo os metodos e tudo mais
-# TODO: fazer repo
-# TODO: fazer sql model and repo
-# TODO: fazer fake repo e teste do repo real e fake
 from datetime import datetime, time, timezone
 from uuid import UUID, uuid4
 
-from app.core.exceptions.calendar import WorkingPeriodMustHaveRealisticTimeAndDateError
+from app.core.exceptions.calendar import (
+    InvalidWeekdayError,
+    WorkingPeriodMustHaveRealisticTimeAndDateError,
+)
 
 
+# TODO: completar fazendo os metodos e tudo mais
+# TODO: essa entity não tem repo. ela é atualizada atraves do calendar settings
+# TODO: fazer sql model e nos metodos de calendar setting do repo atualizar ela tambem
+# TODO: fazer fake repo e teste do repo real e fake
 class WorkingPeriod:
     def __init__(
         self,
         *,
         id: UUID | None = None,
-        provider_id: UUID,
+        weekday: int,
         start_at: time,
         end_at: time,
         created_at: datetime | None = None,
@@ -21,8 +24,11 @@ class WorkingPeriod:
     ):
         now = self._utc_now()
 
+        if weekday < 0 or weekday > 6:
+            raise InvalidWeekdayError()
+
         self.id = id or uuid4()
-        self.provider_id = provider_id
+        self.weekday = weekday
         self.start_at = start_at
         self.end_at = end_at
         self.created_at = created_at or now
@@ -32,13 +38,16 @@ class WorkingPeriod:
     def create(
         cls,
         *,
-        provider_id: UUID,
+        weekday: int,
         start_at: time,
         end_at: time,
     ) -> "WorkingPeriod":
         if end_at <= start_at:
             raise WorkingPeriodMustHaveRealisticTimeAndDateError()
-        return cls(provider_id=provider_id, start_at=start_at, end_at=end_at)
+        if weekday < 0 or weekday > 6:
+            raise InvalidWeekdayError()
+
+        return cls(weekday=weekday, start_at=start_at, end_at=end_at)
 
     def update_period(self, *, start_at: time, end_at: time):
         if end_at <= start_at:
