@@ -18,5 +18,9 @@ class WorkingPeriodsOverlapError(Exception):
     pass
 
 
+class WorkingPeriodsNotFoundError(Exception):
+    pass
+
+
 class InvalidReasonError(Exception):
     pass
