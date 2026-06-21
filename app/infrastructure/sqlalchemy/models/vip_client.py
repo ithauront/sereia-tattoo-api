@@ -1,18 +1,17 @@
-from uuid import uuid4, UUID as pyUUID
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy import String, DateTime
-from sqlalchemy.orm import Mapped, mapped_column
 from datetime import datetime
+from uuid import UUID as pyUUID
+from uuid import uuid4
 
 from app.infrastructure.sqlalchemy.base_class import Base
+from sqlalchemy import DateTime, String
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column
 
 
 class VipClientModel(Base):
     __tablename__ = "vip_client"
 
-    id: Mapped[pyUUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid4
-    )
+    id: Mapped[pyUUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     first_name: Mapped[str] = mapped_column(
         String(100),
         nullable=False,
@@ -21,18 +20,10 @@ class VipClientModel(Base):
         String(100),
         nullable=False,
     )
-    email: Mapped[str] = mapped_column(
-        String(255), unique=True, nullable=False, index=True
-    )
-    phone: Mapped[str] = mapped_column(
-        String(50), unique=True, nullable=False, index=True
-    )
-    client_code: Mapped[str] = mapped_column(
-        String(50), unique=True, nullable=False, index=True
-    )
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
-    )
+    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
+    phone: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
+    client_code: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

@@ -1,9 +1,7 @@
 from app.application.notifications.handlers.utils.render_account_activated_email import (
     render_account_activated_email,
 )
-
 from app.application.notifications.ports.email_service import EmailService
-
 from app.domain.studio.users.events.send_action_made_email_requested import (
     SendActionMadeEmailRequested,
 )

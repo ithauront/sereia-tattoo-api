@@ -17,7 +17,7 @@ net_paid = total_payments - total_refunds
 """
 
 
-# TODO talvez fazer letodos aqui para mudança de status, mark as completed, mark as pending etc. mas isso so no futuro quando estiver mudando de status. por enquanto todos os status que a gente usa vai ser completed
+# TODO talvez fazer metodos aqui para mudança de status, mark as completed, mark as pending etc. mas isso so no futuro quando estiver mudando de status. por enquanto todos os status que a gente usa vai ser completed
 # TODO: no use_case de criar o refund temos que verificar o total da payment reference id e verificar se ja ha refunds desse payment o total de refunds não pode ter valor maior do que o total payment.
 class Refund:
     def __init__(

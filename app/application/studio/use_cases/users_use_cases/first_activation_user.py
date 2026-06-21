@@ -8,8 +8,8 @@ from app.application.studio.use_cases.DTO.first_activation_user_dto import (
 from app.core.exceptions.users import (
     InvalidActivationTokenError,
     UserActivatedBeforeError,
-    UserNotFoundError,
     UsernameAlreadyTakenError,
+    UserNotFoundError,
 )
 from app.core.security.passwords import hash_password
 from app.core.types.audit_actor_type import AuditActorType
