@@ -1,5 +1,8 @@
 from app.application.event_bus.integration_event_bus import IntegrationEventBus
 from app.application.event_bus.transactional_event_bus import TransactionalEventBus
+from app.application.notifications.handlers.notificate_booking_window_update import (
+    NotificateBookingWindowUpdateHandler,
+)
 from app.application.notifications.handlers.send_activation_confirmation_email import (
     SendActivationConfirmationEmailHandler,
 )
@@ -19,6 +22,7 @@ from app.core.security.versioned_token_service import VersionedTokenService
 from app.domain.studio.appointments.events.appointment_completed import (
     AppointmentCompleted,
 )
+from app.domain.studio.appointments.events.booking_window_updated import BookingWindowUpdated
 from app.domain.studio.users.events.activation_email_requested import (
     ActivationEmailRequested,
 )
@@ -67,6 +71,10 @@ def setup_event_bus(
     integration_bus.register(
         SendActionMadeEmailRequested,
         SendActivationConfirmationEmailHandler(email_service=email_service),
+    )
+
+    integration_bus.register(
+        BookingWindowUpdated, NotificateBookingWindowUpdateHandler(email_service=email_service)
     )
 
     transactional_bus.register(
