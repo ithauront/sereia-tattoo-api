@@ -7,13 +7,18 @@ from app.infrastructure.sqlalchemy.repositories.appointments_repository_sqlalche
 from app.infrastructure.sqlalchemy.repositories.audit_logs_repository import (
     SQLAlchemyAuditLogsRepository,
 )
+from app.infrastructure.sqlalchemy.repositories.calendar_settings_repository_sqlalchemy import (
+    SQLAlchemyCalendarSettingsRepository,
+)
 from app.infrastructure.sqlalchemy.repositories.client_credit_entries_repository import (
     SQLAlchemyClientCreditEntriesRepository,
 )
 from app.infrastructure.sqlalchemy.repositories.payments_repository_sqlalchemy import (
     SQLAlchemyPaymentsRepository,
 )
-from app.infrastructure.sqlalchemy.repositories.refunds_repository_sqlalchemy import SQLAlchemyRefundsRepository
+from app.infrastructure.sqlalchemy.repositories.refunds_repository_sqlalchemy import (
+    SQLAlchemyRefundsRepository,
+)
 from app.infrastructure.sqlalchemy.repositories.users_repository_sqlalchemy import (
     SQLAlchemyUsersRepository,
 )
@@ -28,13 +33,12 @@ class SqlAlchemyReadUnitOfWork(ReadUnitOfWork):
         self.session: Session = session or SessionLocal()
         self.users = SQLAlchemyUsersRepository(self.session)
         self.vip_clients = SQLAlchemyVipClientsRepository(self.session)
-        self.client_credit_entries = SQLAlchemyClientCreditEntriesRepository(
-            self.session
-        )
+        self.client_credit_entries = SQLAlchemyClientCreditEntriesRepository(self.session)
         self.payments = SQLAlchemyPaymentsRepository(self.session)
         self.appointments = SQLAlchemyAppointmentsRepository(self.session)
         self.audit_logs = SQLAlchemyAuditLogsRepository(self.session)
         self.refunds = SQLAlchemyRefundsRepository(self.session)
+        self.calendar_settings = SQLAlchemyCalendarSettingsRepository(self.session)
 
     def __enter__(self):
         return self
