@@ -1,6 +1,7 @@
 from app.application.studio.unit_of_work.write_unit_of_work import WriteUnitOfWork
 from tests.fakes.fake_appointments_repository import FakeAppointmentsRepository
 from tests.fakes.fake_audit_logs_repository import FakeAuditLogsRepository
+from tests.fakes.fake_calendar_settings_repository import FakeCalendarSettingsRepository
 from tests.fakes.fake_client_credit_entries_repository import (
     FakeClientCreditEntriesRepository,
 )
@@ -19,6 +20,8 @@ class FakeWriteUnitOfWork(WriteUnitOfWork):
         self.payments = FakePaymentsRepository()
         self.audit_logs = FakeAuditLogsRepository()
         self.refunds = FakeRefundsRepository()
+        self.calendar_settings = FakeCalendarSettingsRepository()
+
         self.committed = False
         self.rolled_back = False
 
