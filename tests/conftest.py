@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, time, timedelta, timezone
 from decimal import Decimal
 from uuid import uuid4
 
@@ -21,7 +21,9 @@ from app.core.types.client_credit_source_type import (
 from app.core.types.payment_enums import PaymentMethodType
 from app.core.types.refund_enums import RefundMethodType, RefundStatus
 from app.domain.studio.appointments.entities.appointment import Appointment
+from app.domain.studio.appointments.entities.calendar_settings import CalendarSettings
 from app.domain.studio.appointments.entities.value_objects.client_info import ClientInfo
+from app.domain.studio.appointments.entities.working_period import WorkingPeriod
 from app.domain.studio.finances.entities.client_credit_entry import ClientCreditEntry
 from app.domain.studio.finances.entities.payment import Payment
 from app.domain.studio.finances.entities.refund import Refund
@@ -30,6 +32,7 @@ from app.domain.studio.users.entities.vip_client import VipClient
 from app.domain.studio.value_objects.client_code import ClientCode
 from tests.fakes.fake_appointments_repository import FakeAppointmentsRepository
 from tests.fakes.fake_audit_logs_repository import FakeAuditLogsRepository
+from tests.fakes.fake_calendar_settings_repository import FakeCalendarSettingsRepository
 from tests.fakes.fake_client_credit_entries_repository import (
     FakeClientCreditEntriesRepository,
 )
@@ -82,6 +85,11 @@ def shared_refunds_repo():
 
 
 @pytest.fixture
+def shared_calendar_settings_repo():
+    return FakeCalendarSettingsRepository()
+
+
+@pytest.fixture
 def read_uow(
     shared_users_repo,
     shared_vip_clients_repo,
@@ -90,6 +98,7 @@ def read_uow(
     shared_payments_repo,
     shared_audit_logs_repo,
     shared_refunds_repo,
+    shared_calendar_settings_repo,
 ):
     uow = FakeReadUnitOfWork()
     uow.users = shared_users_repo
@@ -99,6 +108,7 @@ def read_uow(
     uow.payments = shared_payments_repo
     uow.audit_logs = shared_audit_logs_repo
     uow.refunds = shared_refunds_repo
+    uow.calendar_settings = shared_calendar_settings_repo
     return uow
 
 
@@ -111,6 +121,7 @@ def write_uow(
     shared_payments_repo,
     shared_audit_logs_repo,
     shared_refunds_repo,
+    shared_calendar_settings_repo,
 ):
     uow = FakeWriteUnitOfWork()
     uow.users = shared_users_repo
@@ -120,6 +131,7 @@ def write_uow(
     uow.payments = shared_payments_repo
     uow.audit_logs = shared_audit_logs_repo
     uow.refunds = shared_refunds_repo
+    uow.calendar_settings = shared_calendar_settings_repo
     return uow
 
 
@@ -397,6 +409,41 @@ def make_audit_log():
             ),
             performed_at=kwargs.get("performed_at", base_now),
             reason=kwargs.get("reason", "client change his phone"),
+        )
+
+    return _factory
+
+
+@pytest.fixture
+def make_working_period():
+    def _factory(**kwargs):
+        return WorkingPeriod(
+            weekday=kwargs.get("weekday", 0),
+            start_at=kwargs.get("start_at", time(8, 0)),
+            end_at=kwargs.get("end_at", time(12, 0)),
+        )
+
+    return _factory
+
+
+@pytest.fixture
+def make_calendar_settings(make_working_period):
+
+    def _factory(**kwargs):
+        working_periods = kwargs.get(
+            "working_periods",
+            [make_working_period(weekday=i) for i in range(7)],
+        )
+
+        base_now = datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc)
+
+        return CalendarSettings(
+            user_id=kwargs.get("user_id", uuid4()),
+            booking_window_until=kwargs.get(
+                "booking_window_until",
+                (base_now + timedelta(days=30)).date(),
+            ),
+            working_periods=working_periods,
         )
 
     return _factory
