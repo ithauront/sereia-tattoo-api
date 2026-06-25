@@ -1,12 +1,15 @@
 from datetime import datetime, time
+from typing import TYPE_CHECKING
 from uuid import UUID as pyUUID
 from uuid import uuid4
 
 from app.infrastructure.sqlalchemy.base_class import Base
-from app.infrastructure.sqlalchemy.models.calendar_settings import CalendarSettingsModel
 from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, Time, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+if TYPE_CHECKING:
+    from app.infrastructure.sqlalchemy.models.calendar_settings import CalendarSettingsModel
 
 
 class WorkingPeriodModel(Base):
@@ -26,7 +29,7 @@ class WorkingPeriodModel(Base):
             "weekday",
             "start_at",
             "end_at",
-            name="uq_working_period",
+            name="unique_working_period",
         ),
     )
 
@@ -59,5 +62,6 @@ class WorkingPeriodModel(Base):
     )
 
     calendar_settings: Mapped["CalendarSettingsModel"] = relationship(
+        "CalendarSettingsModel",
         back_populates="working_periods",
     )

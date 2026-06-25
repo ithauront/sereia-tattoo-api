@@ -1,11 +1,14 @@
 from datetime import date, datetime
+from typing import TYPE_CHECKING
 from uuid import UUID as pyUUID
 
 from app.infrastructure.sqlalchemy.base_class import Base
-from app.infrastructure.sqlalchemy.models.working_period import WorkingPeriodModel
 from sqlalchemy import Date, DateTime, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+if TYPE_CHECKING:
+    from app.infrastructure.sqlalchemy.models.working_period import WorkingPeriodModel
 
 
 class CalendarSettingsModel(Base):
@@ -20,6 +23,7 @@ class CalendarSettingsModel(Base):
     booking_window_until: Mapped[date] = mapped_column(Date(), nullable=False)
 
     working_periods: Mapped[list["WorkingPeriodModel"]] = relationship(
+        "WorkingPeriodModel",
         back_populates="calendar_settings",
         cascade="all, delete-orphan",
     )
