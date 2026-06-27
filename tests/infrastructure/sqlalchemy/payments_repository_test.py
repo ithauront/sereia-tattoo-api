@@ -22,11 +22,16 @@ def test_create_and_find_by_id(
     sqlalchemy_appointments_repo: SQLAlchemyAppointmentsRepository,
     make_vip_client,
     make_quoted_appointment,
+    make_user,
+    sqlalchemy_users_repo,
 ):
+    user = make_user()
+    sqlalchemy_users_repo.create(user)
+
     vip_client = make_vip_client()
     sqlalchemy_vip_clients_repo.create(vip_client)
 
-    appointment = make_quoted_appointment()
+    appointment = make_quoted_appointment(user_id=user.id)
     sqlalchemy_appointments_repo.create(appointment)
 
     payment = make_payment(
@@ -49,11 +54,16 @@ def test_unique_external_reference_constraint(
     sqlalchemy_appointments_repo: SQLAlchemyAppointmentsRepository,
     make_vip_client,
     make_quoted_appointment,
+    make_user,
+    sqlalchemy_users_repo,
 ):
+    user = make_user()
+    sqlalchemy_users_repo.create(user)
+
     vip_client = make_vip_client()
     sqlalchemy_vip_clients_repo.create(vip_client)
 
-    appointment = make_quoted_appointment()
+    appointment = make_quoted_appointment(user_id=user.id)
     sqlalchemy_appointments_repo.create(appointment)
 
     payment1 = make_payment(
@@ -84,11 +94,16 @@ def test_null_external_reference_allows_duplicates(
     sqlalchemy_appointments_repo: SQLAlchemyAppointmentsRepository,
     make_vip_client,
     make_quoted_appointment,
+    make_user,
+    sqlalchemy_users_repo,
 ):
+    user = make_user()
+    sqlalchemy_users_repo.create(user)
+
     vip_client = make_vip_client()
     sqlalchemy_vip_clients_repo.create(vip_client)
 
-    appointment = make_quoted_appointment()
+    appointment = make_quoted_appointment(user_id=user.id)
     sqlalchemy_appointments_repo.create(appointment)
 
     payment1 = make_payment(
@@ -117,11 +132,16 @@ def test_amount_precision(
     sqlalchemy_appointments_repo: SQLAlchemyAppointmentsRepository,
     make_vip_client,
     make_quoted_appointment,
+    make_user,
+    sqlalchemy_users_repo,
 ):
+    user = make_user()
+    sqlalchemy_users_repo.create(user)
+
     vip_client = make_vip_client()
     sqlalchemy_vip_clients_repo.create(vip_client)
 
-    appointment = make_quoted_appointment()
+    appointment = make_quoted_appointment(user_id=user.id)
     sqlalchemy_appointments_repo.create(appointment)
 
     payment = make_payment(
@@ -146,11 +166,16 @@ def test_payment_method_enum_persistence(
     sqlalchemy_appointments_repo: SQLAlchemyAppointmentsRepository,
     make_vip_client,
     make_quoted_appointment,
+    make_user,
+    sqlalchemy_users_repo,
 ):
+    user = make_user()
+    sqlalchemy_users_repo.create(user)
+
     vip_client = make_vip_client()
     sqlalchemy_vip_clients_repo.create(vip_client)
 
-    appointment = make_quoted_appointment()
+    appointment = make_quoted_appointment(user_id=user.id)
     sqlalchemy_appointments_repo.create(appointment)
 
     payment = make_payment(
@@ -175,11 +200,16 @@ def test_created_at_is_persisted(
     sqlalchemy_appointments_repo: SQLAlchemyAppointmentsRepository,
     make_vip_client,
     make_quoted_appointment,
+    make_user,
+    sqlalchemy_users_repo,
 ):
+    user = make_user()
+    sqlalchemy_users_repo.create(user)
+
     vip_client = make_vip_client()
     sqlalchemy_vip_clients_repo.create(vip_client)
 
-    appointment = make_quoted_appointment()
+    appointment = make_quoted_appointment(user_id=user.id)
     sqlalchemy_appointments_repo.create(appointment)
 
     payment = make_payment(

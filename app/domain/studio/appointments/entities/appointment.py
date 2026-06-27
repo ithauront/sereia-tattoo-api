@@ -35,6 +35,7 @@ class Appointment:
         id: UUID | None = None,
         status: AppointmentStatus,
         appointment_type: AppointmentType,
+        user_id: UUID,
         start_at: datetime,
         end_at: datetime,
         placement: str,
@@ -57,6 +58,7 @@ class Appointment:
         self.id = id or uuid4()
         self.status = ensure_enum(status, AppointmentStatus)
         self.appointment_type = ensure_enum(appointment_type, AppointmentType)
+        self.user_id = user_id
         self.start_at = start_at
         self.end_at = end_at
         self.placement = placement
@@ -81,6 +83,7 @@ class Appointment:
         cls,
         *,
         appointment_type: AppointmentType,
+        user_id: UUID,
         start_at: datetime,
         end_at: datetime,
         placement: str,
@@ -95,6 +98,7 @@ class Appointment:
         return cls(
             status=AppointmentStatus.REQUESTED,
             appointment_type=appointment_type,
+            user_id=user_id,
             start_at=start_at,
             end_at=end_at,
             placement=placement,

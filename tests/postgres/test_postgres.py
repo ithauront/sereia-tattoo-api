@@ -13,19 +13,24 @@ from app.infrastructure.sqlalchemy.repositories.appointments_repository_sqlalche
 from app.infrastructure.sqlalchemy.repositories.audit_logs_repository import (
     SQLAlchemyAuditLogsRepository,
 )
+from app.infrastructure.sqlalchemy.repositories.users_repository_sqlalchemy import (
+    SQLAlchemyUsersRepository,
+)
 
 
 def test_datetime_timezone_is_preserved(
     sqlalchemy_appointments_repo: SQLAlchemyAppointmentsRepository,
     make_quoted_appointment,
+    make_user,
+    users_repo: SQLAlchemyUsersRepository,
 ):
+    user = make_user()
+    users_repo.create(user)
+
     start = datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc)
     end = datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc)
 
-    appointment = make_quoted_appointment(
-        start_at=start,
-        end_at=end,
-    )
+    appointment = make_quoted_appointment(start_at=start, end_at=end, user_id=user.id)
 
     sqlalchemy_appointments_repo.create(appointment)
 
@@ -40,10 +45,15 @@ def test_datetime_timezone_is_preserved(
 def test_timezone_is_utc_normalized(
     sqlalchemy_appointments_repo: SQLAlchemyAppointmentsRepository,
     make_quoted_appointment,
+    make_user,
+    users_repo: SQLAlchemyUsersRepository,
 ):
+    user = make_user()
+    users_repo.create(user)
+
     start = datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc)
 
-    appointment = make_quoted_appointment(start_at=start)
+    appointment = make_quoted_appointment(start_at=start, user_id=user.id)
     sqlalchemy_appointments_repo.create(appointment)
 
     found = sqlalchemy_appointments_repo.find_by_id(appointment.id)
@@ -57,8 +67,13 @@ def test_timezone_is_utc_normalized(
 def test_color_default_to_false(
     sqlalchemy_appointments_repo: SQLAlchemyAppointmentsRepository,
     make_appointment_base,
+    make_user,
+    users_repo: SQLAlchemyUsersRepository,
 ):
-    appointment = make_appointment_base(color=None)
+    user = make_user()
+    users_repo.create(user)
+
+    appointment = make_appointment_base(color=None, user_id=user.id)
 
     sqlalchemy_appointments_repo.create(appointment)
 
@@ -72,8 +87,13 @@ def test_color_default_to_false(
 def test_posted_on_socials_default_to_false(
     sqlalchemy_appointments_repo: SQLAlchemyAppointmentsRepository,
     make_appointment_base,
+    make_user,
+    users_repo: SQLAlchemyUsersRepository,
 ):
-    appointment = make_appointment_base(is_posted_on_socials=None)
+    user = make_user()
+    users_repo.create(user)
+
+    appointment = make_appointment_base(is_posted_on_socials=None, user_id=user.id)
 
     sqlalchemy_appointments_repo.create(appointment)
 
@@ -108,8 +128,13 @@ def test_db_rejects_invalid_status_enum_check(db_session):
 def test_numeric_decimal_precision_is_preserved(
     sqlalchemy_appointments_repo,
     make_quoted_appointment,
+    make_user,
+    users_repo: SQLAlchemyUsersRepository,
 ):
-    appointment = make_quoted_appointment(price=Decimal("10.50"))
+    user = make_user()
+    users_repo.create(user)
+
+    appointment = make_quoted_appointment(price=Decimal("10.50"), user_id=user.id)
 
     sqlalchemy_appointments_repo.create(appointment)
 
@@ -134,14 +159,22 @@ def test_json_persistence_in_postgress(
 
 
 def test_session_recovers_after_rollback(
-    db_session, sqlalchemy_appointments_repo, make_quoted_appointment
+    db_session,
+    sqlalchemy_appointments_repo,
+    make_quoted_appointment,
+    make_user,
+    users_repo: SQLAlchemyUsersRepository,
 ):
+    user = make_user()
+    users_repo.create(user)
+
     now = datetime.now(timezone.utc)
 
     invalid = AppointmentModel(
         id=uuid4(),
         status="INVALID",
         appointment_type=AppointmentType.TATTOO,
+        user_id=user.id,
         start_at=now,
         end_at=now + timedelta(hours=1),
         placement="x",

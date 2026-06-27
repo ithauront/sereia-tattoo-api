@@ -1,18 +1,19 @@
+from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
-from datetime import datetime, timedelta, timezone
 import pytest
 
 from app.application.studio.use_cases.DTO.commun import Direction
-from app.domain.studio.appointments.entities.value_objects.client_info import (
-    ClientInfo,
-    NonVipContact,
-)
 from app.core.types.appointment_enums import (
     AppointmentStatus,
     AppointmentType,
 )
+from app.domain.studio.appointments.entities.value_objects.client_info import (
+    ClientInfo,
+    NonVipContact,
+)
 from tests.fakes.fake_appointments_repository import FakeAppointmentsRepository
+from tests.fakes.fake_users_repository import FakeUsersRepository
 from tests.fakes.fake_vip_clients_repository import FakeVipClientsRepository
 
 
@@ -26,8 +27,15 @@ def vip_client_repo():
     return FakeVipClientsRepository()
 
 
-def test_create_and_find_by_id(make_completed_appointment, appointments_repo):
-    appointment = make_completed_appointment()
+@pytest.fixture
+def users_repo():
+    return FakeUsersRepository()
+
+
+def test_create_and_find_by_id(make_completed_appointment, appointments_repo, make_user, users_repo):
+    user = make_user()
+    users_repo.create(user)
+    appointment = make_completed_appointment(user_id=user.id)
 
     appointments_repo.create(appointment)
 
@@ -37,20 +45,31 @@ def test_create_and_find_by_id(make_completed_appointment, appointments_repo):
     assert found.status == AppointmentStatus.COMPLETED
 
 
-def test_not_found_by_id(appointments_repo):
+def test_not_found_by_id(appointments_repo, make_user, users_repo):
+    user = make_user()
+    users_repo.create(user)
+
     found = appointments_repo.find_by_id(appointment_id=uuid4())
 
     assert found is None
 
 
 def test_vip_client_in_client_info(
-    vip_client_repo, make_completed_appointment, appointments_repo, make_vip_client
+    vip_client_repo,
+    make_completed_appointment,
+    appointments_repo,
+    make_vip_client,
+    make_user,
+    users_repo,
 ):
+    user = make_user()
+    users_repo.create(user)
+
     vip_client = make_vip_client()
     vip_client_repo.create(vip_client)
 
     appointment = make_completed_appointment(
-        client_info=ClientInfo(vip_client_id=vip_client.id)
+        client_info=ClientInfo(vip_client_id=vip_client.id), user_id=user.id
     )
     appointments_repo.create(appointment)
 
@@ -61,7 +80,11 @@ def test_vip_client_in_client_info(
     assert found.client_info.try_get_contact_info() is None
 
 
-def test_non_vip_client_in_client_info(make_completed_appointment, appointments_repo):
+def test_non_vip_client_in_client_info(
+    make_completed_appointment, appointments_repo, make_user, users_repo
+):
+    user = make_user()
+    users_repo.create(user)
 
     appointment = make_completed_appointment(
         client_info=ClientInfo(
@@ -69,22 +92,24 @@ def test_non_vip_client_in_client_info(make_completed_appointment, appointments_
             email="jhon@doe.com",
             name="Jhon Doe",
             phone="71988888888",
-        )
+        ),
+        user_id=user.id,
     )
     appointments_repo.create(appointment)
 
     found = appointments_repo.find_by_id(appointment.id)
 
-    non_vip_contact_info = NonVipContact(
-        email="jhon@doe.com", name="Jhon Doe", phone="71988888888"
-    )
+    non_vip_contact_info = NonVipContact(email="jhon@doe.com", name="Jhon Doe", phone="71988888888")
 
     assert found.client_info.is_vip is False
     assert found.client_info.try_get_contact_info() == non_vip_contact_info
 
 
-def test_update(appointments_repo, make_quoted_appointment):
-    appointment = make_quoted_appointment(color=False)
+def test_update(appointments_repo, make_quoted_appointment, make_user, users_repo):
+    user = make_user()
+    users_repo.create(user)
+
+    appointment = make_quoted_appointment(color=False, user_id=user.id)
     appointments_repo.create(appointment)
 
     before = appointments_repo.find_by_id(appointment.id)
@@ -104,12 +129,16 @@ def test_update(appointments_repo, make_quoted_appointment):
     assert after.color is True
 
 
-def test_find_many_all_queries(appointments_repo, make_quoted_appointment):
+def test_find_many_all_queries(appointments_repo, make_quoted_appointment, make_user, users_repo):
     base_time = datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc)
+
+    user = make_user()
+    users_repo.create(user)
 
     matching = make_quoted_appointment(
         start_at=base_time,
         appointment_type=AppointmentType.TATTOO,
+        user_id=user.id,
         color=True,
         is_posted_on_socials=True,
         referral_code="JHON-BLUE",
@@ -118,13 +147,14 @@ def test_find_many_all_queries(appointments_repo, make_quoted_appointment):
     appointments_repo.create(matching)
 
     for _ in range(5):
-        appointments_repo.create(make_quoted_appointment(color=False))
+        appointments_repo.create(make_quoted_appointment(color=False, user_id=user.id))
 
     result = appointments_repo.find_many(
         start_date=base_time,
         end_date=base_time + timedelta(hours=1),
         status=matching.status,
         appointment_type=AppointmentType.TATTOO,
+        user_id=user.id,
         color=True,
         is_posted_on_socials=True,
         referral_code="JHON-BLUE",
@@ -134,20 +164,26 @@ def test_find_many_all_queries(appointments_repo, make_quoted_appointment):
     assert result[0].id == matching.id
 
 
-def test_find_many_exceeds_max_limit(appointments_repo, make_quoted_appointment):
+def test_find_many_exceeds_max_limit(appointments_repo, make_quoted_appointment, make_user, users_repo):
+    user = make_user()
+    users_repo.create(user)
+
     # Max_limit is 5000
     for _ in range(6000):
-        appointments_repo.create(make_quoted_appointment(color=False))
+        appointments_repo.create(make_quoted_appointment(color=False, user_id=user.id))
 
     result = appointments_repo.find_many(color=False, limit=6000)
 
     assert len(result) == 5000
 
 
-def test_find_many_partial_queries(appointments_repo, make_quoted_appointment):
-    appointment1 = make_quoted_appointment(color=True)
-    appointment2 = make_quoted_appointment(color=True)
-    appointment3 = make_quoted_appointment(color=False)
+def test_find_many_partial_queries(appointments_repo, make_quoted_appointment, make_user, users_repo):
+    user = make_user()
+    users_repo.create(user)
+
+    appointment1 = make_quoted_appointment(color=True, user_id=user.id)
+    appointment2 = make_quoted_appointment(color=True, user_id=user.id)
+    appointment3 = make_quoted_appointment(color=False, user_id=user.id)
 
     appointments_repo.create(appointment1)
     appointments_repo.create(appointment2)
@@ -162,9 +198,12 @@ def test_find_many_partial_queries(appointments_repo, make_quoted_appointment):
     assert all(a.color for a in result)
 
 
-def test_find_many_single_query(appointments_repo, make_quoted_appointment):
-    appointment1 = make_quoted_appointment(color=True)
-    appointment2 = make_quoted_appointment(color=False)
+def test_find_many_single_query(appointments_repo, make_quoted_appointment, make_user, users_repo):
+    user = make_user()
+    users_repo.create(user)
+
+    appointment1 = make_quoted_appointment(color=True, user_id=user.id)
+    appointment2 = make_quoted_appointment(color=False, user_id=user.id)
 
     appointments_repo.create(appointment1)
     appointments_repo.create(appointment2)
@@ -175,8 +214,11 @@ def test_find_many_single_query(appointments_repo, make_quoted_appointment):
     assert result[0].color is True
 
 
-def test_find_many_no_results(appointments_repo, make_quoted_appointment):
-    appointments_repo.create(make_quoted_appointment(color=False))
+def test_find_many_no_results(appointments_repo, make_quoted_appointment, make_user, users_repo):
+    user = make_user()
+    users_repo.create(user)
+
+    appointments_repo.create(make_quoted_appointment(color=False, user_id=user.id))
 
     result = appointments_repo.find_many(color=True)
 
@@ -184,15 +226,18 @@ def test_find_many_no_results(appointments_repo, make_quoted_appointment):
 
 
 def test_find_many_with_direction_offset_and_limit(
-    appointments_repo,
-    make_quoted_appointment,
+    appointments_repo, make_quoted_appointment, make_user, users_repo
 ):
+
+    user = make_user()
+    users_repo.create(user)
+
     base_time = datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc)
 
     appointments = []
 
     for i in range(5):
-        appointment = make_quoted_appointment(start_at=base_time + timedelta(hours=i))
+        appointment = make_quoted_appointment(start_at=base_time + timedelta(hours=i), user_id=user.id)
         appointment.created_at = base_time + timedelta(hours=i)
         appointments_repo.create(appointment)
         appointments.append(appointment)
@@ -220,12 +265,13 @@ def test_find_many_with_direction_offset_and_limit(
 
 
 def test_find_many_has_deposit_filter(
-    appointments_repo,
-    make_scheduled_appointment,
-    make_quoted_appointment,
+    appointments_repo, make_scheduled_appointment, make_quoted_appointment, make_user, users_repo
 ):
-    with_deposit = make_scheduled_appointment()
-    without_deposit = make_quoted_appointment()
+    user = make_user()
+    users_repo.create(user)
+
+    with_deposit = make_scheduled_appointment(user_id=user.id)
+    without_deposit = make_quoted_appointment(user_id=user.id)
 
     appointments_repo.create(with_deposit)
     appointments_repo.create(without_deposit)
@@ -241,35 +287,37 @@ def test_find_many_has_deposit_filter(
 
 
 def test_count_many_returns_correct_total(
-    appointments_repo,
-    make_quoted_appointment,
+    appointments_repo, make_quoted_appointment, make_user, users_repo
 ):
+    user = make_user()
+    users_repo.create(user)
+
     for _ in range(5):
-        appointments_repo.create(make_quoted_appointment())
+        appointments_repo.create(make_quoted_appointment(user_id=user.id))
 
     result = appointments_repo.count_many()
 
     assert result == 5
 
 
-def test_count_many_with_filter(
-    appointments_repo,
-    make_quoted_appointment,
-):
-    appointments_repo.create(make_quoted_appointment(color=True))
-    appointments_repo.create(make_quoted_appointment(color=True))
-    appointments_repo.create(make_quoted_appointment(color=False))
+def test_count_many_with_filter(appointments_repo, make_quoted_appointment, make_user, users_repo):
+    user = make_user()
+    users_repo.create(user)
+
+    appointments_repo.create(make_quoted_appointment(color=True, user_id=user.id))
+    appointments_repo.create(make_quoted_appointment(color=True, user_id=user.id))
+    appointments_repo.create(make_quoted_appointment(color=False, user_id=user.id))
 
     result = appointments_repo.count_many(color=True)
 
     assert result == 2
 
 
-def test_count_many_no_results(
-    appointments_repo,
-    make_quoted_appointment,
-):
-    appointments_repo.create(make_quoted_appointment(color=False))
+def test_count_many_no_results(appointments_repo, make_quoted_appointment, make_user, users_repo):
+    user = make_user()
+    users_repo.create(user)
+
+    appointments_repo.create(make_quoted_appointment(color=False, user_id=user.id))
 
     result = appointments_repo.count_many(color=True)
 

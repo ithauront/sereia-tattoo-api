@@ -13,6 +13,7 @@ from sqlalchemy import (
     CheckConstraint,
     DateTime,
     Enum,
+    ForeignKey,
     Integer,
     Numeric,
     String,
@@ -48,6 +49,12 @@ class AppointmentModel(Base):
     )
     appointment_type: Mapped[AppointmentType] = mapped_column(
         Enum(AppointmentType, name="appointment_type_enum"), nullable=False, index=True
+    )
+    user_id: Mapped[pyUUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id"),
+        nullable=False,
+        index=True,
     )
     start_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

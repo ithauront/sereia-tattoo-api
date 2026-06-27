@@ -34,7 +34,9 @@ def test_complete_appointment_generates_referral_credits(
     vip_client = make_vip_client()
     write_uow.vip_clients.create(vip_client)
 
-    appointment = make_scheduled_appointment(referral_code=vip_client.client_code, price=Decimal("700"))
+    appointment = make_scheduled_appointment(
+        referral_code=vip_client.client_code, price=Decimal("700"), user_id=admin.id
+    )
     write_uow.appointments.create(appointment)
 
     payment = make_payment(
@@ -97,7 +99,9 @@ def test_complete_appointment_failure_does_not_generate_credits(
     vip_client = make_vip_client()
     write_uow.vip_clients.create(vip_client)
 
-    appointment = make_scheduled_appointment(referral_code=vip_client.client_code, price=Decimal("700"))
+    appointment = make_scheduled_appointment(
+        referral_code=vip_client.client_code, price=Decimal("700"), user_id=admin.id
+    )
     write_uow.appointments.create(appointment)
 
     payment = make_payment(

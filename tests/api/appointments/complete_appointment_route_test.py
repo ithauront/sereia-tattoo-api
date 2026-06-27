@@ -24,7 +24,7 @@ def test_complete_appointment_route_success(
     write_uow.users.create(admin)
     token = make_token(admin)
 
-    appointment = make_scheduled_appointment(price=Decimal("700"))
+    appointment = make_scheduled_appointment(price=Decimal("700"), user_id=admin.id)
     write_uow.appointments.create(appointment)
 
     payment = make_payment(appointment_id=appointment.id, amount=Decimal("700"))
@@ -62,7 +62,7 @@ def test_complete_appointment_route_double_call(
     write_uow.users.create(admin)
     token = make_token(admin)
 
-    appointment = make_scheduled_appointment(price=Decimal("700"))
+    appointment = make_scheduled_appointment(price=Decimal("700"), user_id=admin.id)
     write_uow.appointments.create(appointment)
 
     payment = make_payment(appointment_id=appointment.id, amount=Decimal("700"))
@@ -101,7 +101,7 @@ def test_complete_appointment_not_scheduled(
     write_uow.users.create(admin)
     token = make_token(admin)
 
-    appointment = make_quoted_appointment()
+    appointment = make_quoted_appointment(user_id=admin.id)
     write_uow.appointments.create(appointment)
 
     payment = make_payment(appointment_id=appointment.id, amount=Decimal("700"))
@@ -135,7 +135,7 @@ def test_complete_appointment_not_found(
     write_uow.users.create(admin)
     token = make_token(admin)
 
-    appointment = make_scheduled_appointment(price=Decimal("700"))
+    appointment = make_scheduled_appointment(price=Decimal("700"), user_id=admin.id)
     # we do not persist appointment for this test
 
     payment = make_payment(appointment_id=appointment.id, amount=Decimal("700"))
@@ -168,7 +168,7 @@ def test_complete_appointment_not_fully_paid(
     write_uow.users.create(admin)
     token = make_token(admin)
 
-    appointment = make_scheduled_appointment(price=Decimal("700"))
+    appointment = make_scheduled_appointment(price=Decimal("700"), user_id=admin.id)
     write_uow.appointments.create(appointment)
 
     payment = make_payment(appointment_id=appointment.id, amount=Decimal("100"))
@@ -204,7 +204,7 @@ def test_complete_appointment_not_admin(
     write_uow.users.create(admin)
     token = make_token(admin)
 
-    appointment = make_scheduled_appointment(price=Decimal("700"))
+    appointment = make_scheduled_appointment(price=Decimal("700"), user_id=admin.id)
     write_uow.appointments.create(appointment)
 
     payment = make_payment(appointment_id=appointment.id, amount=Decimal("700"))
@@ -240,7 +240,7 @@ def test_complete_appointment_inactive_admin(
     write_uow.users.create(admin)
     token = make_token(admin)
 
-    appointment = make_scheduled_appointment(price=Decimal("700"))
+    appointment = make_scheduled_appointment(price=Decimal("700"), user_id=admin.id)
     write_uow.appointments.create(appointment)
 
     payment = make_payment(appointment_id=appointment.id, amount=Decimal("700"))
@@ -276,7 +276,7 @@ def test_complete_appointment_non_existent_user(
     # we do not persist user for this test
     token = make_token(admin)
 
-    appointment = make_scheduled_appointment(price=Decimal("700"))
+    appointment = make_scheduled_appointment(price=Decimal("700"), user_id=admin.id)
     write_uow.appointments.create(appointment)
 
     payment = make_payment(appointment_id=appointment.id, amount=Decimal("700"))

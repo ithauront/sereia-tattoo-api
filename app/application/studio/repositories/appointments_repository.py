@@ -5,11 +5,11 @@ from uuid import UUID
 
 from app.application.studio.use_cases.DTO.client_filters import ClientInfoFilter
 from app.application.studio.use_cases.DTO.commun import Direction
-from app.domain.studio.appointments.entities.appointment import Appointment
 from app.core.types.appointment_enums import (
     AppointmentStatus,
     AppointmentType,
 )
+from app.domain.studio.appointments.entities.appointment import Appointment
 from app.domain.studio.value_objects.client_code import ClientCode
 
 
@@ -31,6 +31,7 @@ class AppointmentsRepository(ABC):
         end_date: datetime | None = None,
         status: AppointmentStatus | None = None,
         appointment_type: AppointmentType | None = None,
+        user_id: UUID | None = None,
         client_info: ClientInfoFilter | None = None,
         color: bool | None = None,
         is_posted_on_socials: bool | None = None,
@@ -49,6 +50,7 @@ class AppointmentsRepository(ABC):
         end_date: datetime | None = None,
         status: AppointmentStatus | None = None,
         appointment_type: AppointmentType | None = None,
+        user_id: UUID | None = None,
         client_info: ClientInfoFilter | None = None,
         color: bool | None = None,
         is_posted_on_socials: bool | None = None,

@@ -7,11 +7,11 @@ from app.application.studio.repositories.appointments_repository import (
 )
 from app.application.studio.use_cases.DTO.client_filters import ClientInfoFilter
 from app.application.studio.use_cases.DTO.commun import Direction
-from app.domain.studio.appointments.entities.appointment import Appointment
 from app.core.types.appointment_enums import (
     AppointmentStatus,
     AppointmentType,
 )
+from app.domain.studio.appointments.entities.appointment import Appointment
 from app.domain.studio.value_objects.client_code import ClientCode
 
 
@@ -42,6 +42,7 @@ class FakeAppointmentsRepository(AppointmentsRepository):
         end_date: datetime | None = None,
         status: AppointmentStatus | None = None,
         appointment_type: AppointmentType | None = None,
+        user_id: UUID | None = None,
         client_info: ClientInfoFilter | None = None,
         color: bool | None = None,
         is_posted_on_socials: bool | None = None,
@@ -60,6 +61,7 @@ class FakeAppointmentsRepository(AppointmentsRepository):
             end_date=end_date,
             status=status,
             appointment_type=appointment_type,
+            user_id=user_id,
             client_info=client_info,
             color=color,
             is_posted_on_socials=is_posted_on_socials,
@@ -79,6 +81,7 @@ class FakeAppointmentsRepository(AppointmentsRepository):
         end_date: datetime | None = None,
         status: AppointmentStatus | None = None,
         appointment_type: AppointmentType | None = None,
+        user_id: UUID | None = None,
         client_info: ClientInfoFilter | None = None,
         color: bool | None = None,
         is_posted_on_socials: bool | None = None,
@@ -90,6 +93,7 @@ class FakeAppointmentsRepository(AppointmentsRepository):
             end_date=end_date,
             status=status,
             appointment_type=appointment_type,
+            user_id=user_id,
             client_info=client_info,
             color=color,
             is_posted_on_socials=is_posted_on_socials,
@@ -106,6 +110,7 @@ class FakeAppointmentsRepository(AppointmentsRepository):
         end_date: datetime | None,
         status: AppointmentStatus | None,
         appointment_type: AppointmentType | None,
+        user_id: UUID | None,
         client_info: ClientInfoFilter | None,
         color: bool | None,
         is_posted_on_socials: bool | None,
@@ -115,22 +120,12 @@ class FakeAppointmentsRepository(AppointmentsRepository):
         filtered = list(self._appointments)
 
         if start_date is not None:
-            filtered = [
-                appointment
-                for appointment in filtered
-                if appointment.end_at >= start_date
-            ]
+            filtered = [appointment for appointment in filtered if appointment.end_at >= start_date]
         if end_date is not None:
-            filtered = [
-                appointment
-                for appointment in filtered
-                if appointment.start_at <= end_date
-            ]
+            filtered = [appointment for appointment in filtered if appointment.start_at <= end_date]
 
         if color is not None:
-            filtered = [
-                appointment for appointment in filtered if appointment.color == color
-            ]
+            filtered = [appointment for appointment in filtered if appointment.color == color]
         if is_posted_on_socials is not None:
             filtered = [
                 appointment
@@ -140,15 +135,11 @@ class FakeAppointmentsRepository(AppointmentsRepository):
 
         if has_deposit is True:
             filtered = [
-                appointment
-                for appointment in filtered
-                if appointment.deposit_confirmed_at is not None
+                appointment for appointment in filtered if appointment.deposit_confirmed_at is not None
             ]
         elif has_deposit is False:
             filtered = [
-                appointment
-                for appointment in filtered
-                if appointment.deposit_confirmed_at is None
+                appointment for appointment in filtered if appointment.deposit_confirmed_at is None
             ]
 
         if client_info is not None:
@@ -156,8 +147,7 @@ class FakeAppointmentsRepository(AppointmentsRepository):
                 filtered = [
                     appointment
                     for appointment in filtered
-                    if appointment.client_info.vip_client_id
-                    == client_info.vip_client_id
+                    if appointment.client_info.vip_client_id == client_info.vip_client_id
                 ]
             else:
                 if client_info.email is not None:
@@ -175,15 +165,11 @@ class FakeAppointmentsRepository(AppointmentsRepository):
 
         if referral_code is not None:
             filtered = [
-                appointment
-                for appointment in filtered
-                if appointment.referral_code == referral_code
+                appointment for appointment in filtered if appointment.referral_code == referral_code
             ]
 
         if status is not None:
-            filtered = [
-                appointment for appointment in filtered if appointment.status == status
-            ]
+            filtered = [appointment for appointment in filtered if appointment.status == status]
 
         if appointment_type is not None:
             filtered = [
@@ -191,6 +177,9 @@ class FakeAppointmentsRepository(AppointmentsRepository):
                 for appointment in filtered
                 if appointment.appointment_type == appointment_type
             ]
+
+        if user_id is not None:
+            filtered = [appointment for appointment in filtered if appointment.user_id == user_id]
 
         return filtered
 

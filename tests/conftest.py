@@ -328,6 +328,7 @@ def make_appointment_base():
                 AppointmentStatus.REQUESTED,
             ),
             appointment_type=kwargs.get("appointment_type", AppointmentType.TATTOO),
+            user_id=kwargs.get("user_id", uuid4()),
             start_at=start_at,
             end_at=end_at,
             placement=kwargs.get("placement", "ombro-cotovelo"),

@@ -5,14 +5,17 @@ from uuid import uuid4
 import pytest
 from sqlalchemy.exc import IntegrityError
 
-from app.domain.studio.appointments.entities.value_objects.client_info import ClientInfo
 from app.core.types.appointment_enums import (
     AppointmentStatus,
     AppointmentType,
 )
+from app.domain.studio.appointments.entities.value_objects.client_info import ClientInfo
 from app.infrastructure.sqlalchemy.models.appointments import AppointmentModel
 from app.infrastructure.sqlalchemy.repositories.appointments_repository_sqlalchemy import (
     SQLAlchemyAppointmentsRepository,
+)
+from app.infrastructure.sqlalchemy.repositories.users_repository_sqlalchemy import (
+    SQLAlchemyUsersRepository,
 )
 from app.infrastructure.sqlalchemy.repositories.vip_clients_repository_sqlalchemy import (
     SQLAlchemyVipClientsRepository,
@@ -22,8 +25,13 @@ from app.infrastructure.sqlalchemy.repositories.vip_clients_repository_sqlalchem
 def test_create_and_find_by_id(
     sqlalchemy_appointments_repo: SQLAlchemyAppointmentsRepository,
     make_quoted_appointment,
+    sqlalchemy_users_repo: SQLAlchemyUsersRepository,
+    make_user,
 ):
-    appointment = make_quoted_appointment(price=Decimal("700"))
+    user = make_user()
+    sqlalchemy_users_repo.create(user)
+
+    appointment = make_quoted_appointment(price=Decimal("700"), user_id=user.id)
     sqlalchemy_appointments_repo.create(appointment)
 
     found = sqlalchemy_appointments_repo.find_by_id(appointment.id)
@@ -33,13 +41,22 @@ def test_create_and_find_by_id(
     assert found.status == AppointmentStatus.QUOTED
 
 
-def test_db_constraint_rejects_invalid_client_info(db_session):
+def test_db_constraint_rejects_invalid_client_info(
+    db_session,
+    make_user,
+    sqlalchemy_users_repo,
+):
+
+    user = make_user()
+    sqlalchemy_users_repo.create(user)
+
     now = datetime.now(timezone.utc)
 
     invalid = AppointmentModel(
         id=uuid4(),
         status=AppointmentStatus.REQUESTED,
         appointment_type=AppointmentType.TATTOO,
+        user_id=user.id,
         start_at=now + timedelta(days=1),
         end_at=now + timedelta(days=1, hours=2),
         placement="ombro",
@@ -70,8 +87,13 @@ def test_db_constraint_rejects_invalid_client_info(db_session):
 def test_update(
     sqlalchemy_appointments_repo: SQLAlchemyAppointmentsRepository,
     make_quoted_appointment,
+    make_user,
+    sqlalchemy_users_repo,
 ):
-    appointment = make_quoted_appointment(price=Decimal("700"))
+    user = make_user()
+    sqlalchemy_users_repo.create(user)
+
+    appointment = make_quoted_appointment(price=Decimal("700"), user_id=user.id)
     sqlalchemy_appointments_repo.create(appointment)
 
     before = sqlalchemy_appointments_repo.find_by_id(appointment.id)
@@ -93,11 +115,16 @@ def test_persists_vip_client_correctly(
     sqlalchemy_vip_clients_repo: SQLAlchemyVipClientsRepository,
     make_quoted_appointment,
     sqlalchemy_appointments_repo: SQLAlchemyAppointmentsRepository,
+    make_user,
+    sqlalchemy_users_repo,
 ):
+    user = make_user()
+    sqlalchemy_users_repo.create(user)
+
     vip = make_vip_client()
     sqlalchemy_vip_clients_repo.create(vip)
 
-    appointment = make_quoted_appointment(client_info=ClientInfo(vip_client_id=vip.id))
+    appointment = make_quoted_appointment(client_info=ClientInfo(vip_client_id=vip.id), user_id=user.id)
 
     sqlalchemy_appointments_repo.create(appointment)
 
@@ -112,14 +139,20 @@ def test_persists_vip_client_correctly(
 def test_persists_non_vip_client_correctly(
     make_quoted_appointment,
     sqlalchemy_appointments_repo: SQLAlchemyAppointmentsRepository,
+    make_user,
+    sqlalchemy_users_repo,
 ):
+    user = make_user()
+    sqlalchemy_users_repo.create(user)
+
     appointment = make_quoted_appointment(
         client_info=ClientInfo(
             vip_client_id=None,
             name="John Doe",
             email="john@doe.com",
             phone="71988888888",
-        )
+        ),
+        user_id=user.id,
     )
 
     sqlalchemy_appointments_repo.create(appointment)
@@ -137,14 +170,18 @@ def test_update_switches_from_non_vip_to_vip(
     sqlalchemy_vip_clients_repo: SQLAlchemyVipClientsRepository,
     make_quoted_appointment,
     sqlalchemy_appointments_repo: SQLAlchemyAppointmentsRepository,
+    make_user,
+    sqlalchemy_users_repo,
 ):
+    user = make_user()
+    sqlalchemy_users_repo.create(user)
+
     vip = make_vip_client()
     sqlalchemy_vip_clients_repo.create(vip)
 
     appointment = make_quoted_appointment(
-        client_info=ClientInfo(
-            name="John Doe", email="jhon@doe.com", phone="71988888888"
-        )
+        client_info=ClientInfo(name="John Doe", email="jhon@doe.com", phone="71988888888"),
+        user_id=user.id,
     )
     sqlalchemy_appointments_repo.create(appointment)
 
@@ -163,9 +200,14 @@ def test_update_switches_from_non_vip_to_vip(
 def test_find_many_filters_by_color(
     sqlalchemy_appointments_repo: SQLAlchemyAppointmentsRepository,
     make_quoted_appointment,
+    make_user,
+    sqlalchemy_users_repo,
 ):
-    appointment1 = make_quoted_appointment(color=True)
-    appointment2 = make_quoted_appointment(color=False)
+    user = make_user()
+    sqlalchemy_users_repo.create(user)
+
+    appointment1 = make_quoted_appointment(color=True, user_id=user.id)
+    appointment2 = make_quoted_appointment(color=False, user_id=user.id)
 
     sqlalchemy_appointments_repo.create(appointment1)
     sqlalchemy_appointments_repo.create(appointment2)
@@ -178,9 +220,14 @@ def test_find_many_filters_by_color(
 def test_count_matches_find_many(
     sqlalchemy_appointments_repo: SQLAlchemyAppointmentsRepository,
     make_quoted_appointment,
+    make_user,
+    sqlalchemy_users_repo,
 ):
-    appointment1 = make_quoted_appointment(color=True)
-    appointment2 = make_quoted_appointment(color=False)
+    user = make_user()
+    sqlalchemy_users_repo.create(user)
+
+    appointment1 = make_quoted_appointment(color=True, user_id=user.id)
+    appointment2 = make_quoted_appointment(color=False, user_id=user.id)
 
     sqlalchemy_appointments_repo.create(appointment1)
     sqlalchemy_appointments_repo.create(appointment2)

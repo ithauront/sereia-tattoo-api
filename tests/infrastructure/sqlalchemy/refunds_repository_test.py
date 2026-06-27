@@ -43,7 +43,7 @@ def test_create_and_find_by_id(
     vip_client = make_vip_client()
     sqlalchemy_vip_clients_repo.create(vip_client)
 
-    appointment = make_quoted_appointment()
+    appointment = make_quoted_appointment(user_id=user.id)
     sqlalchemy_appointments_repo.create(appointment)
 
     payment = make_payment(appointment_id=appointment.id, vip_client_id=vip_client.id)
@@ -85,7 +85,7 @@ def test_amount_precision(
     vip_client = make_vip_client()
     sqlalchemy_vip_clients_repo.create(vip_client)
 
-    appointment = make_quoted_appointment()
+    appointment = make_quoted_appointment(user_id=user.id)
     sqlalchemy_appointments_repo.create(appointment)
 
     payment = make_payment(appointment_id=appointment.id, vip_client_id=vip_client.id)
@@ -126,7 +126,7 @@ def test_refund_method_enum_persistence(
     vip_client = make_vip_client()
     sqlalchemy_vip_clients_repo.create(vip_client)
 
-    appointment = make_quoted_appointment()
+    appointment = make_quoted_appointment(user_id=user.id)
     sqlalchemy_appointments_repo.create(appointment)
 
     payment = make_payment(appointment_id=appointment.id, vip_client_id=vip_client.id)
@@ -165,7 +165,7 @@ def test_refund_status_enum_persistence(
     vip_client = make_vip_client()
     sqlalchemy_vip_clients_repo.create(vip_client)
 
-    appointment = make_quoted_appointment()
+    appointment = make_quoted_appointment(user_id=user.id)
     sqlalchemy_appointments_repo.create(appointment)
 
     payment = make_payment(appointment_id=appointment.id, vip_client_id=vip_client.id)
@@ -205,7 +205,7 @@ def test_created_at_is_persisted(
     vip_client = make_vip_client()
     sqlalchemy_vip_clients_repo.create(vip_client)
 
-    appointment = make_quoted_appointment()
+    appointment = make_quoted_appointment(user_id=user.id)
     sqlalchemy_appointments_repo.create(appointment)
 
     payment = make_payment(appointment_id=appointment.id, vip_client_id=vip_client.id)
@@ -246,7 +246,7 @@ def test_vip_client_id_is_persisted(
     vip_client = make_vip_client()
     sqlalchemy_vip_clients_repo.create(vip_client)
 
-    appointment = make_quoted_appointment()
+    appointment = make_quoted_appointment(user_id=user.id)
     sqlalchemy_appointments_repo.create(appointment)
 
     payment = make_payment(appointment_id=appointment.id, vip_client_id=vip_client.id)
@@ -333,7 +333,7 @@ def test_find_many_order_asc(
     vip_client = make_vip_client()
     sqlalchemy_vip_clients_repo.create(vip_client)
 
-    appointment = make_quoted_appointment()
+    appointment = make_quoted_appointment(user_id=user.id)
     sqlalchemy_appointments_repo.create(appointment)
 
     payment = make_payment(appointment_id=appointment.id, vip_client_id=vip_client.id)
@@ -386,7 +386,7 @@ def test_find_many_pagination(
     vip_client = make_vip_client()
     sqlalchemy_vip_clients_repo.create(vip_client)
 
-    appointment = make_quoted_appointment()
+    appointment = make_quoted_appointment(user_id=user.id)
     sqlalchemy_appointments_repo.create(appointment)
 
     payment = make_payment(appointment_id=appointment.id, vip_client_id=vip_client.id)

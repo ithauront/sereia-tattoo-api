@@ -2,22 +2,21 @@ from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
-from sqlalchemy import func, select
-from sqlalchemy.orm import Session
-
 from app.application.studio.repositories.appointments_repository import (
     AppointmentsRepository,
 )
 from app.application.studio.use_cases.DTO.client_filters import ClientInfoFilter
 from app.application.studio.use_cases.DTO.commun import Direction
-from app.domain.studio.appointments.entities.appointment import Appointment
-from app.domain.studio.appointments.entities.value_objects.client_info import ClientInfo
 from app.core.types.appointment_enums import (
     AppointmentStatus,
     AppointmentType,
 )
+from app.domain.studio.appointments.entities.appointment import Appointment
+from app.domain.studio.appointments.entities.value_objects.client_info import ClientInfo
 from app.domain.studio.value_objects.client_code import ClientCode
 from app.infrastructure.sqlalchemy.models.appointments import AppointmentModel
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
 
 
 class SQLAlchemyAppointmentsRepository(AppointmentsRepository):
@@ -31,9 +30,7 @@ class SQLAlchemyAppointmentsRepository(AppointmentsRepository):
         self.session.flush()
 
     def find_by_id(self, appointment_id: UUID) -> Optional[Appointment]:
-        appointment_in_question = select(AppointmentModel).where(
-            AppointmentModel.id == appointment_id
-        )
+        appointment_in_question = select(AppointmentModel).where(AppointmentModel.id == appointment_id)
         orm_appointment = self.session.scalar(appointment_in_question)
 
         if orm_appointment is None:
@@ -42,9 +39,7 @@ class SQLAlchemyAppointmentsRepository(AppointmentsRepository):
         return self._to_entity(orm_appointment)
 
     def update(self, appointment: Appointment) -> None:
-        appointment_in_question = select(AppointmentModel).where(
-            AppointmentModel.id == appointment.id
-        )
+        appointment_in_question = select(AppointmentModel).where(AppointmentModel.id == appointment.id)
         orm_appointment = self.session.scalar(appointment_in_question)
 
         if orm_appointment is None:
@@ -62,13 +57,12 @@ class SQLAlchemyAppointmentsRepository(AppointmentsRepository):
             orm_appointment.client_phone = appointment.client_info.phone
 
         orm_appointment.referral_code = (
-            str(appointment.referral_code)
-            if appointment.referral_code is not None
-            else None
+            str(appointment.referral_code) if appointment.referral_code is not None else None
         )
 
         orm_appointment.status = appointment.status
         orm_appointment.appointment_type = appointment.appointment_type
+        orm_appointment.user_id = appointment.user_id
         orm_appointment.start_at = appointment.start_at
         orm_appointment.end_at = appointment.end_at
         orm_appointment.placement = appointment.placement
@@ -92,6 +86,7 @@ class SQLAlchemyAppointmentsRepository(AppointmentsRepository):
         end_date: datetime | None = None,
         status: AppointmentStatus | None = None,
         appointment_type: AppointmentType | None = None,
+        user_id: UUID | None = None,
         client_info: ClientInfoFilter | None = None,
         color: bool | None = None,
         is_posted_on_socials: bool | None = None,
@@ -110,6 +105,7 @@ class SQLAlchemyAppointmentsRepository(AppointmentsRepository):
             end_date=end_date,
             status=status,
             appointment_type=appointment_type,
+            user_id=user_id,
             client_info=client_info,
             color=color,
             is_posted_on_socials=is_posted_on_socials,
@@ -119,9 +115,7 @@ class SQLAlchemyAppointmentsRepository(AppointmentsRepository):
 
         appointments_in_question = select(AppointmentModel).where(*filters)
 
-        appointments_in_question = self._apply_order(
-            appointments_in_question, direction=direction
-        )
+        appointments_in_question = self._apply_order(appointments_in_question, direction=direction)
         appointments_in_question = appointments_in_question.limit(limit).offset(offset)
 
         return [
@@ -136,6 +130,7 @@ class SQLAlchemyAppointmentsRepository(AppointmentsRepository):
         end_date: datetime | None = None,
         status: AppointmentStatus | None = None,
         appointment_type: AppointmentType | None = None,
+        user_id: UUID | None = None,
         client_info: ClientInfoFilter | None = None,
         color: bool | None = None,
         is_posted_on_socials: bool | None = None,
@@ -147,6 +142,7 @@ class SQLAlchemyAppointmentsRepository(AppointmentsRepository):
             end_date=end_date,
             status=status,
             appointment_type=appointment_type,
+            user_id=user_id,
             client_info=client_info,
             color=color,
             is_posted_on_socials=is_posted_on_socials,
@@ -164,6 +160,7 @@ class SQLAlchemyAppointmentsRepository(AppointmentsRepository):
         end_date: datetime | None,
         status: AppointmentStatus | None,
         appointment_type: AppointmentType | None,
+        user_id: UUID | None,
         client_info: ClientInfoFilter | None,
         color: bool | None,
         is_posted_on_socials: bool | None,
@@ -180,9 +177,7 @@ class SQLAlchemyAppointmentsRepository(AppointmentsRepository):
         if color is not None:
             filters.append(AppointmentModel.color == color)
         if is_posted_on_socials is not None:
-            filters.append(
-                AppointmentModel.is_posted_on_socials == is_posted_on_socials
-            )
+            filters.append(AppointmentModel.is_posted_on_socials == is_posted_on_socials)
 
         if has_deposit is True:
             filters.append(AppointmentModel.deposit_confirmed_at.is_not(None))
@@ -191,9 +186,7 @@ class SQLAlchemyAppointmentsRepository(AppointmentsRepository):
 
         if client_info is not None:
             if client_info.vip_client_id is not None:
-                filters.append(
-                    AppointmentModel.vip_client_id == client_info.vip_client_id
-                )
+                filters.append(AppointmentModel.vip_client_id == client_info.vip_client_id)
             else:
                 if client_info.email is not None:
                     filters.append(AppointmentModel.client_email == client_info.email)
@@ -209,6 +202,9 @@ class SQLAlchemyAppointmentsRepository(AppointmentsRepository):
         if appointment_type is not None:
             filters.append(AppointmentModel.appointment_type == appointment_type)
 
+        if user_id is not None:
+            filters.append(AppointmentModel.user_id == user_id)
+
         return filters
 
     def _to_model(self, appointment: Appointment) -> AppointmentModel:
@@ -223,16 +219,13 @@ class SQLAlchemyAppointmentsRepository(AppointmentsRepository):
             client_email = appointment.client_info.email
             client_phone = appointment.client_info.phone
 
-        referral_code = (
-            str(appointment.referral_code)
-            if appointment.referral_code is not None
-            else None
-        )
+        referral_code = str(appointment.referral_code) if appointment.referral_code is not None else None
 
         return AppointmentModel(
             id=appointment.id,
             status=appointment.status,
             appointment_type=appointment.appointment_type,
+            user_id=appointment.user_id,
             start_at=appointment.start_at,
             end_at=appointment.end_at,
             placement=appointment.placement,
@@ -280,6 +273,7 @@ class SQLAlchemyAppointmentsRepository(AppointmentsRepository):
         return Appointment(
             id=UUID(str(orm_appointment.id)),
             appointment_type=orm_appointment.appointment_type,
+            user_id=orm_appointment.user_id,
             status=orm_appointment.status,
             start_at=orm_appointment.start_at,
             end_at=orm_appointment.end_at,
