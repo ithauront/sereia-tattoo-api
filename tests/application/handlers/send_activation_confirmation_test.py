@@ -17,6 +17,8 @@ async def test_send_activation_confirmation_handler_sends_email():
     await handler.handle(event)
 
     assert email_service.sent is True
+    assert email_service.last_payload is not None
+
     assert email_service.last_payload["to"] == "jhon@doe.com"
     assert email_service.last_payload["subject"] == "Parabéns, sua conta foi ativada!"
     assert (
