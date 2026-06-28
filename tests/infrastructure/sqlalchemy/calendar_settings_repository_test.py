@@ -37,6 +37,7 @@ def test_user_cannot_have_more_than_one_calendar(
     sqlalchemy_users_repo: SQLAlchemyUsersRepository,
     make_user,
     make_calendar_settings,
+    db_session,
 ):
     user = make_user()
 
@@ -44,6 +45,10 @@ def test_user_cannot_have_more_than_one_calendar(
 
     first_calendar = make_calendar_settings(user_id=user.id)
     sqlalchemy_calendar_settings_repo.create(first_calendar)
+
+    db_session.expunge_all()
+    # Expunge to not have warning conflicts with persistent instance
+    # this is acceptable here because it is exactly what whe are testing
 
     second_calendar = make_calendar_settings(user_id=user.id)
 
