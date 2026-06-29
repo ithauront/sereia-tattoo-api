@@ -37,7 +37,7 @@ def test_update_with_unrealistic_time_frame():
 
 
 def test_is_avaiable_for_true():
-    working_period = WorkingPeriod.create(weekday=3, start_at=time(12, 00), end_at=time(14, 00))
+    working_period = WorkingPeriod.create(weekday=3, start_at=time(12, 00), end_at=time(20, 00))
 
     available = working_period.is_available_for(start=time(18, 00), end=time(20, 00))
 
