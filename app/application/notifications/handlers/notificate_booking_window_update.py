@@ -11,7 +11,6 @@ If a error happens here the only consequence is the email will not be sent.
 """
 
 
-# TODO criar teste para o hanlder
 # TODO: esse handler vai ser chamado em duas situações
 # 1 no usecase de atualizar booking manualmente a gente vai publicar o evento no integration bus e passar o uow
 # 2 no script de atualizar booking automaticamente a gente vai publicar o evento no integration bus e passar o uow

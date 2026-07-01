@@ -8,9 +8,6 @@ from app.core.exceptions.calendar import (
 from app.core.types.calendar_enums import CalendarExceptionType
 
 
-# TODO: completar fazendo os metodos e tudo mais
-# TODO: fazer repo
-# TODO: fazer sql model and repo
 # TODO: fazer fake repo e teste do repo real e fake
 class CalendarException:
     def __init__(
@@ -93,6 +90,14 @@ class CalendarException:
         self.reason = reason
 
         self._touch()
+
+    def overlaps(
+        self,
+        *,
+        start_at: datetime,
+        end_at: datetime,
+    ) -> bool:
+        return self.start_at <= end_at and self.end_at >= start_at
 
     def is_active(self) -> bool:
         now = self._utc_now()

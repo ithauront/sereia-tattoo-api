@@ -11,9 +11,6 @@ from app.domain.studio.appointments.entities.working_period import WorkingPeriod
 from app.domain.studio.appointments.events.booking_window_updated import BookingWindowUpdated
 
 
-# TODO: fazer repo
-# TODO: fazer sql model and repo
-# TODO: fazer fake repo e teste do repo real e fake
 class CalendarSettings:
     def __init__(
         self,

@@ -7,10 +7,6 @@ from app.core.exceptions.calendar import (
 )
 
 
-# TODO: completar fazendo os metodos e tudo mais
-# TODO: essa entity não tem repo. ela é atualizada atraves do calendar settings
-# TODO: fazer sql model e nos metodos de calendar setting do repo atualizar ela tambem
-# TODO: fazer fake repo e teste do repo real e fake
 class WorkingPeriod:
     def __init__(
         self,

@@ -1,11 +1,11 @@
 from datetime import datetime
 from typing import Dict
-
-from sqlalchemy import JSON, DateTime, Enum, ForeignKey, String, Text
+from uuid import UUID as pyUUID
+from uuid import uuid4
 
 from app.core.types.audit_actor_type import AuditActorType
 from app.infrastructure.sqlalchemy.base_class import Base
-from uuid import uuid4, UUID as pyUUID
+from sqlalchemy import JSON, DateTime, Enum, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -13,9 +13,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 class AuditLogsModel(Base):
     __tablename__ = "audit_logs"
 
-    id: Mapped[pyUUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid4
-    )
+    id: Mapped[pyUUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
 
     entity_name: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
 

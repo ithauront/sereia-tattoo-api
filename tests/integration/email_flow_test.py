@@ -11,6 +11,7 @@ from tests.integration.utils.wait_until import wait_until
 client = TestClient(app)
 
 
+# TODO: quando tiver a rota e o script de atualizar o booking window testar se esses fluxos vão enviar o email
 def test_create_user_triggers_email(write_uow, read_uow, make_user, make_token, jwt_service_instance):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)

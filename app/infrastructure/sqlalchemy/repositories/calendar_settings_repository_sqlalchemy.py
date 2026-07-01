@@ -10,7 +10,6 @@ from sqlalchemy import exists, select
 from sqlalchemy.orm import Session
 
 
-# TODO: fazer todos os metodos e fazer testes fazer fake e teste tambem
 class SQLAlchemyCalendarSettingsRepository(CalendarSettingsRepository):
     def __init__(self, session: Session):
         self.session = session
