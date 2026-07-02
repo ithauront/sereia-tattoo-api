@@ -7,6 +7,9 @@ from app.infrastructure.sqlalchemy.repositories.appointments_repository_sqlalche
 from app.infrastructure.sqlalchemy.repositories.audit_logs_repository import (
     SQLAlchemyAuditLogsRepository,
 )
+from app.infrastructure.sqlalchemy.repositories.calendar_exceptions_repository_sqlalchemy import (
+    SQLAlchemyCalendarExceptionsRepository,
+)
 from app.infrastructure.sqlalchemy.repositories.calendar_settings_repository_sqlalchemy import (
     SQLAlchemyCalendarSettingsRepository,
 )
@@ -39,6 +42,7 @@ class SqlAlchemyWriteUnitOfWork(WriteUnitOfWork):
         self.audit_logs = SQLAlchemyAuditLogsRepository(self.session)
         self.refunds = SQLAlchemyRefundsRepository(self.session)
         self.calendar_settings = SQLAlchemyCalendarSettingsRepository(self.session)
+        self.calendar_exceptions = SQLAlchemyCalendarExceptionsRepository(self.session)
 
     def __enter__(self):
         return self

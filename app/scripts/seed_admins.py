@@ -5,14 +5,13 @@ from app.infrastructure.sqlalchemy.repositories.users_repository_sqlalchemy impo
 )
 from app.infrastructure.sqlalchemy.session import SessionLocal
 
-
 ADMINS = [
     {"username": "admin1", "password": "admin1pass"},
     {"username": "admin2", "password": "admin2pass"},
 ]
 
 
-# TODO esse script ja esta deprecated
+# TODO esse script ja esta deprecated é necessario refazer ele usando a forma correta de criar admins
 def seed_admins():
     db = SessionLocal()
 
