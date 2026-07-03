@@ -15,12 +15,14 @@ from app.core.types.appointment_enums import (
     AppointmentType,
 )
 from app.core.types.audit_actor_type import AuditActorType
+from app.core.types.calendar_enums import CalendarExceptionType
 from app.core.types.client_credit_source_type import (
     ClientCreditSourceType,
 )
 from app.core.types.payment_enums import PaymentMethodType
 from app.core.types.refund_enums import RefundMethodType, RefundStatus
 from app.domain.studio.appointments.entities.appointment import Appointment
+from app.domain.studio.appointments.entities.calendar_exception import CalendarException
 from app.domain.studio.appointments.entities.calendar_settings import CalendarSettings
 from app.domain.studio.appointments.entities.value_objects.client_info import ClientInfo
 from app.domain.studio.appointments.entities.working_period import WorkingPeriod
@@ -32,6 +34,7 @@ from app.domain.studio.users.entities.vip_client import VipClient
 from app.domain.studio.value_objects.client_code import ClientCode
 from tests.fakes.fake_appointments_repository import FakeAppointmentsRepository
 from tests.fakes.fake_audit_logs_repository import FakeAuditLogsRepository
+from tests.fakes.fake_calendar_exceptions_repository import FakeCalendarExceptionsRepository
 from tests.fakes.fake_calendar_settings_repository import FakeCalendarSettingsRepository
 from tests.fakes.fake_client_credit_entries_repository import (
     FakeClientCreditEntriesRepository,
@@ -90,6 +93,11 @@ def shared_calendar_settings_repo():
 
 
 @pytest.fixture
+def shared_calendar_exceptions_repo():
+    return FakeCalendarExceptionsRepository()
+
+
+@pytest.fixture
 def read_uow(
     shared_users_repo,
     shared_vip_clients_repo,
@@ -99,6 +107,7 @@ def read_uow(
     shared_audit_logs_repo,
     shared_refunds_repo,
     shared_calendar_settings_repo,
+    shared_calendar_exceptions_repo,
 ):
     uow = FakeReadUnitOfWork()
     uow.users = shared_users_repo
@@ -109,6 +118,7 @@ def read_uow(
     uow.audit_logs = shared_audit_logs_repo
     uow.refunds = shared_refunds_repo
     uow.calendar_settings = shared_calendar_settings_repo
+    uow.calendar_exceptions = shared_calendar_exceptions_repo
     return uow
 
 
@@ -122,6 +132,7 @@ def write_uow(
     shared_audit_logs_repo,
     shared_refunds_repo,
     shared_calendar_settings_repo,
+    shared_calendar_exceptions_repo,
 ):
     uow = FakeWriteUnitOfWork()
     uow.users = shared_users_repo
@@ -132,6 +143,7 @@ def write_uow(
     uow.audit_logs = shared_audit_logs_repo
     uow.refunds = shared_refunds_repo
     uow.calendar_settings = shared_calendar_settings_repo
+    uow.calendar_exceptions = shared_calendar_exceptions_repo
     return uow
 
 
@@ -445,6 +457,27 @@ def make_calendar_settings(make_working_period):
                 (base_now + timedelta(days=30)).date(),
             ),
             working_periods=working_periods,
+        )
+
+    return _factory
+
+
+@pytest.fixture
+def make_calendar_exception():
+
+    def _factory(**kwargs):
+
+        ten_o_clock = datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc)
+        twelve_o_clock = datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc)
+
+        return CalendarException(
+            id=kwargs.get("id", uuid4()),
+            calendar_of_user=kwargs.get("id", uuid4()),
+            start_at=kwargs.get("start_at", ten_o_clock),
+            end_at=kwargs.get("end_at", twelve_o_clock),
+            exception_type=kwargs.get("exception_type", CalendarExceptionType.BLOCK),
+            reason=kwargs.get("reason", "exception for test"),
+            created_by=kwargs.get("created_by", uuid4()),
         )
 
     return _factory

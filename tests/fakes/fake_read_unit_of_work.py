@@ -1,6 +1,7 @@
 from app.application.studio.unit_of_work.read_unit_of_work import ReadUnitOfWork
 from tests.fakes.fake_appointments_repository import FakeAppointmentsRepository
 from tests.fakes.fake_audit_logs_repository import FakeAuditLogsRepository
+from tests.fakes.fake_calendar_exceptions_repository import FakeCalendarExceptionsRepository
 from tests.fakes.fake_calendar_settings_repository import FakeCalendarSettingsRepository
 from tests.fakes.fake_client_credit_entries_repository import (
     FakeClientCreditEntriesRepository,
@@ -21,6 +22,7 @@ class FakeReadUnitOfWork(ReadUnitOfWork):
         self.audit_logs = FakeAuditLogsRepository()
         self.refunds = FakeRefundsRepository()
         self.calendar_settings = FakeCalendarSettingsRepository()
+        self.calendar_exceptions = FakeCalendarExceptionsRepository()
 
     def __enter__(self):
         return self
