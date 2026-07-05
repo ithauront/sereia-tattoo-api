@@ -31,24 +31,29 @@ class FakeCalendarExceptionsRepository(CalendarExceptionsRepository):
     def find_between(
         self, *, user_id: UUID, start_at: datetime, end_at: datetime
     ) -> List[CalendarException]:
-        return [
+        exceptions = [
             exception
             for exception in self._calendar_exceptions
             if exception.calendar_of_user == user_id
             and exception.start_at >= start_at
             and exception.end_at <= end_at
         ]
+        exceptions.sort(key=lambda exception: (exception.start_at, exception.end_at))
+        return exceptions
 
     def find_overlap(
         self, *, user_id: UUID, start_at: datetime, end_at: datetime
     ) -> List[CalendarException]:
-        return [
+        exceptions = [
             exception
             for exception in self._calendar_exceptions
             if exception.calendar_of_user == user_id
             and exception.start_at < end_at
             and exception.end_at > start_at
         ]
+        exceptions.sort(key=lambda exception: (exception.start_at, exception.end_at))
+
+        return exceptions
 
     def delete(self, calendar_exception_id: UUID) -> None:
         for index, calendar_exception in enumerate(self._calendar_exceptions):
