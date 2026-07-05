@@ -8,7 +8,8 @@ from app.core.exceptions.calendar import (
 from app.core.types.calendar_enums import CalendarExceptionType
 
 
-# TODO: fazer fake repo e teste do repo real e fake
+# TODO: fazer teste da entity
+# TODO: talvez se a gente achar que vale a pena fazer um ensure_utc geral e usar ele em todos os lugares que usam datetime
 class CalendarException:
     def __init__(
         self,
@@ -97,7 +98,7 @@ class CalendarException:
         start_at: datetime,
         end_at: datetime,
     ) -> bool:
-        return self.start_at <= end_at and self.end_at >= start_at
+        return self.start_at < end_at and self.end_at > start_at
 
     def is_active(self) -> bool:
         now = self._utc_now()
