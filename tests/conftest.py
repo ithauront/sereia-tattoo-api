@@ -472,7 +472,7 @@ def make_calendar_exception():
 
         return CalendarException(
             id=kwargs.get("id", uuid4()),
-            calendar_of_user=kwargs.get("id", uuid4()),
+            calendar_of_user=kwargs.get("calendar_of_user", uuid4()),
             start_at=kwargs.get("start_at", ten_o_clock),
             end_at=kwargs.get("end_at", twelve_o_clock),
             exception_type=kwargs.get("exception_type", CalendarExceptionType.BLOCK),
