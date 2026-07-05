@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 
-# TODO: Faerr fake e testar o real e o fake
+# TODO: verificar a questão dos utc. talvez no mapper colocar todos os retornos para ser utc aware em todos os repositorios
 class SQLAlchemyCalendarExceptionsRepository(CalendarExceptionsRepository):
     def __init__(self, session: Session):
         self.session = session
@@ -55,10 +55,14 @@ class SQLAlchemyCalendarExceptionsRepository(CalendarExceptionsRepository):
     def find_between(
         self, *, user_id: UUID, start_at: datetime, end_at: datetime
     ) -> List[CalendarException]:
-        calendar_exceptions_in_question = select(CalendarExceptionsModel).where(
-            CalendarExceptionsModel.calendar_of_user == user_id,
-            CalendarExceptionsModel.start_at >= start_at,
-            CalendarExceptionsModel.end_at <= end_at,
+        calendar_exceptions_in_question = (
+            select(CalendarExceptionsModel)
+            .where(
+                CalendarExceptionsModel.calendar_of_user == user_id,
+                CalendarExceptionsModel.start_at >= start_at,
+                CalendarExceptionsModel.end_at <= end_at,
+            )
+            .order_by(CalendarExceptionsModel.start_at.asc(), CalendarExceptionsModel.end_at.asc())
         )
         orm_calendar_exception = self.session.scalars(calendar_exceptions_in_question)
 
@@ -67,10 +71,14 @@ class SQLAlchemyCalendarExceptionsRepository(CalendarExceptionsRepository):
     def find_overlap(
         self, *, user_id: UUID, start_at: datetime, end_at: datetime
     ) -> List[CalendarException]:
-        calendar_exceptions_in_question = select(CalendarExceptionsModel).where(
-            CalendarExceptionsModel.calendar_of_user == user_id,
-            CalendarExceptionsModel.start_at < end_at,
-            CalendarExceptionsModel.end_at > start_at,
+        calendar_exceptions_in_question = (
+            select(CalendarExceptionsModel)
+            .where(
+                CalendarExceptionsModel.calendar_of_user == user_id,
+                CalendarExceptionsModel.start_at < end_at,
+                CalendarExceptionsModel.end_at > start_at,
+            )
+            .order_by(CalendarExceptionsModel.start_at.asc(), CalendarExceptionsModel.end_at.asc())
         )
         orm_calendar_exception = self.session.scalars(calendar_exceptions_in_question)
 
