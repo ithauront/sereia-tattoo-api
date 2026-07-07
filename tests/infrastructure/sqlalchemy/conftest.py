@@ -11,6 +11,9 @@ from app.infrastructure.sqlalchemy.repositories.appointments_repository_sqlalche
 from app.infrastructure.sqlalchemy.repositories.audit_logs_repository import (
     SQLAlchemyAuditLogsRepository,
 )
+from app.infrastructure.sqlalchemy.repositories.calendar_exceptions_repository_sqlalchemy import (
+    SQLAlchemyCalendarExceptionsRepository,
+)
 from app.infrastructure.sqlalchemy.repositories.calendar_settings_repository_sqlalchemy import (
     SQLAlchemyCalendarSettingsRepository,
 )
@@ -122,6 +125,13 @@ def sqlalchemy_calendar_settings_repo(
     db_session: Session,
 ) -> SQLAlchemyCalendarSettingsRepository:
     return SQLAlchemyCalendarSettingsRepository(session=db_session)
+
+
+@pytest.fixture
+def sqlalchemy_calendar_exceptions_repo(
+    db_session: Session,
+) -> SQLAlchemyCalendarExceptionsRepository:
+    return SQLAlchemyCalendarExceptionsRepository(session=db_session)
 
 
 @pytest.fixture
