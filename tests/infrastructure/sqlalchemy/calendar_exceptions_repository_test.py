@@ -134,9 +134,7 @@ def test_created_by_fk_must_exist(
     user = make_user()
     sqlalchemy_users_repo.create(user)
 
-    calendar_exception = make_calendar_exception(
-        calendar_of_user=user.id, exception_type="incorect_value", created_by=uuid4()
-    )
+    calendar_exception = make_calendar_exception(calendar_of_user=user.id, created_by=uuid4())
 
     with pytest.raises(IntegrityError):
         sqlalchemy_calendar_exceptions_repo.create(calendar_exception)
@@ -151,9 +149,7 @@ def test_calendar_of_user_fk_must_exist(
     user = make_user()
     sqlalchemy_users_repo.create(user)
 
-    calendar_exception = make_calendar_exception(
-        calendar_of_user=uuid4(), exception_type="incorect_value", created_by=user.id
-    )
+    calendar_exception = make_calendar_exception(calendar_of_user=uuid4(), created_by=user.id)
 
     with pytest.raises(IntegrityError):
         sqlalchemy_calendar_exceptions_repo.create(calendar_exception)

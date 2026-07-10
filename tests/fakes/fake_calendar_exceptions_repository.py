@@ -8,7 +8,6 @@ from app.application.studio.repositories.calendar_exceptions_repository import (
 from app.domain.studio.appointments.entities.calendar_exception import CalendarException
 
 
-# TODO: fazer o teste desse repo
 class FakeCalendarExceptionsRepository(CalendarExceptionsRepository):
     def __init__(self):
         self._calendar_exceptions: List[CalendarException] = []
