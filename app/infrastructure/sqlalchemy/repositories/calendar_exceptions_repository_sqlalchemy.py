@@ -11,7 +11,6 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 
-# TODO: verificar a questão dos utc. talvez no mapper colocar todos os retornos para ser utc aware em todos os repositorios
 class SQLAlchemyCalendarExceptionsRepository(CalendarExceptionsRepository):
     def __init__(self, session: Session):
         self.session = session

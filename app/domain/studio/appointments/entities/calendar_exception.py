@@ -6,10 +6,11 @@ from app.core.exceptions.calendar import (
     InvalidReasonError,
 )
 from app.core.types.calendar_enums import CalendarExceptionType
+from app.domain.utils.ensure_enum import ensure_enum
 
 
 # TODO: fazer teste da entity
-# TODO: talvez se a gente achar que vale a pena fazer um ensure_utc geral e usar ele em todos os lugares que usam datetime
+# TODO: em todas entities que tem enum usar o metodo ensure enum
 class CalendarException:
     def __init__(
         self,
@@ -29,7 +30,7 @@ class CalendarException:
         self.id = id or uuid4()
         self.start_at = start_at
         self.end_at = end_at
-        self.exception_type = exception_type
+        self.exception_type = ensure_enum(exception_type, CalendarExceptionType)
         self.calendar_of_user = calendar_of_user
         self.reason = reason
         self.created_by = created_by
