@@ -9,8 +9,6 @@ from app.core.types.calendar_enums import CalendarExceptionType
 from app.domain.utils.ensure_enum import ensure_enum
 
 
-# TODO: fazer teste da entity
-# TODO: em todas entities que tem enum usar o metodo ensure enum
 class CalendarException:
     def __init__(
         self,

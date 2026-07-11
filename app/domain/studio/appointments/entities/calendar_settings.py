@@ -103,7 +103,8 @@ class CalendarSettings:
 
         self._touch()
 
-    def is_inside_working_period(self, *, start: time, end: time) -> bool:
+    def is_inside_working_period(self, *, start: datetime, end: datetime) -> bool:
+
         return any(
             working_period.is_available_for(start=start, end=end)
             for working_period in self.working_periods

@@ -2,6 +2,7 @@ from datetime import datetime, time, timezone
 from uuid import UUID, uuid4
 
 from app.core.exceptions.calendar import (
+    AppointmentCannotLastOvernightError,
     InvalidWeekdayError,
     WorkingPeriodMustHaveRealisticTimeAndDateError,
 )
@@ -52,12 +53,21 @@ class WorkingPeriod:
         self.end_at = end_at
         self._touch()
 
-    def is_available_for(self, *, start: time, end: time) -> bool:
+    def is_available_for(self, *, start: datetime, end: datetime) -> bool:
         """
         Check if a time range fits inside this working period.
         Return if user is available for the time range
         """
-        return self.start_at <= start and end <= self.end_at
+        weekday_start = start.weekday()
+        weekday_end = end.weekday()
+
+        if weekday_start != weekday_end:
+            raise AppointmentCannotLastOvernightError()
+
+        if self.weekday != weekday_start:
+            return False
+
+        return self.start_at <= start.time() and end.time() <= self.end_at
 
     @staticmethod
     def _utc_now() -> datetime:
