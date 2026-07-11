@@ -481,3 +481,29 @@ def make_calendar_exception():
         )
 
     return _factory
+
+
+@pytest.fixture
+def make_datetime():
+
+    def factory(
+        weekday: int,
+        hour: int,
+        minute: int = 0,
+        *,
+        weeks: int = 0,
+    ) -> datetime:
+        now = datetime.now(timezone.utc)
+        base = now + timedelta(days=1)
+
+        days_until = (weekday - base.weekday()) % 7
+        target = base + timedelta(days=days_until + weeks * 7)
+
+        return target.replace(
+            hour=hour,
+            minute=minute,
+            second=0,
+            microsecond=0,
+        )
+
+    return factory

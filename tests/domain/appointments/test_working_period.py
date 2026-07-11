@@ -3,6 +3,7 @@ from datetime import time
 import pytest
 
 from app.core.exceptions.calendar import (
+    AppointmentCannotLastOvernightError,
     InvalidWeekdayError,
     WorkingPeriodMustHaveRealisticTimeAndDateError,
 )
@@ -36,17 +37,60 @@ def test_update_with_unrealistic_time_frame():
         working_period.update_period(start_at=time(12, 00), end_at=time(12, 00))
 
 
-def test_is_avaiable_for_true():
-    working_period = WorkingPeriod.create(weekday=3, start_at=time(12, 00), end_at=time(20, 00))
+def test_is_available_for_true(make_datetime):
+    working_period = WorkingPeriod.create(
+        weekday=3,
+        start_at=time(12, 0),
+        end_at=time(20, 0),
+    )
 
-    available = working_period.is_available_for(start=time(18, 00), end=time(20, 00))
+    available = working_period.is_available_for(
+        start=make_datetime(3, 18),
+        end=make_datetime(3, 20),
+    )
 
     assert available is True
 
 
-def test_is_avaiable_for_false():
-    working_period = WorkingPeriod.create(weekday=3, start_at=time(12, 00), end_at=time(14, 00))
+def test_is_available_for_false(make_datetime):
+    working_period = WorkingPeriod.create(
+        weekday=3,
+        start_at=time(12, 0),
+        end_at=time(14, 0),
+    )
 
-    available = working_period.is_available_for(start=time(13, 00), end=time(14, 30))
+    available = working_period.is_available_for(
+        start=make_datetime(3, 13),
+        end=make_datetime(3, 14, 30),
+    )
 
     assert available is False
+
+
+def test_is_available_for_returns_false_when_weekday_is_different(make_datetime):
+    working_period = WorkingPeriod.create(
+        weekday=3,
+        start_at=time(12, 0),
+        end_at=time(20, 0),
+    )
+
+    available = working_period.is_available_for(
+        start=make_datetime(2, 13),
+        end=make_datetime(2, 14),
+    )
+
+    assert available is False
+
+
+def test_is_available_for_raises_when_appointment_lasts_overnight(make_datetime):
+    working_period = WorkingPeriod.create(
+        weekday=3,
+        start_at=time(12, 0),
+        end_at=time(23, 59),
+    )
+
+    with pytest.raises(AppointmentCannotLastOvernightError):
+        working_period.is_available_for(
+            start=make_datetime(3, 23, 30),
+            end=make_datetime(4, 0, 30),
+        )
