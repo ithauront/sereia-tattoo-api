@@ -4,6 +4,10 @@ from app.application.studio.repositories.appointments_repository import (
     AppointmentsRepository,
 )
 from app.application.studio.repositories.audit_logs_repository import AuditLogsRepository
+from app.application.studio.repositories.calendar_exceptions_repository import (
+    CalendarExceptionsRepository,
+)
+from app.application.studio.repositories.calendar_settings_repository import CalendarSettingsRepository
 from app.application.studio.repositories.client_credit_entries_repository import (
     ClientCreditEntriesRepository,
 )
@@ -23,3 +27,5 @@ class BaseUnitOfWork(ABC):
     appointments: AppointmentsRepository
     audit_logs: AuditLogsRepository
     refunds: RefundsRepository
+    calendar_settings: CalendarSettingsRepository
+    calendar_exceptions: CalendarExceptionsRepository
