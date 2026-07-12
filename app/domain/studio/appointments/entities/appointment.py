@@ -6,6 +6,7 @@ from uuid import UUID, uuid4
 from app.core.exceptions.appointments import (
     AppointmentMustBeInCorrectPreviousStatusError,
     AppointmentMustBeScheduledError,
+    AppointmentMustHaveAClientContactInfo,
     AppointmentMustHaveRealisticTimeAndDateError,
     AppointmentStatusBreakingDomainRules,
     AppointmentWasNotFullyPaidError,
@@ -23,6 +24,9 @@ from app.core.types.appointment_enums import (
 from app.domain.studio.appointments.entities.value_objects.client_info import ClientInfo
 from app.domain.studio.appointments.events.appointment_completed import (
     AppointmentCompleted,
+)
+from app.domain.studio.appointments.events.create_appointment_request import (
+    CreateAppointmentEmailRequested,
 )
 from app.domain.studio.value_objects.client_code import ClientCode
 from app.domain.utils.ensure_enum import ensure_enum
@@ -95,6 +99,8 @@ class Appointment:
     ) -> "Appointment":
         if end_at <= start_at:
             raise AppointmentMustHaveRealisticTimeAndDateError()
+        if client_info.email is None and referral_code is None:
+            raise AppointmentMustHaveAClientContactInfo()
         return cls(
             status=AppointmentStatus.REQUESTED,
             appointment_type=appointment_type,
@@ -198,6 +204,22 @@ class Appointment:
         else:
             self.observations = new_observation
         self._touch()
+
+    # TODO: cadastrar esse evento no evento bus e fazer o handler para ele
+    def create_appointment_request(
+        self,
+    ) -> CreateAppointmentEmailRequested:
+
+        if self.client_info.email is not None:
+            recipient = self.client_info.email
+        elif self.referral_code is not None:
+            recipient = self.referral_code
+        else:
+            raise RuntimeError("Appointment invariant broken: email or referral code must exist.")
+
+        return CreateAppointmentEmailRequested(
+            appointment_id=self.id, user_id=self.user_id, client_email_or_vip_code=recipient
+        )
 
     def _touch(self):
         self.updated_at = self._utc_now()
