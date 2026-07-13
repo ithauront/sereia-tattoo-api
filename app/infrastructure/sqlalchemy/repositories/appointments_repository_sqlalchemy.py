@@ -153,6 +153,16 @@ class SQLAlchemyAppointmentsRepository(AppointmentsRepository):
 
         return self.session.scalar(total) or 0
 
+    # TODO: colocar o findoverlap tambem no contrato do repo e no fake e testar ele
+    def find_overlap(
+        self,
+        *,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
+        user_id: UUID | None = None,
+    ) -> list[Appointment]:
+        return self.find_many(start_date=start_date, end_date=end_date, user_id=user_id)
+
     def _build_filters(
         self,
         *,
@@ -170,9 +180,9 @@ class SQLAlchemyAppointmentsRepository(AppointmentsRepository):
         filters = []
 
         if start_date is not None:
-            filters.append(AppointmentModel.end_at >= start_date)
+            filters.append(AppointmentModel.end_at > start_date)
         if end_date is not None:
-            filters.append(AppointmentModel.start_at <= end_date)
+            filters.append(AppointmentModel.start_at < end_date)
 
         if color is not None:
             filters.append(AppointmentModel.color == color)
