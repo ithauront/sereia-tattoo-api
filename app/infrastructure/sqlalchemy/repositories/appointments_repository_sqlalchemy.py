@@ -153,7 +153,6 @@ class SQLAlchemyAppointmentsRepository(AppointmentsRepository):
 
         return self.session.scalar(total) or 0
 
-    # TODO: colocar o findoverlap tambem no contrato do repo e no fake e testar ele
     def find_overlap(
         self,
         *,

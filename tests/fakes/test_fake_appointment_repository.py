@@ -338,3 +338,142 @@ def test_count_matches_find_many(
     results = appointments_repo.find_many(color=True)
 
     assert count == len(results)
+
+
+def test_find_overlap_has_overlap(appointments_repo, make_quoted_appointment, make_user, users_repo):
+    base_time = datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc)
+    end_time = base_time + timedelta(hours=5)
+
+    query_start_time = base_time + timedelta(hours=3)
+    query_end_time = base_time + timedelta(hours=7)
+
+    user = make_user()
+    users_repo.create(user)
+
+    matching = make_quoted_appointment(
+        start_at=base_time,
+        end_at=end_time,
+        appointment_type=AppointmentType.TATTOO,
+        user_id=user.id,
+        color=True,
+        is_posted_on_socials=True,
+        referral_code="JHON-BLUE",
+    )
+
+    appointments_repo.create(matching)
+
+    result = appointments_repo.find_overlap(
+        start_date=query_start_time, end_date=query_end_time, user_id=user.id
+    )
+
+    assert len(result) == 1
+    assert result[0].id == matching.id
+
+
+def test_find_overlap_does_not_overlap(
+    appointments_repo, make_quoted_appointment, make_user, users_repo
+):
+    base_time = datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc)
+    end_time = base_time + timedelta(hours=5)
+
+    query_start_time = base_time + timedelta(hours=6)
+    query_end_time = base_time + timedelta(hours=7)
+
+    user = make_user()
+    users_repo.create(user)
+
+    matching = make_quoted_appointment(
+        start_at=base_time,
+        end_at=end_time,
+        appointment_type=AppointmentType.TATTOO,
+        user_id=user.id,
+        color=True,
+        is_posted_on_socials=True,
+        referral_code="JHON-BLUE",
+    )
+
+    appointments_repo.create(matching)
+
+    result = appointments_repo.find_overlap(
+        start_date=query_start_time, end_date=query_end_time, user_id=user.id
+    )
+
+    assert len(result) == 0
+    assert result == []
+
+
+def test_find_overlap_touching_does_not_overlap(
+    appointments_repo, make_quoted_appointment, make_user, users_repo
+):
+    base_time = datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc)
+    end_time = base_time + timedelta(hours=5)
+
+    query_start_time = base_time + timedelta(hours=5)
+    query_end_time = base_time + timedelta(hours=7)
+
+    user = make_user()
+    users_repo.create(user)
+
+    matching = make_quoted_appointment(
+        start_at=base_time,
+        end_at=end_time,
+        appointment_type=AppointmentType.TATTOO,
+        user_id=user.id,
+        color=True,
+        is_posted_on_socials=True,
+        referral_code="JHON-BLUE",
+    )
+
+    appointments_repo.create(matching)
+
+    result = appointments_repo.find_overlap(
+        start_date=query_start_time, end_date=query_end_time, user_id=user.id
+    )
+
+    assert len(result) == 0
+    assert result == []
+
+
+def test_find_overlap_has_multiple_overlaps(
+    appointments_repo, make_quoted_appointment, make_user, users_repo
+):
+    base_time = datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc)
+    end_time = base_time + timedelta(hours=1)
+
+    start_time_2 = base_time + timedelta(hours=2)
+    end_time_2 = base_time + timedelta(hours=3)
+
+    query_end_time = base_time + timedelta(hours=5)
+
+    user = make_user()
+    users_repo.create(user)
+
+    matching_1 = make_quoted_appointment(
+        start_at=base_time,
+        end_at=end_time,
+        appointment_type=AppointmentType.TATTOO,
+        user_id=user.id,
+        color=True,
+        is_posted_on_socials=True,
+        referral_code="JHON-BLUE",
+    )
+
+    appointments_repo.create(matching_1)
+
+    matching_2 = make_quoted_appointment(
+        start_at=start_time_2,
+        end_at=end_time_2,
+        appointment_type=AppointmentType.TATTOO,
+        user_id=user.id,
+        color=True,
+        is_posted_on_socials=True,
+        referral_code="JHON-BLUE",
+    )
+
+    appointments_repo.create(matching_2)
+
+    result = appointments_repo.find_overlap(
+        start_date=base_time, end_date=query_end_time, user_id=user.id
+    )
+
+    assert len(result) == 2

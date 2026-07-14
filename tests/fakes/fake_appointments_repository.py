@@ -103,6 +103,15 @@ class FakeAppointmentsRepository(AppointmentsRepository):
 
         return len(filtered_appointments)
 
+    def find_overlap(
+        self,
+        *,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
+        user_id: UUID | None = None,
+    ):
+        return self.find_many(start_date=start_date, end_date=end_date, user_id=user_id)
+
     def _filter_appointments(
         self,
         *,
@@ -120,9 +129,9 @@ class FakeAppointmentsRepository(AppointmentsRepository):
         filtered = list(self._appointments)
 
         if start_date is not None:
-            filtered = [appointment for appointment in filtered if appointment.end_at >= start_date]
+            filtered = [appointment for appointment in filtered if appointment.end_at > start_date]
         if end_date is not None:
-            filtered = [appointment for appointment in filtered if appointment.start_at <= end_date]
+            filtered = [appointment for appointment in filtered if appointment.start_at < end_date]
 
         if color is not None:
             filtered = [appointment for appointment in filtered if appointment.color == color]
