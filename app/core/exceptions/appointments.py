@@ -1,7 +1,20 @@
 class AppointmentMustHaveRealisticTimeAndDateError(Exception):
     pass
 
+
 class AppointmentNotFoundError(Exception):
+    pass
+
+
+class SlotIsAlreadyOccupiedError(Exception):
+    pass
+
+
+class SlotIsNotAvailableError(Exception):
+    pass
+
+
+class AppointmentMustHaveAClientContactInfo(Exception):
     pass
 
 

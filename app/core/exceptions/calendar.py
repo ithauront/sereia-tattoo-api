@@ -2,6 +2,18 @@ class WorkingPeriodMustHaveRealisticTimeAndDateError(Exception):
     pass
 
 
+class CannotFindWorkingPeriodsForThisUserError(Exception):
+    pass
+
+
+class UserIsNotWorkingInDesignatedTimeframeError(Exception):
+    pass
+
+
+class AppointmentCannotLastOvernightError(Exception):
+    pass
+
+
 class CalendarExceptionMustHaveRealisticTimeAndDateError(Exception):
     pass
 
