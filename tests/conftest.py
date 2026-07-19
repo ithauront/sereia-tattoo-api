@@ -448,7 +448,12 @@ def make_calendar_settings(make_working_period):
             [make_working_period(weekday=i) for i in range(7)],
         )
 
-        base_now = datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc)
+        base_now = datetime.now(timezone.utc).replace(
+            hour=9,
+            minute=0,
+            second=0,
+            microsecond=0,
+        )
 
         return CalendarSettings(
             user_id=kwargs.get("user_id", uuid4()),
@@ -467,9 +472,18 @@ def make_calendar_exception():
 
     def _factory(**kwargs):
 
-        ten_o_clock = datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc)
-        twelve_o_clock = datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc)
-
+        ten_o_clock = datetime.now(timezone.utc).replace(
+            hour=10,
+            minute=0,
+            second=0,
+            microsecond=0,
+        )
+        twelve_o_clock = datetime.now(timezone.utc).replace(
+            hour=12,
+            minute=0,
+            second=0,
+            microsecond=0,
+        )
         return CalendarException(
             id=kwargs.get("id", uuid4()),
             calendar_of_user=kwargs.get("calendar_of_user", uuid4()),
