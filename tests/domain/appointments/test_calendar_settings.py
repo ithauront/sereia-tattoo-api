@@ -138,3 +138,59 @@ def test_is_inside_working_period_false(make_working_period, make_user, make_dat
     )
 
     assert is_inside is False
+
+
+def test_is_inside_booking_window_true(make_working_period, make_user, make_datetime):
+    now = datetime.now(timezone.utc)
+    future = now + timedelta(days=30)
+    start = now + timedelta(seconds=3)
+
+    user = make_user()
+
+    working_periods = [
+        make_working_period(
+            weekday=1,
+            start_at=time(8, 0),
+            end_at=time(12, 0),
+        )
+    ]
+
+    calendar = CalendarSettings.create(
+        user_id=user.id,
+        booking_window_until=future.date(),
+        working_periods=working_periods,
+    )
+
+    is_inside = calendar.is_inside_booking_window(
+        start=start,
+    )
+
+    assert is_inside is True
+
+
+def test_is_inside_booking_window_false(make_working_period, make_user, make_datetime):
+    now = datetime.now(timezone.utc)
+    future = now + timedelta(days=30)
+    start = now + timedelta(seconds=3)
+
+    user = make_user()
+
+    working_periods = [
+        make_working_period(
+            weekday=1,
+            start_at=time(8, 0),
+            end_at=time(12, 0),
+        )
+    ]
+
+    calendar = CalendarSettings.create(
+        user_id=user.id,
+        booking_window_until=future.date(),
+        working_periods=working_periods,
+    )
+
+    is_inside = calendar.is_inside_booking_window(
+        start=start + timedelta(days=31),
+    )
+
+    assert is_inside is False
