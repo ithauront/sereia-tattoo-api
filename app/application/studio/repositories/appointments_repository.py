@@ -56,10 +56,7 @@ class AppointmentsRepository(ABC):
         is_posted_on_socials: bool | None = None,
         has_deposit: bool | None = None,
         referral_code: ClientCode | None = None,
-    ) -> int:
-        ...
-
-        # TODO: verificar se o find_overlap não é melhor apenas retornar um bool
+    ) -> int: ...
 
     @abstractmethod
     def find_overlap(

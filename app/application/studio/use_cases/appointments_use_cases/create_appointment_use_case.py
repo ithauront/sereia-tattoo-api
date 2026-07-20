@@ -16,7 +16,9 @@ from app.domain.studio.appointments.policies.calendar_availability_policy import
 )
 
 
-# TODO: fazer a rota e o script que usam esse use_case e testar o use_case a rota e o script
+# TODO: fazer a rota  que usam esse use_case e testar o use_case a rota
+# testes do use case feitos
+# faser o handler que o evento dispara
 class CreateAppointmentUseCase:
     def __init__(
         self,
@@ -64,7 +66,7 @@ class CreateAppointmentUseCase:
         if data.actor_id is not None:
             actor_type = AuditActorType.USER
         else:
-            actor_type = AuditActorType.SYSTEM
+            actor_type = AuditActorType.CLIENT
 
         appointment = Appointment.create(
             user_id=data.user_id,
