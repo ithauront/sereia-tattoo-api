@@ -103,7 +103,6 @@ class CalendarSettings:
 
         self._touch()
 
-    # TODO: fazer teste desse metodo
     def is_inside_working_period(self, *, start: datetime, end: datetime) -> bool:
 
         return any(
@@ -111,7 +110,6 @@ class CalendarSettings:
             for working_period in self.working_periods
         )
 
-    # TODO: fazer teste desse metodo
     def is_inside_booking_window(self, *, start: datetime) -> bool:
         return start >= self._utc_now() and start.date() <= self.booking_window_until
 
