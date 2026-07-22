@@ -6,6 +6,9 @@ from app.application.notifications.handlers.notificate_booking_window_update imp
 from app.application.notifications.handlers.send_activation_confirmation_email import (
     SendActivationConfirmationEmailHandler,
 )
+from app.application.notifications.handlers.send_create_appointment_email import (
+    SendCreateAppointmentEmailHandler,
+)
 from app.application.notifications.handlers.send_password_reset_email import (
     SendPasswordResetEmailHandler,
 )
@@ -23,6 +26,9 @@ from app.domain.studio.appointments.events.appointment_completed import (
     AppointmentCompleted,
 )
 from app.domain.studio.appointments.events.booking_window_updated import BookingWindowUpdated
+from app.domain.studio.appointments.events.create_appointment_request import (
+    CreateAppointmentEmailRequested,
+)
 from app.domain.studio.users.events.activation_email_requested import (
     ActivationEmailRequested,
 )
@@ -75,6 +81,9 @@ def setup_event_bus(
 
     integration_bus.register(
         BookingWindowUpdated, NotificateBookingWindowUpdateHandler(email_service=email_service)
+    )
+    integration_bus.register(
+        CreateAppointmentEmailRequested, SendCreateAppointmentEmailHandler(email_service=email_service)
     )
 
     transactional_bus.register(
