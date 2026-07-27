@@ -9,7 +9,6 @@ from app.domain.studio.appointments.entities.calendar_exception import CalendarE
 from app.domain.studio.appointments.entities.calendar_settings import CalendarSettings
 
 
-# TODO: fazer testes
 class CalendarAvailabilityPolicy:
     def can_schedule(
         self,

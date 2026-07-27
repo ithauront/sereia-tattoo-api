@@ -205,7 +205,6 @@ class Appointment:
             self.observations = new_observation
         self._touch()
 
-    # TODO: cadastrar esse evento no evento bus e fazer o handler para ele
     def create_appointment_request(
         self,
     ) -> CreateAppointmentEmailRequested:
