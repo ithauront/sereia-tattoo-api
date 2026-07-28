@@ -34,10 +34,10 @@ class SendCreateAppointmentEmailHandler:
 
     async def handle(self, event: CreateAppointmentEmailRequested, uow: ReadUnitOfWork) -> None:
 
-        if isinstance(event.client_email_or_vip_code, str):
-            client_email = event.client_email_or_vip_code
+        if isinstance(event.client_email_or_vip_id, str):
+            client_email = event.client_email_or_vip_id
         else:
-            vip_client = uow.vip_clients.find_by_client_code(event.client_email_or_vip_code.value)
+            vip_client = uow.vip_clients.find_by_id(event.client_email_or_vip_id)
             if vip_client is None:
                 return
             else:

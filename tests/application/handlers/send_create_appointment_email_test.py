@@ -21,7 +21,7 @@ async def test_send_create_appointment_sends_email(make_user, read_uow, write_uo
         user_id=user.id,
         start_at=start_at,
         end_at=end_at,
-        client_email_or_vip_code="jane@doe.com",
+        client_email_or_vip_id="jane@doe.com",
     )
 
     email_service = FakeEmailService()
@@ -42,7 +42,7 @@ async def test_send_create_appointment_sends_email(make_user, read_uow, write_uo
     assert "Nossa equipe vai analisar sua solicitação e entrar em contato" in client_email["html"]
 
 
-async def test_send_create_appointment_sends_email_with_vip_code(
+async def test_send_create_appointment_sends_email_with_vip_id(
     make_user, read_uow, write_uow, make_vip_client
 ):
     start_at = datetime.now() + timedelta(days=1)
@@ -57,7 +57,7 @@ async def test_send_create_appointment_sends_email_with_vip_code(
         user_id=user.id,
         start_at=start_at,
         end_at=end_at,
-        client_email_or_vip_code=vip_client.client_code,
+        client_email_or_vip_id=vip_client.id,
     )
 
     email_service = FakeEmailService()
@@ -91,7 +91,7 @@ async def test_send_create_appointment_vip_client_not_found_does_not_sends_email
         user_id=user.id,
         start_at=start_at,
         end_at=end_at,
-        client_email_or_vip_code=vip_client.client_code,
+        client_email_or_vip_id=vip_client.id,
     )
 
     email_service = FakeEmailService()
@@ -120,7 +120,7 @@ async def test_send_create_appointment_user_not_found_does_not_sends_email(
         user_id=user.id,
         start_at=start_at,
         end_at=end_at,
-        client_email_or_vip_code=vip_client.client_code,
+        client_email_or_vip_id=vip_client.id,
     )
 
     email_service = FakeEmailService()

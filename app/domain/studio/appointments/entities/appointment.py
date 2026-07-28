@@ -99,7 +99,7 @@ class Appointment:
     ) -> "Appointment":
         if end_at <= start_at:
             raise AppointmentMustHaveRealisticTimeAndDateError()
-        if client_info.email is None and referral_code is None:
+        if client_info.email is None and client_info.vip_client_id is None:
             raise AppointmentMustHaveAClientContactInfo()
         return cls(
             status=AppointmentStatus.REQUESTED,
@@ -211,17 +211,17 @@ class Appointment:
 
         if self.client_info.email is not None:
             recipient = self.client_info.email
-        elif self.referral_code is not None:
-            recipient = self.referral_code
+        elif self.client_info.vip_client_id is not None:
+            recipient = self.client_info.vip_client_id
         else:
-            raise RuntimeError("Appointment invariant broken: email or referral code must exist.")
+            raise RuntimeError("Appointment invariant broken: email or vip_client_id code must exist.")
 
         return CreateAppointmentEmailRequested(
             start_at=self.start_at,
             end_at=self.end_at,
             appointment_type=self.appointment_type,
             user_id=self.user_id,
-            client_email_or_vip_code=recipient,
+            client_email_or_vip_id=recipient,
         )
 
     def _touch(self):
