@@ -41,6 +41,7 @@ from app.core.exceptions.calendar import (
     CannotFindWorkingPeriodsForThisUserError,
     UserIsNotWorkingInDesignatedTimeframeError,
 )
+from app.core.exceptions.clients import ClientInfoModelError
 from app.domain.studio.appointments.entities.value_objects.client_info import ClientInfo
 from app.domain.studio.appointments.policies.calendar_availability_policy import (
     CalendarAvailabilityPolicy,
@@ -59,12 +60,15 @@ async def create_appointment(
     actor_id: UUID | None = Depends(get_optional_actor_id),
     calendar_policy: CalendarAvailabilityPolicy = Depends(get_calendar_policy),
 ):
-    client_info = ClientInfo(
-        vip_client_id=data.vip_client_id, name=data.name, email=data.email, phone=data.phone
-    )
-
-    referral_code = ClientCode(data.referral_code) if data.referral_code else None
     try:
+        client_info = ClientInfo(
+            vip_client_id=data.vip_client_id,
+            name=data.name,
+            email=data.email,
+            phone=data.phone,
+        )
+        referral_code = ClientCode(data.referral_code) if data.referral_code else None
+
         use_case = CreateAppointmentUseCase(
             integration_bus=integration_bus, uow=uow, calendar_policy=calendar_policy
         )
@@ -91,13 +95,19 @@ async def create_appointment(
     ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The time slot required is not available",
+            detail="the_time_slot_required_is_not_available",
         )
 
     except SlotIsAlreadyOccupiedError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="The time slot required is occupied",
+            detail="the_time_slot_required_is_occupied",
+        )
+
+    except ClientInfoModelError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(exc),
         )
 
 
