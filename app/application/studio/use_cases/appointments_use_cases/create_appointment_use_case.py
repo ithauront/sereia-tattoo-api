@@ -16,9 +16,6 @@ from app.domain.studio.appointments.policies.calendar_availability_policy import
 )
 
 
-# TODO: fazer a rota  que usam esse use_case e testar o use_case a rota
-# testes do use case feitos
-# faser o handler que o evento dispara
 class CreateAppointmentUseCase:
     def __init__(
         self,
@@ -44,7 +41,6 @@ class CreateAppointmentUseCase:
                 user_id=data.user_id, start_at=data.start_at, end_at=data.end_at
             )
 
-            # TODO: ao chamar esse use_case no script e na rota fazer o tratamento de erros para os erros da policy
             self.calendar_policy.can_schedule(
                 calendar_settings=calendar_of_user,
                 calendar_exceptions=calendar_exceptions_overlap,
