@@ -51,7 +51,6 @@ from app.domain.studio.value_objects.client_code import ClientCode
 router = APIRouter(prefix="/appointments")
 
 
-# TODO: fazer teste dessa rota e verificar tambem no teste de integração se o email é enviado
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_appointment(
     data: CreateAppointmentRequest,
