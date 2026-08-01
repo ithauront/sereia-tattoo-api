@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from app.application.event_bus.integration_event_bus import IntegrationEventBus
+from app.application.studio.unit_of_work.read_unit_of_work import ReadUnitOfWork
 from app.application.studio.unit_of_work.write_unit_of_work import WriteUnitOfWork
 from app.application.studio.use_cases.DTO.audit_logs import AuditLogEntry
 from app.application.studio.use_cases.DTO.create_appointment_dto import CreateAppointmentInput
@@ -19,17 +20,19 @@ from app.domain.studio.appointments.policies.calendar_availability_policy import
 class CreateAppointmentUseCase:
     def __init__(
         self,
-        uow: WriteUnitOfWork,
+        write_uow: WriteUnitOfWork,
+        read_uow: ReadUnitOfWork,
         integration_bus: IntegrationEventBus,
         calendar_policy: CalendarAvailabilityPolicy,
     ):
-        self.uow = uow
+        self.write_uow = write_uow
+        self.read_uow = read_uow
         self.integration_bus = integration_bus
         self.calendar_policy = calendar_policy
 
     async def execute(self, data: CreateAppointmentInput) -> None:
-        with self.uow:
-            calendar_of_user = self.uow.calendar_settings.find_by_user_id(data.user_id)
+        with self.write_uow:
+            calendar_of_user = self.write_uow.calendar_settings.find_by_user_id(data.user_id)
             if not calendar_of_user:
                 raise CannotFindWorkingPeriodsForThisUserError()
 
@@ -37,7 +40,7 @@ class CreateAppointmentUseCase:
                 user_id=data.actor_id, calendar_user=data.user_id
             )
 
-            calendar_exceptions_overlap = self.uow.calendar_exceptions.find_overlap(
+            calendar_exceptions_overlap = self.write_uow.calendar_exceptions.find_overlap(
                 user_id=data.user_id, start_at=data.start_at, end_at=data.end_at
             )
 
@@ -49,7 +52,7 @@ class CreateAppointmentUseCase:
                 end_at=data.end_at,
             )
 
-            occupied_slot = self.uow.appointments.find_overlap(
+            occupied_slot = self.write_uow.appointments.find_overlap(
                 start_date=data.start_at, end_date=data.end_at, user_id=data.user_id
             )
 
@@ -100,16 +103,19 @@ class CreateAppointmentUseCase:
     async def _save_appointment(self, data: CreateAppointmentInput):
         appointment, log = self._make_appointment(data)
 
-        self.uow.appointments.create(appointment)
-        self.uow.audit_logs.create(log)
+        self.write_uow.appointments.create(appointment)
+        self.write_uow.audit_logs.create(log)
 
-        await self.integration_bus.publish(appointment.create_appointment_request())
+        await self.integration_bus.publish(
+            appointment.create_appointment_request(),
+            uow=self.read_uow,
+        )
 
     def __can_ignore_booking_window(self, *, user_id: UUID | None, calendar_user: UUID) -> bool:
         if user_id is None:
             return False
 
-        user = self.uow.users.find_by_id(user_id)
+        user = self.read_uow.users.find_by_id(user_id)
 
         if user is None:
             return False

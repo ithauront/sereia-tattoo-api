@@ -11,12 +11,14 @@ from app.api.dependencies.actor_id import get_optional_actor_id
 from app.api.dependencies.auth import get_current_active_user
 from app.api.dependencies.events import get_integration_event_bus, get_transactional_event_bus
 from app.api.dependencies.policies import get_calendar_policy
+from app.api.dependencies.read_unit_of_work import get_read_unit_of_work
 from app.api.dependencies.write_unit_of_work import (
     get_write_unit_of_work,
 )
 from app.api.schemas.appointments import CreateAppointmentRequest
 from app.application.event_bus.integration_event_bus import IntegrationEventBus
 from app.application.event_bus.transactional_event_bus import TransactionalEventBus
+from app.application.studio.unit_of_work.read_unit_of_work import ReadUnitOfWork
 from app.application.studio.unit_of_work.write_unit_of_work import (
     WriteUnitOfWork,
 )
@@ -54,7 +56,8 @@ router = APIRouter(prefix="/appointments")
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_appointment(
     data: CreateAppointmentRequest,
-    uow: WriteUnitOfWork = Depends(get_write_unit_of_work),
+    write_uow: WriteUnitOfWork = Depends(get_write_unit_of_work),
+    read_uow: ReadUnitOfWork = Depends(get_read_unit_of_work),
     integration_bus: IntegrationEventBus = Depends(get_integration_event_bus),
     actor_id: UUID | None = Depends(get_optional_actor_id),
     calendar_policy: CalendarAvailabilityPolicy = Depends(get_calendar_policy),
@@ -69,7 +72,10 @@ async def create_appointment(
         referral_code = ClientCode(data.referral_code) if data.referral_code else None
 
         use_case = CreateAppointmentUseCase(
-            integration_bus=integration_bus, uow=uow, calendar_policy=calendar_policy
+            integration_bus=integration_bus,
+            write_uow=write_uow,
+            read_uow=read_uow,
+            calendar_policy=calendar_policy,
         )
         dto = CreateAppointmentInput(
             appointment_type=data.appointment_type,
