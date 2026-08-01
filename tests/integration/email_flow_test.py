@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+
 from fastapi.testclient import TestClient
 
 from app.api.dependencies.events import get_integration_event_bus
@@ -304,6 +306,139 @@ def test_reset_password_request_failure_does_not_trigger_email(
     )  # email is from a not found user
 
     assert response.status_code == 200  # route respond 200 even if not found
+    assert fake_email_service.sent is False
+
+    app.dependency_overrides = {}
+
+
+def test_create_appointment_request_triggers_email(
+    write_uow,
+    read_uow,
+    make_user,
+    make_calendar_settings,
+    jwt_service_instance,
+):
+
+    user = make_user(email="jhon@doe.com")
+    write_uow.users.create(user)
+
+    base_now = datetime.now(timezone.utc).replace(
+        hour=8,
+        minute=0,
+        second=0,
+        microsecond=0,
+    )
+    next_day = base_now + timedelta(days=1)
+    booking_window_until = (base_now + timedelta(days=30)).date()
+
+    start_at = next_day + timedelta(hours=1)
+    end_at = next_day + timedelta(hours=2)
+
+    calendar_settings = make_calendar_settings(
+        user_id=user.id, booking_window_until=booking_window_until
+    )
+    write_uow.calendar_settings.create(calendar_settings)
+
+    payload = {
+        "appointment_type": "tattoo",
+        "user_id": f"{user.id}",
+        "start_at": f"{start_at}",
+        "end_at": f"{end_at}",
+        "placement": "ombro",
+        "details": "Dragão chines",
+        "size": "30cm",
+        "color": True,
+        "name": "Jane Doe",
+        "email": "jane@doe.com",
+        "phone": "71988888888",
+    }
+
+    fake_email_service = FakeEmailService()
+
+    _, integration_bus = setup_event_bus(
+        email_service=fake_email_service,
+        token_service=jwt_service_instance,
+    )
+
+    app.dependency_overrides[get_integration_event_bus] = lambda: integration_bus
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
+
+    response = client.post(
+        "/appointments",
+        json=payload,
+    )
+
+    assert response.status_code == 201
+
+    wait_until(lambda: len(fake_email_service.sent_emails) >= 2)
+
+    recipients = {email["to"] for email in fake_email_service.sent_emails}
+
+    assert len(fake_email_service.sent_emails) == 2
+    assert recipients == {
+        "jane@doe.com",
+        "jhon@doe.com",
+    }
+
+    app.dependency_overrides = {}
+
+
+def test_create_appointmnet_request_failure_does_not_trigger_email(
+    write_uow, read_uow, make_user, jwt_service_instance, make_calendar_settings
+):
+
+    user = make_user(email="jhon@doe.com")
+    write_uow.users.create(user)
+
+    base_now = datetime.now(timezone.utc).replace(
+        hour=8,
+        minute=0,
+        second=0,
+        microsecond=0,
+    )
+    next_day = base_now + timedelta(days=1)
+    booking_window_until = (base_now + timedelta(days=30)).date()
+
+    start_at = next_day + timedelta(hours=1)
+    end_at = next_day + timedelta(hours=2)
+
+    calendar_settings = make_calendar_settings(
+        user_id=user.id, booking_window_until=booking_window_until
+    )
+    write_uow.calendar_settings.create(calendar_settings)
+
+    payload = {
+        # without appointment type should fail
+        "user_id": f"{user.id}",
+        "start_at": f"{start_at}",
+        "end_at": f"{end_at}",
+        "placement": "ombro",
+        "details": "Dragão chines",
+        "size": "30cm",
+        "color": True,
+        "name": "Jane Doe",
+        "email": "jane@doe.com",
+        "phone": "71988888888",
+    }
+
+    fake_email_service = FakeEmailService()
+
+    _, integration_bus = setup_event_bus(
+        email_service=fake_email_service,
+        token_service=jwt_service_instance,
+    )
+
+    app.dependency_overrides[get_integration_event_bus] = lambda: integration_bus
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
+
+    response = client.post(
+        "/appointments",
+        json=payload,
+    )
+
+    assert response.status_code == 422  # wrong payload should fail request
     assert fake_email_service.sent is False
 
     app.dependency_overrides = {}
