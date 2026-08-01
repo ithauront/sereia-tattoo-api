@@ -51,7 +51,10 @@ async def test_create_appointment_successful(
     calendar_policy = CalendarAvailabilityPolicy()
 
     use_case = CreateAppointmentUseCase(
-        uow=write_uow, integration_bus=integration_bus, calendar_policy=calendar_policy
+        write_uow=write_uow,
+        read_uow=read_uow,
+        integration_bus=integration_bus,
+        calendar_policy=calendar_policy,
     )
 
     client_info = ClientInfo(vip_client_id=vip_client.id)
@@ -114,7 +117,10 @@ async def test_create_appointment_calendar_of_user_not_found(
     calendar_policy = CalendarAvailabilityPolicy()
 
     use_case = CreateAppointmentUseCase(
-        uow=write_uow, integration_bus=integration_bus, calendar_policy=calendar_policy
+        read_uow=read_uow,
+        write_uow=write_uow,
+        integration_bus=integration_bus,
+        calendar_policy=calendar_policy,
     )
 
     client_info = ClientInfo(vip_client_id=vip_client.id)
@@ -166,7 +172,10 @@ async def test_cannot_create_in_occupy_slot(
     calendar_policy = CalendarAvailabilityPolicy()
 
     use_case = CreateAppointmentUseCase(
-        uow=write_uow, integration_bus=integration_bus, calendar_policy=calendar_policy
+        read_uow=read_uow,
+        write_uow=write_uow,
+        integration_bus=integration_bus,
+        calendar_policy=calendar_policy,
     )
 
     client_info = ClientInfo(vip_client_id=vip_client.id)
@@ -192,7 +201,7 @@ async def test_cannot_create_in_occupy_slot(
 
 @pytest.mark.asyncio
 async def test_create_appointment_outside_booking_window_without_permission(
-    make_user, write_uow, make_calendar_settings, make_vip_client
+    make_user, write_uow, make_calendar_settings, make_vip_client, read_uow
 ):
     user = make_user()
     write_uow.users.create(user)
@@ -220,7 +229,8 @@ async def test_create_appointment_outside_booking_window_without_permission(
     write_uow.calendar_settings.create(calendar_settings)
 
     use_case = CreateAppointmentUseCase(
-        uow=write_uow,
+        read_uow=read_uow,
+        write_uow=write_uow,
         integration_bus=FakeIntegrationEventBus(),
         calendar_policy=CalendarAvailabilityPolicy(),
     )
@@ -273,7 +283,8 @@ async def test_admin_can_create_outside_booking_window(
     integration_bus = FakeIntegrationEventBus()
 
     use_case = CreateAppointmentUseCase(
-        uow=write_uow,
+        read_uow=read_uow,
+        write_uow=write_uow,
         integration_bus=integration_bus,
         calendar_policy=CalendarAvailabilityPolicy(),
     )
@@ -330,7 +341,8 @@ async def test_calendar_owner_can_create_outside_booking_window(
     end_at = start_at + timedelta(hours=1)
 
     use_case = CreateAppointmentUseCase(
-        uow=write_uow,
+        read_uow=read_uow,
+        write_uow=write_uow,
         integration_bus=FakeIntegrationEventBus(),
         calendar_policy=CalendarAvailabilityPolicy(),
     )
@@ -361,7 +373,7 @@ async def test_calendar_owner_can_create_outside_booking_window(
 
 @pytest.mark.asyncio
 async def test_user_cannot_ignore_other_users_booking_window(
-    make_user, write_uow, make_calendar_settings, make_vip_client
+    make_user, write_uow, read_uow, make_calendar_settings, make_vip_client
 ):
     owner = make_user()
     actor = make_user()
@@ -390,7 +402,8 @@ async def test_user_cannot_ignore_other_users_booking_window(
     end_at = start_at + timedelta(hours=1)
 
     use_case = CreateAppointmentUseCase(
-        uow=write_uow,
+        read_uow=read_uow,
+        write_uow=write_uow,
         integration_bus=FakeIntegrationEventBus(),
         calendar_policy=CalendarAvailabilityPolicy(),
     )
@@ -417,6 +430,7 @@ async def test_user_cannot_ignore_other_users_booking_window(
 async def test_create_appointment_blocked_by_calendar_exception(
     make_user,
     write_uow,
+    read_uow,
     make_calendar_settings,
     make_vip_client,
     make_calendar_exception,
@@ -453,7 +467,8 @@ async def test_create_appointment_blocked_by_calendar_exception(
     write_uow.calendar_exceptions.create(exception)
 
     use_case = CreateAppointmentUseCase(
-        uow=write_uow,
+        read_uow=read_uow,
+        write_uow=write_uow,
         integration_bus=FakeIntegrationEventBus(),
         calendar_policy=CalendarAvailabilityPolicy(),
     )
