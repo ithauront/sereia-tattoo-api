@@ -10,6 +10,7 @@ from app.core.exceptions.appointments import SlotIsAlreadyOccupiedError
 from app.core.exceptions.calendar import (
     CannotFindWorkingPeriodsForThisUserError,
 )
+from app.core.exceptions.users import UserInactiveError, UserNotFoundError
 from app.core.types.audit_actor_type import AuditActorType
 from app.domain.studio.appointments.entities.appointment import Appointment
 from app.domain.studio.appointments.policies.calendar_availability_policy import (
@@ -32,6 +33,12 @@ class CreateAppointmentUseCase:
 
     async def execute(self, data: CreateAppointmentInput) -> None:
         with self.write_uow:
+            user = self.write_uow.users.find_by_id(data.user_id)
+            if not user:
+                raise UserNotFoundError()
+            if user.is_active is False:
+                raise UserInactiveError()
+
             calendar_of_user = self.write_uow.calendar_settings.find_by_user_id(data.user_id)
             if not calendar_of_user:
                 raise CannotFindWorkingPeriodsForThisUserError()
