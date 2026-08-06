@@ -9,9 +9,9 @@ from app.application.studio.use_cases.appointments_use_cases.create_appointment_
 from app.application.studio.use_cases.DTO.create_appointment_dto import CreateAppointmentInput
 from app.core.exceptions.appointments import SlotIsAlreadyOccupiedError, SlotIsNotAvailableError
 from app.core.exceptions.calendar import (
-    CannotFindWorkingPeriodsForThisUserError,
     UserIsNotWorkingInDesignatedTimeframeError,
 )
+from app.core.exceptions.users import UserInactiveError, UserNotFoundError
 from app.core.types.appointment_enums import AppointmentType
 from app.domain.studio.appointments.entities.appointment import Appointment
 from app.domain.studio.appointments.entities.value_objects.client_info import ClientInfo
@@ -88,8 +88,12 @@ async def test_create_appointment_successful(
 
 
 @pytest.mark.asyncio
-async def test_create_appointment_calendar_of_user_not_found(
-    make_user, write_uow, read_uow, make_calendar_settings, make_vip_client
+async def test_create_appointment_user_not_found(
+    make_user,
+    write_uow,
+    read_uow,
+    make_calendar_settings,
+    make_vip_client,
 ):
     user = make_user()
     write_uow.users.create(user)
@@ -105,13 +109,9 @@ async def test_create_appointment_calendar_of_user_not_found(
     )
     next_day = base_now + timedelta(days=1)
     booking_window_until = (base_now + timedelta(days=30)).date()
+
     start_at = next_day + timedelta(hours=1)
     end_at = next_day + timedelta(hours=2)
-
-    calendar_settings = make_calendar_settings(
-        user_id=user.id, booking_window_until=booking_window_until
-    )
-    write_uow.calendar_settings.create(calendar_settings)
 
     integration_bus = FakeIntegrationEventBus()
     calendar_policy = CalendarAvailabilityPolicy()
@@ -124,6 +124,7 @@ async def test_create_appointment_calendar_of_user_not_found(
     )
 
     client_info = ClientInfo(vip_client_id=vip_client.id)
+
     dto = CreateAppointmentInput(
         appointment_type=AppointmentType.TATTOO,
         user_id=uuid4(),
@@ -138,7 +139,7 @@ async def test_create_appointment_calendar_of_user_not_found(
         actor_id=user.id,
     )
 
-    with pytest.raises(CannotFindWorkingPeriodsForThisUserError):
+    with pytest.raises(UserNotFoundError):
         await use_case.execute(dto)
 
 
@@ -486,4 +487,59 @@ async def test_create_appointment_blocked_by_calendar_exception(
     )
 
     with pytest.raises(UserIsNotWorkingInDesignatedTimeframeError):
+        await use_case.execute(dto)
+
+
+@pytest.mark.asyncio
+async def test_inactive_user_raises_error(
+    make_user, write_uow, read_uow, make_calendar_settings, make_vip_client
+):
+    user = make_user(is_active=False)
+    write_uow.users.create(user)
+
+    vip_client = make_vip_client()
+    write_uow.vip_clients.create(vip_client)
+
+    base_now = datetime.now(timezone.utc).replace(
+        hour=8,
+        minute=0,
+        second=0,
+        microsecond=0,
+    )
+    next_day = base_now + timedelta(days=1)
+    booking_window_until = (base_now + timedelta(days=30)).date()
+    start_at = next_day + timedelta(hours=1)
+    end_at = next_day + timedelta(hours=2)
+
+    calendar_settings = make_calendar_settings(
+        user_id=user.id, booking_window_until=booking_window_until
+    )
+    write_uow.calendar_settings.create(calendar_settings)
+
+    integration_bus = FakeIntegrationEventBus()
+    calendar_policy = CalendarAvailabilityPolicy()
+
+    use_case = CreateAppointmentUseCase(
+        write_uow=write_uow,
+        read_uow=read_uow,
+        integration_bus=integration_bus,
+        calendar_policy=calendar_policy,
+    )
+
+    client_info = ClientInfo(vip_client_id=vip_client.id)
+    dto = CreateAppointmentInput(
+        appointment_type=AppointmentType.TATTOO,
+        user_id=user.id,
+        start_at=start_at,
+        end_at=end_at,
+        placement="Ombro",
+        details="Tatuagem de dragão oriental",
+        size="25cm",
+        color=True,
+        client_info=client_info,
+        referral_code=vip_client.client_code,
+        actor_id=None,
+    )
+
+    with pytest.raises(UserInactiveError):
         await use_case.execute(dto)

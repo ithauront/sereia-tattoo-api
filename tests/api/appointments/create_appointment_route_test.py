@@ -870,3 +870,118 @@ def test_create_appointment_wrong_payload(
     )
 
     assert response.status_code == 422
+
+
+def test_create_user_not_exist_raise_400(
+    make_user,
+    make_vip_client,
+    write_uow,
+    read_uow,
+    fake_integration_event_bus,
+    make_calendar_settings,
+):
+    user = make_user(is_active=False)
+    write_uow.users.create(user)
+
+    vip_client = make_vip_client()
+    write_uow.vip_clients.create(vip_client)
+
+    base_now = datetime.now(timezone.utc).replace(
+        hour=8,
+        minute=0,
+        second=0,
+        microsecond=0,
+    )
+    next_day = base_now + timedelta(days=1)
+    booking_window_until = (base_now + timedelta(days=30)).date()
+
+    start_at = next_day + timedelta(hours=1)
+    end_at = next_day + timedelta(hours=2)
+
+    calendar_settings = make_calendar_settings(
+        user_id=user.id, booking_window_until=booking_window_until
+    )
+    write_uow.calendar_settings.create(calendar_settings)
+
+    payload = {
+        "appointment_type": "tattoo",
+        "user_id": f"{user.id}",
+        "start_at": f"{start_at}",
+        "end_at": f"{end_at}",
+        "placement": "ombro",
+        "details": "Dragão chines",
+        "size": "30cm",
+        "color": True,
+        "name": "Jane Doe",
+        "email": "jane@doe.com",
+        "phone": "71988888888",
+    }
+
+    app.dependency_overrides[get_integration_event_bus] = lambda: fake_integration_event_bus
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
+
+    response = client.post(
+        "/appointments",
+        json=payload,
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "user_does_not_exists_or_is_inactive"
+
+
+def test_create_user_inactive_raise_400(
+    make_user,
+    make_vip_client,
+    write_uow,
+    read_uow,
+    fake_integration_event_bus,
+    make_calendar_settings,
+):
+    user = make_user()
+
+    vip_client = make_vip_client()
+    write_uow.vip_clients.create(vip_client)
+
+    base_now = datetime.now(timezone.utc).replace(
+        hour=8,
+        minute=0,
+        second=0,
+        microsecond=0,
+    )
+    next_day = base_now + timedelta(days=1)
+    booking_window_until = (base_now + timedelta(days=30)).date()
+
+    start_at = next_day + timedelta(hours=1)
+    end_at = next_day + timedelta(hours=2)
+
+    calendar_settings = make_calendar_settings(
+        user_id=user.id, booking_window_until=booking_window_until
+    )
+    write_uow.calendar_settings.create(calendar_settings)
+
+    payload = {
+        "appointment_type": "tattoo",
+        "user_id": f"{user.id}",
+        "start_at": f"{start_at}",
+        "end_at": f"{end_at}",
+        "placement": "ombro",
+        "details": "Dragão chines",
+        "size": "30cm",
+        "color": True,
+        "name": "Jane Doe",
+        "email": "jane@doe.com",
+        "phone": "71988888888",
+    }
+
+    app.dependency_overrides[get_integration_event_bus] = lambda: fake_integration_event_bus
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
+
+    response = client.post(
+        "/appointments",
+        json=payload,
+    )
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "user_does_not_exists_or_is_inactive"
