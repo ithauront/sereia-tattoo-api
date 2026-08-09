@@ -4,6 +4,7 @@ from typing import Optional
 from uuid import UUID, uuid4
 
 from app.core.exceptions.appointments import (
+    AppointmentClientContactInfoCorruptedError,
     AppointmentMustBeInCorrectPreviousStatusError,
     AppointmentMustBeScheduledError,
     AppointmentMustHaveAClientContactInfo,
@@ -27,6 +28,9 @@ from app.domain.studio.appointments.events.appointment_completed import (
 )
 from app.domain.studio.appointments.events.create_appointment_request import (
     CreateAppointmentEmailRequested,
+)
+from app.domain.studio.appointments.events.notify_of_appointment_quoted import (
+    NotifyOfAppointmentQuoted,
 )
 from app.domain.studio.value_objects.client_code import ClientCode
 from app.domain.utils.ensure_enum import ensure_enum
@@ -116,7 +120,11 @@ class Appointment:
         )
 
     def set_price(self, price: Decimal):
-        # we usualy will use quote method. set_price method is only for changments in price
+        """
+        we usualy will use quote method.
+        set_price is used by the owner/admin for exceptional price changes after quoting,
+        without changing the appointment status.
+        """
         if price <= 0:
             raise PriceMustBePositiveError()
 
@@ -214,7 +222,7 @@ class Appointment:
         elif self.client_info.vip_client_id is not None:
             recipient = self.client_info.vip_client_id
         else:
-            raise RuntimeError("Appointment invariant broken: email or vip_client_id code must exist.")
+            raise AppointmentClientContactInfoCorruptedError()
 
         return CreateAppointmentEmailRequested(
             start_at=self.start_at,
@@ -222,6 +230,26 @@ class Appointment:
             appointment_type=self.appointment_type,
             user_id=self.user_id,
             client_email_or_vip_id=recipient,
+        )
+
+    def notify_of_appointment_quoted(
+        self,
+    ) -> NotifyOfAppointmentQuoted:
+
+        if self.client_info.email is not None:
+            recipient = self.client_info.email
+        elif self.client_info.vip_client_id is not None:
+            recipient = self.client_info.vip_client_id
+        else:
+            raise AppointmentClientContactInfoCorruptedError()
+
+        if self.price is None:
+            raise PriceMustBeDefinedError()
+
+        return NotifyOfAppointmentQuoted(
+            appointment_type=self.appointment_type,
+            client_email_or_vip_id=recipient,
+            price=self.price,
         )
 
     def _touch(self):
