@@ -48,7 +48,7 @@ def render_create_appointment_client_email(
 
               <p>
                 Recebemos sua solicitação de agendamento no
-                <strong>Sereia Tattoo Studio</strong>. ❤️🧜‍♀️
+                <strong>Sereia Tattoo Studio</strong>. 💙🧜‍♀️
               </p>
 
               <p>

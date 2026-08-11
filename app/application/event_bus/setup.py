@@ -12,6 +12,9 @@ from app.application.notifications.handlers.send_create_appointment_email import
 from app.application.notifications.handlers.send_password_reset_email import (
     SendPasswordResetEmailHandler,
 )
+from app.application.notifications.handlers.send_quote_appointment_email import (
+    SendQuoteAppointmentEmailHandler,
+)
 from app.application.notifications.handlers.send_user_activation_email import (
     SendUserActivationHandler,
 )
@@ -29,6 +32,7 @@ from app.domain.studio.appointments.events.booking_window_updated import Booking
 from app.domain.studio.appointments.events.create_appointment_request import (
     CreateAppointmentEmailRequested,
 )
+from app.domain.studio.appointments.events.notify_of_appointment_quoted import NotifyOfAppointmentQuoted
 from app.domain.studio.users.events.activation_email_requested import (
     ActivationEmailRequested,
 )
@@ -84,6 +88,9 @@ def setup_event_bus(
     )
     integration_bus.register(
         CreateAppointmentEmailRequested, SendCreateAppointmentEmailHandler(email_service=email_service)
+    )
+    integration_bus.register(
+        NotifyOfAppointmentQuoted, SendQuoteAppointmentEmailHandler(email_service=email_service)
     )
 
     transactional_bus.register(
