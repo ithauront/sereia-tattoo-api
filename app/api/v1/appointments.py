@@ -10,12 +10,12 @@ from fastapi import (
 from app.api.dependencies.actor_id import get_optional_actor_id
 from app.api.dependencies.auth import get_current_active_user
 from app.api.dependencies.events import get_integration_event_bus, get_transactional_event_bus
-from app.api.dependencies.policies import get_calendar_policy
+from app.api.dependencies.policies import get_appointment_authorization_policy, get_calendar_policy
 from app.api.dependencies.read_unit_of_work import get_read_unit_of_work
 from app.api.dependencies.write_unit_of_work import (
     get_write_unit_of_work,
 )
-from app.api.schemas.appointments import CreateAppointmentRequest
+from app.api.schemas.appointments import CreateAppointmentRequest, QuoteAppointmentRequest
 from app.application.event_bus.integration_event_bus import IntegrationEventBus
 from app.application.event_bus.transactional_event_bus import TransactionalEventBus
 from app.application.studio.unit_of_work.read_unit_of_work import ReadUnitOfWork
@@ -28,14 +28,23 @@ from app.application.studio.use_cases.appointments_use_cases.complete_paid_appoi
 from app.application.studio.use_cases.appointments_use_cases.create_appointment_use_case import (
     CreateAppointmentUseCase,
 )
+from app.application.studio.use_cases.appointments_use_cases.quote_appointment_use_case import (
+    QuoteAppointmentUseCase,
+)
 from app.application.studio.use_cases.DTO.complete_paid_appointment_dto import (
     CompletePaidAppointmentInput,
 )
 from app.application.studio.use_cases.DTO.create_appointment_dto import CreateAppointmentInput
+from app.application.studio.use_cases.DTO.quote_appointement_dto import QuoteAppointmentInput
 from app.core.exceptions.appointments import (
+    AppointmentClientContactInfoCorruptedError,
+    AppointmentMustBeInCorrectPreviousStatusError,
     AppointmentMustBeScheduledError,
     AppointmentNotFoundError,
     AppointmentWasNotFullyPaidError,
+    OnlyAdminOrOwnerOfAppointmentError,
+    PriceMustBeDefinedError,
+    PriceMustBePositiveError,
     SlotIsAlreadyOccupiedError,
     SlotIsNotAvailableError,
 )
@@ -44,7 +53,11 @@ from app.core.exceptions.calendar import (
     UserIsNotWorkingInDesignatedTimeframeError,
 )
 from app.core.exceptions.clients import ClientInfoModelError
+from app.core.exceptions.users import UserInactiveError, UserNotFoundError
 from app.domain.studio.appointments.entities.value_objects.client_info import ClientInfo
+from app.domain.studio.appointments.policies.appointment_authorization_policy import (
+    AppointmentAuthorizationPolicy,
+)
 from app.domain.studio.appointments.policies.calendar_availability_policy import (
     CalendarAvailabilityPolicy,
 )
@@ -102,6 +115,11 @@ async def create_appointment(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="the_time_slot_required_is_not_available",
         )
+    except (UserInactiveError, UserNotFoundError):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="user_does_not_exists_or_is_inactive",
+        )
 
     except SlotIsAlreadyOccupiedError:
         raise HTTPException(
@@ -113,6 +131,48 @@ async def create_appointment(
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(exc),
+        )
+    except AppointmentClientContactInfoCorruptedError:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="appointment_is_broken"
+        )
+
+
+@router.patch("/{appointment_id}/quote", status_code=status.HTTP_204_NO_CONTENT)
+async def quote_appointment(
+    appointment_id: UUID,
+    data: QuoteAppointmentRequest,
+    current_user=Depends(get_current_active_user),
+    write_uow: WriteUnitOfWork = Depends(get_write_unit_of_work),
+    read_uow: ReadUnitOfWork = Depends(get_read_unit_of_work),
+    integration_bus: IntegrationEventBus = Depends(get_integration_event_bus),
+    authorization_policy: AppointmentAuthorizationPolicy = Depends(get_appointment_authorization_policy),
+):
+    try:
+        use_case = QuoteAppointmentUseCase(
+            read_uow=read_uow,
+            write_uow=write_uow,
+            integration_bus=integration_bus,
+            appointment_authorization_policy=authorization_policy,
+        )
+        dto = QuoteAppointmentInput(price=data.price, actor=current_user, appointment_id=appointment_id)
+
+        await use_case.execute(dto)
+
+    except AppointmentNotFoundError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="appointment_not_found")
+    except OnlyAdminOrOwnerOfAppointmentError:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="unauthorized_user")
+    except AppointmentMustBeInCorrectPreviousStatusError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="appointment_cannot_be_quoted_in_current_status"
+        )
+    except PriceMustBePositiveError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="price_must_be_positive")
+
+    except (AppointmentClientContactInfoCorruptedError, PriceMustBeDefinedError):
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="appointment_is_broken"
         )
 
 
