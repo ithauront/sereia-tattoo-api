@@ -3,7 +3,7 @@ from decimal import Decimal
 from uuid import UUID as pyUUID
 from uuid import uuid4
 
-from app.core.types.payment_enums import PaymentMethodType
+from app.core.types.payment_enums import PaymentMethodType, PaymentPurposeType
 from app.infrastructure.sqlalchemy.base_class import Base
 from sqlalchemy import DateTime, Enum, ForeignKey, Numeric, String, Text
 from sqlalchemy.dialects.postgresql import UUID
@@ -13,10 +13,16 @@ from sqlalchemy.orm import Mapped, mapped_column
 class PaymentModel(Base):
     __tablename__ = "payments"
 
+    # TODO: criar migration para payment_purpose_enum/payment_purpose e, quando a
+    # idempotencia for implementada, para a idempotency_key UNIQUE.
+
     id: Mapped[pyUUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     payment_method: Mapped[PaymentMethodType] = mapped_column(
         Enum(PaymentMethodType, name="payment_method_enum"), nullable=False
+    )
+    payment_purpose: Mapped[PaymentPurposeType] = mapped_column(
+        Enum(PaymentPurposeType, name="payment_purpose_enum"), nullable=False
     )
     vip_client_id: Mapped[pyUUID | None] = mapped_column(
         UUID(as_uuid=True),

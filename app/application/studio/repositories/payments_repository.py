@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
-
 from decimal import Decimal
-from typing import Optional, List
+from typing import List, Optional
 from uuid import UUID
 
 from app.application.studio.use_cases.DTO.commun import Direction
@@ -44,10 +43,12 @@ class PaymentsRepository(ABC):
     @abstractmethod
     def sum_by_appointment_id(self, appointment_id: UUID) -> Decimal: ...
 
+    # payable method consider only deposit and appointment purpose. it ignores tip and others
     @abstractmethod
-    def find_by_external_reference(
-        self, external_reference: str
-    ) -> Optional[Payment]: ...
+    def sum_payable_by_appointment_id(self, appointment_id: UUID) -> Decimal: ...
+
+    @abstractmethod
+    def find_by_external_reference(self, external_reference: str) -> Optional[Payment]: ...
 
     @abstractmethod
     def exists_by_external_reference(self, external_reference: str) -> bool: ...

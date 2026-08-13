@@ -4,6 +4,7 @@ from uuid import UUID
 
 from app.application.studio.repositories.payments_repository import PaymentsRepository
 from app.application.studio.use_cases.DTO.commun import Direction
+from app.core.types.payment_enums import PaymentPurposeType
 from app.domain.studio.finances.entities.payment import Payment
 from app.infrastructure.sqlalchemy.models.payment import PaymentModel
 from sqlalchemy import exists, func, literal, select
@@ -19,6 +20,7 @@ class SQLAlchemyPaymentsRepository(PaymentsRepository):
             id=payment.id,
             amount=payment.amount,
             payment_method=payment.payment_method,
+            payment_purpose=payment.payment_purpose,
             vip_client_id=payment.vip_client_id,
             appointment_id=payment.appointment_id,
             external_reference=payment.external_reference,
@@ -80,6 +82,24 @@ class SQLAlchemyPaymentsRepository(PaymentsRepository):
         result = self.session.scalar(sum_of_payments) or Decimal("0")
         return result
 
+    def sum_payable_by_appointment_id(self, appointment_id: UUID) -> Decimal:
+        sum_of_payments = select(
+            func.coalesce(
+                func.sum(PaymentModel.amount),
+                literal(Decimal("0")),
+            )
+        ).where(
+            PaymentModel.appointment_id == appointment_id,
+            PaymentModel.payment_purpose.in_(
+                [
+                    PaymentPurposeType.DEPOSIT,
+                    PaymentPurposeType.APPOINTMENT,
+                ]
+            ),
+        )
+
+        return self.session.scalar(sum_of_payments) or Decimal("0")
+
     def find_by_external_reference(self, external_reference: str) -> Optional[Payment]:
         payment_in_question = select(PaymentModel).where(
             PaymentModel.external_reference == external_reference
@@ -102,6 +122,7 @@ class SQLAlchemyPaymentsRepository(PaymentsRepository):
             id=UUID(str(orm_payment.id)),
             amount=orm_payment.amount,
             payment_method=orm_payment.payment_method,
+            payment_purpose=orm_payment.payment_purpose,
             vip_client_id=(
                 UUID(str(orm_payment.vip_client_id)) if orm_payment.vip_client_id is not None else None
             ),
