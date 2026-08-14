@@ -25,13 +25,20 @@ on the value of `source_type`.
 `source_type` acts as a discriminator that defines how `source_id`
 should be interpreted.
 
-- If `source_type` is related to an indication or appointment usage,
-  `source_id` refers to the ID of a record in the appointments table.
+- If `source_type` is related to an indication,
+  `source_id` refers to the ID of a record in the APPOINTMENTS table.
+- If `source_type` is related to an appointment usage,
+  `source_id` refers to the ID of a record in the PAYMENTS table.
 - If `source_type` represents an admin action, `source_id` refers
-  to the ID of a user (admin) in the users table.
+  to the ID of a user (admin) in the USERS table.
 """
 
 
+# TODO: refatorar USED_IN_APPOINTMENT para usar payment.id como source_id, pois o
+# Payment ja aponta para o appointment e identifica exatamente qual pagamento consumiu
+# o saldo. Manter related_entry_id exclusivamente para relacionar entradas do proprio
+# ledger (por exemplo, uma reversao e sua entrada original), conforme sua FK atual.
+# Atualizar a documentacao de source_id, a factory used_in_appointment e seus testes.
 class ClientCreditEntry:
     def __init__(
         self,
@@ -135,11 +142,11 @@ class ClientCreditEntry:
         )
 
     @classmethod
-    def used_in_appointment(
+    def used_has_payment(
         cls,
         *,
         vip_client_id: UUID,
-        appointment_id: UUID,
+        payment_id: UUID,
         quantity: int,
         created_at: datetime | None = None,
     ) -> "ClientCreditEntry":
@@ -149,10 +156,10 @@ class ClientCreditEntry:
 
         return cls._create(
             vip_client_id=vip_client_id,
-            source_id=appointment_id,
-            source_type=ClientCreditSourceType.USED_IN_APPOINTMENT,
+            source_id=payment_id,
+            source_type=ClientCreditSourceType.USED_HAS_PAYMENT,
             quantity=-abs(quantity),
-            reason="Créditos usados em appointment",
+            reason="Créditos usados como pagamento",
             created_at=created_at,
         )
 
