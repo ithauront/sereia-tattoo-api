@@ -6,7 +6,7 @@ from app.application.studio.unit_of_work.write_unit_of_work import WriteUnitOfWo
 from app.application.studio.use_cases.DTO.audit_logs import AuditLogEntry
 from app.core.types.audit_actor_type import AuditActorType
 from app.core.types.client_credit_source_type import ClientCreditSourceType
-from app.core.types.payment_enums import PaymentMethodType
+from app.core.types.payment_enums import PaymentMethodType, PaymentPurposeType
 from app.domain.studio.appointments.events.appointment_completed import (
     AppointmentCompleted,
 )
@@ -47,9 +47,17 @@ class AddCreditsFromCompletedAppointmentHandler:
         payments_in_money = [
             payment for payment in payments if payment.payment_method != PaymentMethodType.CLIENT_CREDIT
         ]
+        payment_correct_purpose = [
+            payment
+            for payment in payments_in_money
+            if (
+                payment.payment_purpose == PaymentPurposeType.DEPOSIT
+                or payment.payment_purpose == PaymentPurposeType.APPOINTMENT
+            )
+        ]
 
         total_in_money = sum(
-            (payment.amount for payment in payments_in_money),
+            (payment.amount for payment in payment_correct_purpose),
             Decimal("0"),
         )
 
