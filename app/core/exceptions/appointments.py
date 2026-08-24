@@ -47,10 +47,18 @@ class AppointmentMustBeScheduledError(Exception):
 
 
 class AppointmentWasNotFullyPaidError(Exception):
-    pass
+    message: str
+
+    def __init__(self, message: str):
+        super().__init__(message)
+        self.message = message
 
 
 class CurrentSessionMustBePositiveError(Exception):
+    pass
+
+
+class AppointmentClientInfoBreakingDomainRules(Exception):
     pass
 
 
@@ -67,4 +75,12 @@ class OnlyAdminOrOwnerOfAppointmentError(Exception):
 
 
 class AppointmentClientContactInfoCorruptedError(Exception):
+    pass
+
+
+class IncorrectAppointmentStatusError(Exception):
+    pass
+
+
+class AppointmentHasPendingRefundError(Exception):
     pass
