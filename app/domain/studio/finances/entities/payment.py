@@ -3,6 +3,9 @@ from decimal import Decimal
 from uuid import UUID, uuid4
 
 from app.core.exceptions.payment import (
+    InvalidPaymentAmountError,
+    PaymentAmountExceedsMaximumError,
+    PaymentAmountHasSubCentPrecisionError,
     PaymentLinkToAppointmentIsCorruptedError,
     PaymentMustBeGreaterThanZeroError,
     PaymentMustHaveDepositPurposeError,
@@ -14,6 +17,9 @@ from app.domain.studio.finances.events.deposit_payment_recorded_event import (
     DepositPaymentRecordedEvent,
 )
 from app.domain.utils.ensure_enum import ensure_enum
+
+CENT = Decimal("0.01")
+MAX_PAYMENT_AMOUNT = Decimal("99999999.99")
 
 
 class Payment:
@@ -40,14 +46,25 @@ class Payment:
         if payment_method == PaymentMethodType.CLIENT_CREDIT and not vip_client_id:
             raise VipClientIdIsRequiredError()
 
+        if not amount.is_finite():
+            raise InvalidPaymentAmountError()
+
         if amount <= 0:
             raise PaymentMustBeGreaterThanZeroError()
+
+        if amount > MAX_PAYMENT_AMOUNT:
+            raise PaymentAmountExceedsMaximumError()
+
+        normalized_amount = amount.quantize(CENT)
+
+        if normalized_amount != amount:
+            raise PaymentAmountHasSubCentPrecisionError()
 
         if not appointment_id and not (description and description.strip()):
             raise PaymentWithoutAppointmentRequireDescriptionError()
 
         self.id = id or uuid4()
-        self.amount = amount
+        self.amount = normalized_amount
         self.payment_method = payment_method
         self.payment_purpose = payment_purpose
         self.vip_client_id = vip_client_id
@@ -64,10 +81,33 @@ class Payment:
     def has_appointment(self) -> bool:
         return self.appointment_id is not None
 
+    def matches_creation_request(
+        self,
+        *,
+        amount: Decimal,
+        payment_method: PaymentMethodType,
+        payment_purpose: PaymentPurposeType,
+        vip_client_id: UUID | None,
+        appointment_id: UUID | None,
+        external_reference: str | None,
+        description: str | None,
+    ) -> bool:
+        """Return whether a retry represents the same logical payment."""
+        return (
+            self.amount == amount
+            and self.payment_method == payment_method
+            and self.payment_purpose == payment_purpose
+            and self.vip_client_id == vip_client_id
+            and self.appointment_id == appointment_id
+            and self.external_reference == external_reference
+            and self.description == description
+        )
+
     @classmethod
     def create(
         cls,
         *,
+        id: UUID,
         amount: Decimal,
         payment_method: PaymentMethodType,
         payment_purpose: PaymentPurposeType,
@@ -77,6 +117,7 @@ class Payment:
         description: str | None = None,
     ) -> "Payment":
         return cls(
+            id=id,
             amount=amount,
             payment_method=payment_method,
             payment_purpose=payment_purpose,
