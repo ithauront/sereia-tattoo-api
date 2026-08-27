@@ -38,3 +38,17 @@ class RefundsRepository(ABC):
         *,
         filters: RefundFilters,
     ) -> Decimal: ...
+
+    # This method consider only refunds made for payment of type appointment and deposit
+    @abstractmethod
+    def sum_completed_by_payable_payments_for_appointment(
+        self,
+        appointment_id: UUID,
+    ) -> Decimal: ...
+
+    # This method consider only refunds made for payment of type appointment and deposit
+    @abstractmethod
+    def sum_pending_by_payable_payments_for_appointment(
+        self,
+        appointment_id: UUID,
+    ) -> Decimal: ...

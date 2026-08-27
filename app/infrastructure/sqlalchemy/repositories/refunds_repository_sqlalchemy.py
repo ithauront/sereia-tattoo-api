@@ -4,8 +4,11 @@ from uuid import UUID
 
 from app.application.studio.repositories.refunds_repository import RefundsRepository
 from app.application.studio.use_cases.DTO.commun import Direction
+from app.core.types.payment_enums import PaymentPurposeType
+from app.core.types.refund_enums import RefundStatus
 from app.core.types.refund_filter_types import RefundFilters
 from app.domain.studio.finances.entities.refund import Refund
+from app.infrastructure.sqlalchemy.models.payment import PaymentModel
 from app.infrastructure.sqlalchemy.models.refund import RefundModel
 from sqlalchemy import func, literal, select
 from sqlalchemy.orm import Session
@@ -69,6 +72,66 @@ class SQLAlchemyRefundsRepository(RefundsRepository):
         sum_of_refunds = select(
             func.coalesce(func.sum(RefundModel.amount), literal(Decimal("0")))
         ).where(*conditions)
+
+        return self.session.scalar(sum_of_refunds) or Decimal("0")
+
+    def sum_completed_by_payable_payments_for_appointment(
+        self,
+        appointment_id: UUID,
+    ) -> Decimal:
+        sum_of_refunds = (
+            select(
+                func.coalesce(
+                    func.sum(RefundModel.amount),
+                    literal(Decimal("0")),
+                )
+            )
+            .join(
+                PaymentModel,
+                PaymentModel.id == RefundModel.payment_id,
+            )
+            .where(
+                RefundModel.appointment_id == appointment_id,
+                PaymentModel.appointment_id == appointment_id,
+                RefundModel.refund_status == RefundStatus.COMPLETED,
+                PaymentModel.payment_purpose.in_(
+                    (
+                        PaymentPurposeType.APPOINTMENT,
+                        PaymentPurposeType.DEPOSIT,
+                    )
+                ),
+            )
+        )
+
+        return self.session.scalar(sum_of_refunds) or Decimal("0")
+
+    def sum_pending_by_payable_payments_for_appointment(
+        self,
+        appointment_id: UUID,
+    ) -> Decimal:
+        sum_of_refunds = (
+            select(
+                func.coalesce(
+                    func.sum(RefundModel.amount),
+                    literal(Decimal("0")),
+                )
+            )
+            .join(
+                PaymentModel,
+                PaymentModel.id == RefundModel.payment_id,
+            )
+            .where(
+                RefundModel.appointment_id == appointment_id,
+                PaymentModel.appointment_id == appointment_id,
+                RefundModel.refund_status == RefundStatus.PENDING,
+                PaymentModel.payment_purpose.in_(
+                    (
+                        PaymentPurposeType.APPOINTMENT,
+                        PaymentPurposeType.DEPOSIT,
+                    )
+                ),
+            )
+        )
 
         return self.session.scalar(sum_of_refunds) or Decimal("0")
 
