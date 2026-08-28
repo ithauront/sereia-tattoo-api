@@ -4,6 +4,7 @@ from decimal import Decimal
 import pytest
 
 from app.application.studio.use_cases.DTO.commun import Direction
+from app.core.types.payment_enums import PaymentPurposeType
 from app.core.types.refund_enums import RefundMethodType, RefundStatus
 from app.core.types.refund_filter_types import RefundFilters
 from app.domain.studio.finances.entities.refund import Refund
@@ -318,9 +319,7 @@ def test_filter_by_refund_method(
     assert all(refund.refund_method == RefundMethodType.PIX for refund in founds)
 
 
-def test_zero_filter(
-    make_payment, make_refund, make_user, payments_repo, refunds_repo, users_repo
-):
+def test_zero_filter(make_payment, make_refund, make_user, payments_repo, refunds_repo, users_repo):
     payment = make_payment()
     payments_repo.create(payment)
 
@@ -455,3 +454,162 @@ def test_filter_by_date_range(
         "reason 2",
         "reason 3",
     }
+
+
+def test_sum_completed_by_payable_payments_for_appointment(
+    make_payment,
+    make_refund,
+    make_scheduled_appointment,
+    payments_repo,
+    appointments_repo,
+):
+    refunds_repo = FakeRefundsRepository(
+        payments_repository=payments_repo,
+    )
+
+    appointment = make_scheduled_appointment()
+    appointments_repo.create(appointment)
+
+    payment = make_payment(
+        appointment_id=appointment.id,
+        payment_purpose=PaymentPurposeType.APPOINTMENT,
+        amount=Decimal("100"),
+    )
+    payments_repo.create(payment)
+
+    deposit = make_payment(
+        appointment_id=appointment.id,
+        payment_purpose=PaymentPurposeType.DEPOSIT,
+        amount=Decimal("50"),
+    )
+    payments_repo.create(deposit)
+
+    tip = make_payment(
+        appointment_id=appointment.id,
+        payment_purpose=PaymentPurposeType.TIP,
+        amount=Decimal("100"),
+    )
+    payments_repo.create(tip)
+
+    completed_refund = make_refund(
+        appointment_id=appointment.id,
+        payment_id=payment.id,
+        amount=Decimal("30"),
+        refund_status=RefundStatus.COMPLETED,
+    )
+    refunds_repo.create(completed_refund)
+
+    completed_deposit_refund = make_refund(
+        appointment_id=appointment.id,
+        payment_id=deposit.id,
+        amount=Decimal("10"),
+        refund_status=RefundStatus.COMPLETED,
+    )
+    refunds_repo.create(completed_deposit_refund)
+
+    pending_refund = make_refund(
+        appointment_id=appointment.id,
+        payment_id=payment.id,
+        amount=Decimal("20"),
+        refund_status=RefundStatus.PENDING,
+    )
+    refunds_repo.create(pending_refund)
+
+    tip_refund = make_refund(
+        appointment_id=appointment.id,
+        payment_id=tip.id,
+        amount=Decimal("100"),
+        refund_status=RefundStatus.COMPLETED,
+    )
+    refunds_repo.create(tip_refund)
+
+    other_appointment = make_scheduled_appointment()
+    appointments_repo.create(other_appointment)
+
+    other_appointment_refund = make_refund(
+        appointment_id=other_appointment.id,
+        payment_id=payment.id,
+        amount=Decimal("500"),
+        refund_status=RefundStatus.COMPLETED,
+    )
+    refunds_repo.create(other_appointment_refund)
+
+    total = refunds_repo.sum_completed_by_payable_payments_for_appointment(
+        appointment_id=appointment.id,
+    )
+
+    assert total == Decimal("40")
+
+
+def test_sum_pending_by_payable_payments_for_appointment(
+    make_payment,
+    make_refund,
+    make_scheduled_appointment,
+    payments_repo,
+    appointments_repo,
+):
+    refunds_repo = FakeRefundsRepository(
+        payments_repository=payments_repo,
+    )
+
+    appointment = make_scheduled_appointment()
+    appointments_repo.create(appointment)
+
+    payment = make_payment(
+        appointment_id=appointment.id,
+        payment_purpose=PaymentPurposeType.APPOINTMENT,
+        amount=Decimal("100"),
+    )
+    payments_repo.create(payment)
+
+    deposit = make_payment(
+        appointment_id=appointment.id,
+        payment_purpose=PaymentPurposeType.DEPOSIT,
+        amount=Decimal("50"),
+    )
+    payments_repo.create(deposit)
+
+    tip = make_payment(
+        appointment_id=appointment.id,
+        payment_purpose=PaymentPurposeType.TIP,
+        amount=Decimal("100"),
+    )
+    payments_repo.create(tip)
+
+    pending_refund = make_refund(
+        appointment_id=appointment.id,
+        payment_id=payment.id,
+        amount=Decimal("30"),
+        refund_status=RefundStatus.PENDING,
+    )
+    refunds_repo.create(pending_refund)
+
+    pending_deposit_refund = make_refund(
+        appointment_id=appointment.id,
+        payment_id=deposit.id,
+        amount=Decimal("10"),
+        refund_status=RefundStatus.PENDING,
+    )
+    refunds_repo.create(pending_deposit_refund)
+
+    completed_refund = make_refund(
+        appointment_id=appointment.id,
+        payment_id=payment.id,
+        amount=Decimal("20"),
+        refund_status=RefundStatus.COMPLETED,
+    )
+    refunds_repo.create(completed_refund)
+
+    tip_refund = make_refund(
+        appointment_id=appointment.id,
+        payment_id=tip.id,
+        amount=Decimal("100"),
+        refund_status=RefundStatus.PENDING,
+    )
+    refunds_repo.create(tip_refund)
+
+    total = refunds_repo.sum_pending_by_payable_payments_for_appointment(
+        appointment_id=appointment.id,
+    )
+
+    assert total == Decimal("40")

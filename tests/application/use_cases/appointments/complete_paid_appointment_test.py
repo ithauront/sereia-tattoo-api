@@ -8,6 +8,7 @@ from app.application.studio.use_cases.appointments_use_cases.complete_paid_appoi
     CompletePaidAppointmentUseCase,
 )
 from app.core.exceptions.appointments import (
+    AppointmentHasPendingRefundError,
     AppointmentMustBeScheduledError,
     AppointmentNotFoundError,
     AppointmentWasNotFullyPaidError,
@@ -15,6 +16,8 @@ from app.core.exceptions.appointments import (
 from app.core.types.appointment_enums import (
     AppointmentStatus,
 )
+from app.core.types.payment_enums import PaymentPurposeType
+from app.core.types.refund_enums import RefundStatus
 from app.domain.studio.appointments.entities.value_objects.client_info import ClientInfo
 from app.domain.studio.appointments.events.appointment_completed import (
     AppointmentCompleted,
@@ -55,36 +58,62 @@ async def test_complete_paid_appointment_successful(
 
 
 @pytest.mark.asyncio
-async def test_complete_with_refund_successful(
-    make_user, make_scheduled_appointment, make_payment, write_uow, read_uow, make_refund
+async def test_complete_with_completed_refund_successful(
+    make_user,
+    make_scheduled_appointment,
+    make_payment,
+    make_refund,
+    write_uow,
+    read_uow,
 ):
     user = make_user()
     write_uow.users.create(user)
 
-    appointment = make_scheduled_appointment(price=Decimal("700"))
+    appointment = make_scheduled_appointment(
+        price=Decimal("700"),
+    )
     write_uow.appointments.create(appointment)
 
-    payment = make_payment(appointment_id=appointment.id, amount=Decimal("800"))
+    payment = make_payment(
+        appointment_id=appointment.id,
+        amount=Decimal("800"),
+    )
     write_uow.payments.create(payment)
 
-    refund = make_refund(appointment_id=appointment.id, amount=Decimal("100"), payment_id=payment.id)
+    refund = make_refund(
+        appointment_id=appointment.id,
+        amount=Decimal("100"),
+        payment_id=payment.id,
+        refund_status=RefundStatus.COMPLETED,
+    )
     write_uow.refunds.create(refund)
 
     transactional_bus = FakeTransactionalEventBus()
 
-    use_case = CompletePaidAppointmentUseCase(uow=write_uow, transactional_bus=transactional_bus)
-    dto = CompletePaidAppointmentInput(actor_id=user.id, appointment_id=appointment.id)
+    use_case = CompletePaidAppointmentUseCase(
+        uow=write_uow,
+        transactional_bus=transactional_bus,
+    )
+
+    dto = CompletePaidAppointmentInput(
+        actor_id=user.id,
+        appointment_id=appointment.id,
+    )
 
     await use_case.execute(dto)
 
-    appointment_in_repo = read_uow.appointments.find_by_id(appointment_id=appointment.id)
+    appointment_in_repo = read_uow.appointments.find_by_id(
+        appointment_id=appointment.id,
+    )
 
     assert appointment_in_repo.status == AppointmentStatus.COMPLETED
 
     # Appointment without referral_code should not create event
     assert len(transactional_bus.events) == 0
 
-    logs = read_uow.audit_logs.find_many_by_entity_id(appointment.id)
+    logs = read_uow.audit_logs.find_many_by_entity_id(
+        appointment.id,
+    )
 
     assert len(logs) == 1
 
@@ -128,7 +157,9 @@ async def test_complete_paid_more(
 
     payment = make_payment(appointment_id=appointment.id, amount=Decimal("1000"))
     write_uow.payments.create(payment)
-    # payment is bigger than price, should not raise errors (for possible tips and etc)
+    # payment is bigger than price, should not raise errors
+    # we accept the money altough it would be best pratice to make payment = price
+    # and add a tip for the remaning amount
 
     transactional_bus = FakeTransactionalEventBus()
 
@@ -377,3 +408,221 @@ def test_complete_paid_appointment_input_requires_valid_uuids():
             actor_id="not_a_uuid",  # type: ignore
             appointment_id="not_a_uuid",  # type: ignore
         )
+
+
+@pytest.mark.asyncio
+async def test_pending_refund_prevents_appointment_completion(
+    make_user,
+    make_scheduled_appointment,
+    make_payment,
+    make_refund,
+    write_uow,
+    read_uow,
+):
+    user = make_user()
+    write_uow.users.create(user)
+
+    appointment = make_scheduled_appointment(
+        price=Decimal("700"),
+    )
+    write_uow.appointments.create(appointment)
+
+    payment = make_payment(
+        appointment_id=appointment.id,
+        amount=Decimal("700"),
+    )
+    write_uow.payments.create(payment)
+
+    refund = make_refund(
+        appointment_id=appointment.id,
+        payment_id=payment.id,
+        amount=Decimal("500"),
+        refund_status=RefundStatus.PENDING,
+    )
+    write_uow.refunds.create(refund)
+
+    transactional_bus = FakeTransactionalEventBus()
+
+    use_case = CompletePaidAppointmentUseCase(
+        uow=write_uow,
+        transactional_bus=transactional_bus,
+    )
+
+    dto = CompletePaidAppointmentInput(
+        actor_id=user.id,
+        appointment_id=appointment.id,
+    )
+
+    with pytest.raises(AppointmentHasPendingRefundError):
+        await use_case.execute(dto)
+
+    appointment_in_repo = read_uow.appointments.find_by_id(
+        appointment_id=appointment.id,
+    )
+
+    assert appointment_in_repo.status == AppointmentStatus.SCHEDULED
+
+    assert len(transactional_bus.events) == 0
+
+    logs = read_uow.audit_logs.find_many_by_entity_id(
+        appointment.id,
+    )
+
+    assert logs == []
+
+
+@pytest.mark.asyncio
+async def test_pending_refund_error_has_priority_over_insufficient_net_paid(
+    make_user,
+    make_scheduled_appointment,
+    make_payment,
+    make_refund,
+    write_uow,
+    read_uow,
+):
+    user = make_user()
+    write_uow.users.create(user)
+
+    appointment = make_scheduled_appointment(
+        price=Decimal("700"),
+    )
+    write_uow.appointments.create(appointment)
+
+    payment = make_payment(
+        appointment_id=appointment.id,
+        amount=Decimal("800"),
+    )
+    write_uow.payments.create(payment)
+
+    completed_refund = make_refund(
+        appointment_id=appointment.id,
+        payment_id=payment.id,
+        amount=Decimal("100"),
+        refund_status=RefundStatus.COMPLETED,
+    )
+    write_uow.refunds.create(completed_refund)
+
+    pending_refund = make_refund(
+        appointment_id=appointment.id,
+        payment_id=payment.id,
+        amount=Decimal("50"),
+        refund_status=RefundStatus.PENDING,
+    )
+    write_uow.refunds.create(pending_refund)
+
+    transactional_bus = FakeTransactionalEventBus()
+
+    use_case = CompletePaidAppointmentUseCase(
+        uow=write_uow,
+        transactional_bus=transactional_bus,
+    )
+
+    dto = CompletePaidAppointmentInput(
+        actor_id=user.id,
+        appointment_id=appointment.id,
+    )
+
+    with pytest.raises(AppointmentHasPendingRefundError):
+        await use_case.execute(dto)
+
+    appointment_in_repo = read_uow.appointments.find_by_id(
+        appointment_id=appointment.id,
+    )
+
+    assert appointment_in_repo.status == AppointmentStatus.SCHEDULED
+    assert transactional_bus.events == []
+
+    logs = read_uow.audit_logs.find_many_by_entity_id(
+        appointment.id,
+    )
+
+    assert logs == []
+
+
+@pytest.mark.asyncio
+async def test_tip_payment_does_not_count_as_payable_payment(
+    make_user,
+    make_scheduled_appointment,
+    make_payment,
+    write_uow,
+    read_uow,
+):
+    user = make_user()
+    write_uow.users.create(user)
+
+    appointment = make_scheduled_appointment(
+        price=Decimal("700"),
+    )
+    write_uow.appointments.create(appointment)
+
+    appointment_payment = make_payment(
+        appointment_id=appointment.id,
+        amount=Decimal("700"),
+        payment_purpose=PaymentPurposeType.APPOINTMENT,
+    )
+    write_uow.payments.create(appointment_payment)
+
+    tip_payment = make_payment(
+        appointment_id=appointment.id,
+        amount=Decimal("300"),
+        payment_purpose=PaymentPurposeType.TIP,
+    )
+    write_uow.payments.create(tip_payment)
+
+    transactional_bus = FakeTransactionalEventBus()
+
+    use_case = CompletePaidAppointmentUseCase(
+        uow=write_uow,
+        transactional_bus=transactional_bus,
+    )
+
+    dto = CompletePaidAppointmentInput(
+        actor_id=user.id,
+        appointment_id=appointment.id,
+    )
+
+    await use_case.execute(dto)
+
+    appointment_in_repo = read_uow.appointments.find_by_id(
+        appointment_id=appointment.id,
+    )
+
+    assert appointment_in_repo.status == AppointmentStatus.COMPLETED
+
+
+@pytest.mark.parametrize(
+    "non_payable_purpose",
+    [PaymentPurposeType.TIP, PaymentPurposeType.OTHER],
+)
+@pytest.mark.asyncio
+async def test_non_payable_payment_cannot_complete_appointment(
+    non_payable_purpose,
+    make_user,
+    make_scheduled_appointment,
+    make_payment,
+    write_uow,
+    read_uow,
+):
+    user = make_user()
+    write_uow.users.create(user)
+    appointment = make_scheduled_appointment(price=Decimal("700"))
+    write_uow.appointments.create(appointment)
+    write_uow.payments.create(
+        make_payment(
+            appointment_id=appointment.id,
+            amount=Decimal("700"),
+            payment_purpose=non_payable_purpose,
+        )
+    )
+    use_case = CompletePaidAppointmentUseCase(
+        uow=write_uow,
+        transactional_bus=FakeTransactionalEventBus(),
+    )
+
+    with pytest.raises(AppointmentWasNotFullyPaidError):
+        await use_case.execute(
+            CompletePaidAppointmentInput(actor_id=user.id, appointment_id=appointment.id)
+        )
+
+    persisted_appointment = read_uow.appointments.find_by_id(appointment_id=appointment.id)
+    assert persisted_appointment.status == AppointmentStatus.SCHEDULED

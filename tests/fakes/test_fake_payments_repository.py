@@ -6,8 +6,8 @@ import pytest
 
 from app.application.studio.use_cases.DTO.commun import Direction
 from app.core.exceptions.payment import DuplicateExternalReferenceError
+from app.core.types.payment_enums import PaymentMethodType, PaymentPurposeType
 from app.domain.studio.finances.entities.payment import Payment
-from app.core.types.payment_enums import PaymentMethodType
 from tests.fakes.fake_appointments_repository import FakeAppointmentsRepository
 from tests.fakes.fake_payments_repository import FakePaymentsRepository
 from tests.fakes.fake_vip_clients_repository import FakeVipClientsRepository
@@ -54,9 +54,7 @@ def test_do_not_found_by_id(make_payment, payments_repo):
     assert found is None
 
 
-def test_find_many_by_vip_client_id_dsc(
-    make_payment, payments_repo, vip_client_repo, make_vip_client
-):
+def test_find_many_by_vip_client_id_dsc(make_payment, payments_repo, vip_client_repo, make_vip_client):
     vip_client = make_vip_client()
     vip_client_repo.create(vip_client)
 
@@ -72,9 +70,7 @@ def test_find_many_by_vip_client_id_dsc(
         )
         payments_repo.create(payment)
 
-    founds = payments_repo.find_many_by_vip_client_id(
-        vip_client_id=vip_client.id, limit=5, offset=0
-    )
+    founds = payments_repo.find_many_by_vip_client_id(vip_client_id=vip_client.id, limit=5, offset=0)
 
     amounts = [p.amount for p in founds]
     # order is created last came first
@@ -87,9 +83,7 @@ def test_find_many_by_vip_client_id_dsc(
     ]
 
 
-def test_find_many_by_vip_client_id_asc(
-    make_payment, payments_repo, vip_client_repo, make_vip_client
-):
+def test_find_many_by_vip_client_id_asc(make_payment, payments_repo, vip_client_repo, make_vip_client):
     vip_client = make_vip_client()
     vip_client_repo.create(vip_client)
     base_now = datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc)
@@ -167,9 +161,7 @@ def test_find_many_by_vip_client_not_found(
     assert founds == []
 
 
-def test_count_by_vip_client_id(
-    make_payment, payments_repo, vip_client_repo, make_vip_client
-):
+def test_count_by_vip_client_id(make_payment, payments_repo, vip_client_repo, make_vip_client):
     vip_client = make_vip_client()
     vip_client_repo.create(vip_client)
     base_now = datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc)
@@ -204,9 +196,7 @@ def test_find_many_by_appointment_id(
     assert Decimal("670") in amounts
 
 
-def test_sum_by_vip_client_id(
-    make_payment, payments_repo, vip_client_repo, make_vip_client
-):
+def test_sum_by_vip_client_id(make_payment, payments_repo, vip_client_repo, make_vip_client):
     vip_client = make_vip_client()
     vip_client_repo.create(vip_client)
     base_now = datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc)
@@ -254,13 +244,49 @@ def test_sum_by_appointment_id(
     assert total == Decimal("15")
 
 
+def test_payable_by_appointment_id(
+    make_payment, payments_repo, appointments_repo, make_completed_appointment
+):
+    appointment = make_completed_appointment()
+    appointments_repo.create(appointment)
+    base_now = datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc)
+
+    for i in range(5):
+        amount = i + 1
+        created_at = base_now + timedelta(seconds=i)
+        payment = make_payment(
+            appointment_id=appointment.id,
+            amount=Decimal(str(amount)),
+            created_at=created_at,
+        )
+        payments_repo.create(payment)
+
+    tip = make_payment(
+        appointment_id=appointment.id,
+        amount=Decimal("20"),
+        payment_purpose=PaymentPurposeType.TIP,
+        created_at=created_at,
+    )
+    payments_repo.create(tip)
+
+    other = make_payment(
+        appointment_id=appointment.id,
+        amount=Decimal("20"),
+        payment_purpose=PaymentPurposeType.OTHER,
+        created_at=created_at,
+    )
+    payments_repo.create(other)
+
+    total = payments_repo.sum_payable_by_appointment_id(appointment_id=appointment.id)
+
+    assert total == Decimal("15")
+
+
 def test_find_by_external_reference(make_payment, payments_repo):
     base_now = datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc)
     for i in range(5):
         created_at = base_now + timedelta(seconds=i)
-        payment = make_payment(
-            external_reference=f"reference{i}", created_at=created_at
-        )
+        payment = make_payment(external_reference=f"reference{i}", created_at=created_at)
         payments_repo.create(payment)
 
     reference_match = payments_repo.find_by_external_reference("reference0")

@@ -5,6 +5,7 @@ from uuid import UUID
 from app.application.studio.repositories.payments_repository import PaymentsRepository
 from app.application.studio.use_cases.DTO.commun import Direction
 from app.core.exceptions.payment import DuplicateExternalReferenceError
+from app.core.types.payment_enums import PaymentPurposeType
 from app.domain.studio.finances.entities.payment import Payment
 
 
@@ -52,6 +53,21 @@ class FakePaymentsRepository(PaymentsRepository):
         for payment in self._payments:
             if payment.appointment_id == appointment_id:
                 total += payment.amount
+        return total
+
+    def sum_payable_by_appointment_id(
+        self,
+        appointment_id: UUID,
+    ) -> Decimal:
+        total = Decimal("0")
+
+        for payment in self._payments:
+            if payment.appointment_id == appointment_id and payment.payment_purpose in (
+                PaymentPurposeType.APPOINTMENT,
+                PaymentPurposeType.DEPOSIT,
+            ):
+                total += payment.amount
+
         return total
 
     def find_by_external_reference(self, external_reference: str) -> Optional[Payment]:

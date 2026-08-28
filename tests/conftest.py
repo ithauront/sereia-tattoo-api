@@ -19,7 +19,7 @@ from app.core.types.calendar_enums import CalendarExceptionType
 from app.core.types.client_credit_source_type import (
     ClientCreditSourceType,
 )
-from app.core.types.payment_enums import PaymentMethodType
+from app.core.types.payment_enums import PaymentMethodType, PaymentPurposeType
 from app.core.types.refund_enums import RefundMethodType, RefundStatus
 from app.domain.studio.appointments.entities.appointment import Appointment
 from app.domain.studio.appointments.entities.calendar_exception import CalendarException
@@ -83,8 +83,10 @@ def shared_audit_logs_repo():
 
 
 @pytest.fixture
-def shared_refunds_repo():
-    return FakeRefundsRepository()
+def shared_refunds_repo(shared_payments_repo):
+    return FakeRefundsRepository(
+        payments_repository=shared_payments_repo,
+    )
 
 
 @pytest.fixture
@@ -248,10 +250,10 @@ def make_client_credit_entry():
                 created_at=created_at,
             )
 
-        if source_type == ClientCreditSourceType.USED_IN_APPOINTMENT:
-            return ClientCreditEntry.used_in_appointment(
+        if source_type == ClientCreditSourceType.USED_HAS_PAYMENT:
+            return ClientCreditEntry.used_has_payment(
                 vip_client_id=vip_client_id,
-                appointment_id=source_id,
+                payment_id=source_id,
                 quantity=quantity,
                 created_at=created_at,
             )
@@ -289,9 +291,10 @@ def make_payment():
     def _factory(**kwargs):
         base_now = kwargs.get("base_now", datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc))
         return Payment(
-            id=uuid4(),
+            id=kwargs.get("id", uuid4()),
             amount=kwargs.get("amount", Decimal("10")),
             payment_method=kwargs.get("payment_method", PaymentMethodType.PIX),
+            payment_purpose=kwargs.get("payment_purpose", PaymentPurposeType.APPOINTMENT),
             appointment_id=kwargs.get("appointment_id", uuid4()),
             vip_client_id=kwargs.get("vip_client_id", uuid4()),
             description=kwargs.get("description", "Pagamento da tatuagem"),

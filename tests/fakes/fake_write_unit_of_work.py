@@ -20,7 +20,9 @@ class FakeWriteUnitOfWork(WriteUnitOfWork):
         self.appointments = FakeAppointmentsRepository()
         self.payments = FakePaymentsRepository()
         self.audit_logs = FakeAuditLogsRepository()
-        self.refunds = FakeRefundsRepository()
+        self.refunds = FakeRefundsRepository(
+            payments_repository=self.payments,
+        )
         self.calendar_settings = FakeCalendarSettingsRepository()
         self.calendar_exceptions = FakeCalendarExceptionsRepository()
 

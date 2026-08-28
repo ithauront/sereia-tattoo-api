@@ -6,9 +6,16 @@ from app.application.studio.use_cases.DTO.audit_logs import AuditLogEntry
 from app.application.studio.use_cases.DTO.complete_paid_appointment_dto import (
     CompletePaidAppointmentInput,
 )
-from app.core.exceptions.appointments import AppointmentNotFoundError
+from app.core.exceptions.appointments import (
+    AppointmentHasPendingRefundError,
+    AppointmentNotFoundError,
+    AppointmentWasNotFullyPaidError,
+    PriceMustBeDefinedError,
+)
 from app.core.types.audit_actor_type import AuditActorType
-from app.core.types.refund_filter_types import RefundFilters
+from app.domain.studio.finances.entities.value_objects.appointment_payment_summary import (
+    AppointmentPaymentSummary,
+)
 
 
 class CompletePaidAppointmentUseCase:
@@ -23,16 +30,34 @@ class CompletePaidAppointmentUseCase:
             if appointment is None:
                 raise AppointmentNotFoundError()
 
+            if appointment.price is None:
+                raise PriceMustBeDefinedError()
+
             previous_status = appointment.status
 
-            total_paid = self.uow.payments.sum_by_appointment_id(appointment_id=appointment.id)
+            total_paid = self.uow.payments.sum_payable_by_appointment_id(appointment_id=appointment.id)
 
-            refundFilter = RefundFilters.by_appointment(appointment.id)
-            total_refund = self.uow.refunds.sum_amount(filters=refundFilter)
+            total_completed_refunds = self.uow.refunds.sum_completed_by_payable_payments_for_appointment(
+                appointment_id=appointment.id,
+            )
 
-            net_paid_amount = total_paid - total_refund
+            total_pending_refunds = self.uow.refunds.sum_pending_by_payable_payments_for_appointment(
+                appointment_id=appointment.id,
+            )
 
-            event = appointment.complete(total_paid=net_paid_amount)
+            payment_summary = AppointmentPaymentSummary(
+                total_paid=total_paid,
+                total_completed_refunds=total_completed_refunds,
+                total_pending_refunds=total_pending_refunds,
+            )
+
+            if payment_summary.has_pending_refunds:
+                raise AppointmentHasPendingRefundError()
+
+            if payment_summary.net_paid < appointment.price:
+                raise AppointmentWasNotFullyPaidError("please_check_payments_and_possible_refunds")
+
+            event = appointment.complete(total_paid=payment_summary.net_paid)
 
             self.uow.appointments.update(appointment=appointment)
 
@@ -48,7 +73,7 @@ class CompletePaidAppointmentUseCase:
                         "to": appointment.status.value,
                     },
                     "payment": {
-                        "total_paid": net_paid_amount,
+                        "total_paid": payment_summary.net_paid,
                     },
                 },
                 performed_at=datetime.now(timezone.utc),

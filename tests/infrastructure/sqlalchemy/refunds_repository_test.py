@@ -6,6 +6,7 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 
 from app.application.studio.use_cases.DTO.commun import Direction
+from app.core.types.payment_enums import PaymentPurposeType
 from app.core.types.refund_enums import RefundMethodType, RefundStatus
 from app.core.types.refund_filter_types import RefundFilters
 from app.infrastructure.sqlalchemy.repositories.appointments_repository_sqlalchemy import (
@@ -23,6 +24,106 @@ from app.infrastructure.sqlalchemy.repositories.users_repository_sqlalchemy impo
 from app.infrastructure.sqlalchemy.repositories.vip_clients_repository_sqlalchemy import (
     SQLAlchemyVipClientsRepository,
 )
+
+
+@pytest.mark.parametrize(
+    ("repository_method", "included_status", "excluded_status"),
+    [
+        (
+            "sum_completed_by_payable_payments_for_appointment",
+            RefundStatus.COMPLETED,
+            RefundStatus.PENDING,
+        ),
+        (
+            "sum_pending_by_payable_payments_for_appointment",
+            RefundStatus.PENDING,
+            RefundStatus.COMPLETED,
+        ),
+    ],
+)
+def test_sum_refunds_only_for_payable_payments_of_same_appointment_and_status(
+    repository_method,
+    included_status,
+    excluded_status,
+    sqlalchemy_refunds_repo: SQLAlchemyRefundsRepository,
+    sqlalchemy_payments_repo: SQLAlchemyPaymentsRepository,
+    sqlalchemy_appointments_repo: SQLAlchemyAppointmentsRepository,
+    sqlalchemy_users_repo: SQLAlchemyUsersRepository,
+    make_refund,
+    make_payment,
+    make_quoted_appointment,
+    make_user,
+):
+    user = make_user()
+    sqlalchemy_users_repo.create(user)
+    appointment = make_quoted_appointment(user_id=user.id)
+    other_appointment = make_quoted_appointment(user_id=user.id)
+    sqlalchemy_appointments_repo.create(appointment)
+    sqlalchemy_appointments_repo.create(other_appointment)
+
+    def create_payment(*, purpose, linked_appointment):
+        payment = make_payment(
+            appointment_id=linked_appointment.id,
+            vip_client_id=None,
+            payment_purpose=purpose,
+        )
+        sqlalchemy_payments_repo.create(payment)
+        return payment
+
+    appointment_payment = create_payment(
+        purpose=PaymentPurposeType.APPOINTMENT,
+        linked_appointment=appointment,
+    )
+    deposit_payment = create_payment(
+        purpose=PaymentPurposeType.DEPOSIT,
+        linked_appointment=appointment,
+    )
+    tip_payment = create_payment(
+        purpose=PaymentPurposeType.TIP,
+        linked_appointment=appointment,
+    )
+    other_purpose_payment = create_payment(
+        purpose=PaymentPurposeType.OTHER,
+        linked_appointment=appointment,
+    )
+    other_appointment_payment = create_payment(
+        purpose=PaymentPurposeType.APPOINTMENT,
+        linked_appointment=other_appointment,
+    )
+
+    def create_refund(*, payment, amount, status, linked_appointment=appointment):
+        sqlalchemy_refunds_repo.create(
+            make_refund(
+                payment_id=payment.id,
+                appointment_id=linked_appointment.id,
+                amount=amount,
+                refund_status=status,
+                refund_method=RefundMethodType.PIX,
+                vip_client_id=None,
+                created_by_user_id=user.id,
+            )
+        )
+
+    create_refund(payment=appointment_payment, amount=Decimal("30"), status=included_status)
+    create_refund(payment=deposit_payment, amount=Decimal("10"), status=included_status)
+    create_refund(payment=appointment_payment, amount=Decimal("20"), status=excluded_status)
+    create_refund(payment=tip_payment, amount=Decimal("100"), status=included_status)
+    create_refund(payment=other_purpose_payment, amount=Decimal("100"), status=included_status)
+    create_refund(
+        payment=other_appointment_payment,
+        amount=Decimal("500"),
+        status=included_status,
+    )
+    create_refund(
+        payment=appointment_payment,
+        amount=Decimal("500"),
+        status=included_status,
+        linked_appointment=other_appointment,
+    )
+
+    total = getattr(sqlalchemy_refunds_repo, repository_method)(appointment_id=appointment.id)
+
+    assert total == Decimal("40")
 
 
 def test_create_and_find_by_id(
