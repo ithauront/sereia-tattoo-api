@@ -16,6 +16,9 @@ class VipClientsRepository(ABC):
     def find_by_id(self, vip_client_id: UUID) -> Optional[VipClient]: ...
 
     @abstractmethod
+    def find_by_id_for_update(self, vip_client_id: UUID) -> Optional[VipClient]: ...
+
+    @abstractmethod
     def find_by_email(self, email: str) -> Optional[VipClient]: ...
 
     @abstractmethod

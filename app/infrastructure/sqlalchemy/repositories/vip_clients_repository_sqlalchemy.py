@@ -50,6 +50,14 @@ class SQLAlchemyVipClientsRepository(VipClientsRepository):
 
         return self._to_entity(orm_vip_client)
 
+    def find_by_id_for_update(self, vip_client_id: UUID) -> Optional[VipClient]:
+        vip_client_in_question = (
+            select(VipClientModel).where(VipClientModel.id == vip_client_id).with_for_update()
+        )
+
+        orm_vip_client = self.session.scalar(vip_client_in_question)
+        return self._to_entity(orm_vip_client)
+
     def find_by_email(self, email: str) -> Optional[VipClient]:
         vip_client_in_question = select(VipClientModel).where(VipClientModel.email == email)
         orm_vip_client = self.session.scalar(vip_client_in_question)
