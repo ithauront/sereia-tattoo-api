@@ -3,7 +3,6 @@ from uuid import UUID
 from fastapi import (
     APIRouter,
     Depends,
-    HTTPException,
     status,
 )
 
@@ -36,24 +35,6 @@ from app.application.studio.use_cases.DTO.complete_paid_appointment_dto import (
 )
 from app.application.studio.use_cases.DTO.create_appointment_dto import CreateAppointmentInput
 from app.application.studio.use_cases.DTO.quote_appointement_dto import QuoteAppointmentInput
-from app.core.exceptions.appointments import (
-    AppointmentClientContactInfoCorruptedError,
-    AppointmentMustBeInCorrectPreviousStatusError,
-    AppointmentMustBeScheduledError,
-    AppointmentNotFoundError,
-    AppointmentWasNotFullyPaidError,
-    OnlyAdminOrOwnerOfAppointmentError,
-    PriceMustBeDefinedError,
-    PriceMustBePositiveError,
-    SlotIsAlreadyOccupiedError,
-    SlotIsNotAvailableError,
-)
-from app.core.exceptions.calendar import (
-    CannotFindWorkingPeriodsForThisUserError,
-    UserIsNotWorkingInDesignatedTimeframeError,
-)
-from app.core.exceptions.clients import ClientInfoModelError
-from app.core.exceptions.users import UserInactiveError, UserNotFoundError
 from app.domain.studio.appointments.entities.value_objects.client_info import ClientInfo
 from app.domain.studio.appointments.policies.appointment_authorization_policy import (
     AppointmentAuthorizationPolicy,
@@ -75,67 +56,35 @@ async def create_appointment(
     actor_id: UUID | None = Depends(get_optional_actor_id),
     calendar_policy: CalendarAvailabilityPolicy = Depends(get_calendar_policy),
 ):
-    try:
-        client_info = ClientInfo(
-            vip_client_id=data.vip_client_id,
-            name=data.name,
-            email=data.email,
-            phone=data.phone,
-        )
-        referral_code = ClientCode(data.referral_code) if data.referral_code else None
+    client_info = ClientInfo(
+        vip_client_id=data.vip_client_id,
+        name=data.name,
+        email=data.email,
+        phone=data.phone,
+    )
+    referral_code = ClientCode(data.referral_code) if data.referral_code else None
 
-        use_case = CreateAppointmentUseCase(
-            integration_bus=integration_bus,
-            write_uow=write_uow,
-            read_uow=read_uow,
-            calendar_policy=calendar_policy,
-        )
-        dto = CreateAppointmentInput(
-            appointment_type=data.appointment_type,
-            user_id=data.user_id,
-            client_info=client_info,
-            start_at=data.start_at,
-            end_at=data.end_at,
-            placement=data.placement,
-            color=data.color,
-            details=data.details,
-            size=data.size,
-            referral_code=referral_code,
-            actor_id=actor_id,
-        )
+    use_case = CreateAppointmentUseCase(
+        integration_bus=integration_bus,
+        write_uow=write_uow,
+        read_uow=read_uow,
+        calendar_policy=calendar_policy,
+    )
+    dto = CreateAppointmentInput(
+        appointment_type=data.appointment_type,
+        user_id=data.user_id,
+        client_info=client_info,
+        start_at=data.start_at,
+        end_at=data.end_at,
+        placement=data.placement,
+        color=data.color,
+        details=data.details,
+        size=data.size,
+        referral_code=referral_code,
+        actor_id=actor_id,
+    )
 
-        await use_case.execute(dto)
-
-    except (
-        CannotFindWorkingPeriodsForThisUserError,
-        UserIsNotWorkingInDesignatedTimeframeError,
-        SlotIsNotAvailableError,
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="the_time_slot_required_is_not_available",
-        )
-    except (UserInactiveError, UserNotFoundError):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="user_does_not_exists_or_is_inactive",
-        )
-
-    except SlotIsAlreadyOccupiedError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="the_time_slot_required_is_occupied",
-        )
-
-    except ClientInfoModelError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail=str(exc),
-        )
-    except AppointmentClientContactInfoCorruptedError:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="appointment_is_broken"
-        )
+    await use_case.execute(dto)
 
 
 @router.patch("/{appointment_id}/quote", status_code=status.HTTP_204_NO_CONTENT)
@@ -148,32 +97,15 @@ async def quote_appointment(
     integration_bus: IntegrationEventBus = Depends(get_integration_event_bus),
     authorization_policy: AppointmentAuthorizationPolicy = Depends(get_appointment_authorization_policy),
 ):
-    try:
-        use_case = QuoteAppointmentUseCase(
-            read_uow=read_uow,
-            write_uow=write_uow,
-            integration_bus=integration_bus,
-            appointment_authorization_policy=authorization_policy,
-        )
-        dto = QuoteAppointmentInput(price=data.price, actor=current_user, appointment_id=appointment_id)
+    use_case = QuoteAppointmentUseCase(
+        read_uow=read_uow,
+        write_uow=write_uow,
+        integration_bus=integration_bus,
+        appointment_authorization_policy=authorization_policy,
+    )
+    dto = QuoteAppointmentInput(price=data.price, actor=current_user, appointment_id=appointment_id)
 
-        await use_case.execute(dto)
-
-    except AppointmentNotFoundError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="appointment_not_found")
-    except OnlyAdminOrOwnerOfAppointmentError:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="unauthorized_user")
-    except AppointmentMustBeInCorrectPreviousStatusError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail="appointment_cannot_be_quoted_in_current_status"
-        )
-    except PriceMustBePositiveError:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="price_must_be_positive")
-
-    except (AppointmentClientContactInfoCorruptedError, PriceMustBeDefinedError):
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="appointment_is_broken"
-        )
+    await use_case.execute(dto)
 
 
 @router.patch("/{appointment_id}/complete", status_code=status.HTTP_204_NO_CONTENT)
@@ -183,20 +115,7 @@ async def complete_paid_appointment(
     uow: WriteUnitOfWork = Depends(get_write_unit_of_work),
     transactional_bus: TransactionalEventBus = Depends(get_transactional_event_bus),
 ):
-    try:
-        use_case = CompletePaidAppointmentUseCase(uow=uow, transactional_bus=transactional_bus)
-        dto = CompletePaidAppointmentInput(appointment_id=appointment_id, actor_id=current_user.id)
+    use_case = CompletePaidAppointmentUseCase(uow=uow, transactional_bus=transactional_bus)
+    dto = CompletePaidAppointmentInput(appointment_id=appointment_id, actor_id=current_user.id)
 
-        await use_case.execute(dto)
-    except AppointmentMustBeScheduledError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="only_appointments_in_scheduled_status_can_be_completed",
-        )
-    except AppointmentNotFoundError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="appointment_not_found")
-    except AppointmentWasNotFullyPaidError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="appointment_was_not_fully_paid_check_payments_and_possible_refunds",
-        )
+    await use_case.execute(dto)

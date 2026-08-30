@@ -2,7 +2,9 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from app.api import router as api_router
+from app.api.error_handlers import register_error_handlers
 from app.application.event_bus.setup import setup_event_bus
 from app.core.security import jwt_service
 from app.infrastructure.email.brevo_email_service import BrevoEmailService
@@ -24,6 +26,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="sereia-tattoo-api", lifespan=lifespan)
+register_error_handlers(app)
 
 
 app.add_middleware(

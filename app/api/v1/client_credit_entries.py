@@ -1,7 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import ValidationError
+from fastapi import APIRouter, Depends, Query, status
 
 from app.api.dependencies.auth import get_current_active_user, get_current_admin_user
 from app.api.dependencies.read_unit_of_work import get_read_unit_of_work
@@ -47,13 +46,6 @@ from app.application.studio.use_cases.finances_use_cases.list_credits_entries_by
 from app.application.studio.use_cases.finances_use_cases.reverse_client_credit_by_admin import (
     ReverseClientCreditByAdminUseCase,
 )
-from app.core.exceptions.marketing import (
-    CannotReverseNegativeEntryError,
-    CreditAlreadyReversedError,
-    CreditEntryNotFoundError,
-    CreditMustBePositiveError,
-)
-from app.core.exceptions.users import UserNotFoundError, VipClientNotFoundError
 from app.core.types.client_credit_source_type import ClientCreditSourceType
 
 router = APIRouter(prefix="/client-credit-entries")
@@ -78,15 +70,7 @@ def add_client_credits_by_admin(
         reason=data.reason,
     )
 
-    try:
-        result = use_case.execute(dto)
-    except VipClientNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="vip_client_not_found",
-        )
-    except CreditMustBePositiveError:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="invalid_credit_quantity")
+    result = use_case.execute(dto)
 
     return {
         "vip_client": vip_client_id,
@@ -115,32 +99,7 @@ def reverse_client_credits_by_admin(
         credit_id=client_credit_id,
     )
 
-    try:
-        result = use_case.execute(dto)
-    except VipClientNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="vip_client_not_found",
-        )
-    except CannotReverseNegativeEntryError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={
-                "code": "cannot_reverse_negative_credit",
-                "message": "This credit is negative and cannot be reversed.",
-                "hint": "Create an opposite credit entry and provide a reason and related_entry_id.",
-            },
-        )
-    except CreditAlreadyReversedError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="credit_was_already_reversed_before",
-        )
-    except CreditEntryNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="credit_not_found",
-        )
+    result = use_case.execute(dto)
 
     return {
         "vip_client_id": data.vip_client_id,
@@ -164,23 +123,7 @@ def get_credit_entry_by_id(
     use_case = GetCreditEntryDetailsByIdUseCase(uow)
     dto = GetCreditEntryDetailsByIdInput(client_credit_id=credit_entry_id)
 
-    try:
-        return use_case.execute(dto)
-    except CreditEntryNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="client_credit_entry_not_found",
-        )
-    except UserNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="credit_came_from_an_admin_operation_but_admin_not_found",
-        )
-    except VipClientNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="client_credit_entry_in_not_attached_to_a_vip_client",
-        )
+    return use_case.execute(dto)
 
 
 @router.get(
@@ -202,13 +145,7 @@ def list_credit_entries_by_vip_client_id(
         vip_client_id=vip_client_id, source_type=source_type, page=page, limit=limit, direction=direction
     )
 
-    try:
-        return use_case.execute(dto)
-    except ValidationError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail=str(exc),
-        )
+    return use_case.execute(dto)
 
 
 @router.get(
@@ -229,13 +166,7 @@ def list_credit_entries_by_source_id(
         source_id=source_id, page=page, limit=limit, direction=direction
     )
 
-    try:
-        return use_case.execute(dto)
-    except ValidationError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail=str(exc),
-        )
+    return use_case.execute(dto)
 
 
 @router.get(
@@ -250,13 +181,6 @@ def get_balance_by_vip_client_id(
 ):
     use_case = GetClientCreditBalanceUseCase(uow)
 
-    try:
-        balance = use_case.execute(vip_client_id=vip_client_id)
+    balance = use_case.execute(vip_client_id=vip_client_id)
 
-        return GetClientCreditBalanceResponse(balance=balance)
-
-    except VipClientNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="vip_client_not_found",
-        )
+    return GetClientCreditBalanceResponse(balance=balance)

@@ -1,12 +1,28 @@
+from fastapi import APIRouter, Depends, status
+
+from app.api.dependencies.auth import (
+    get_current_active_user,
+)
 from app.api.dependencies.events import get_integration_event_bus
 from app.api.dependencies.read_unit_of_work import get_read_unit_of_work
 from app.api.dependencies.security import (
     get_access_token_service,
     get_refresh_token_service,
 )
+from app.api.dependencies.token_context import (
+    get_current_activation_context,
+    get_current_reset_password_context,
+)
 from app.api.dependencies.write_unit_of_work import get_write_unit_of_work
 from app.api.schemas.auth import TokenPair
-
+from app.api.schemas.user import (
+    ChangeEmailRequest,
+    ChangePasswordRequest,
+    FirstActivationRequest,
+    ResetPasswordEmailRequest,
+    ResetPasswordEmailResponse,
+    ResetPasswordRequest,
+)
 from app.application.event_bus.integration_event_bus import IntegrationEventBus
 from app.application.studio.unit_of_work.read_unit_of_work import ReadUnitOfWork
 from app.application.studio.unit_of_work.write_unit_of_work import WriteUnitOfWork
@@ -38,48 +54,21 @@ from app.application.studio.use_cases.users_use_cases.prepare_send_forgot_passwo
 from app.application.studio.use_cases.users_use_cases.reset_password import (
     ResetPasswordUseCase,
 )
-from app.core.exceptions.validation import ValidationError
 from app.core.exceptions.users import (
-    AuthenticationFailedError,
-    EmailAlreadyTakenError,
-    InvalidActivationTokenError,
-    InvalidPasswordTokenError,
-    UserActivatedBeforeError,
     UserInactiveError,
     UserNotFoundError,
-    UsernameAlreadyTakenError,
 )
 from app.core.security.activation_context import ActivationContext
 from app.core.security.password_context import PasswordContext
-from fastapi import APIRouter, Depends, HTTPException, status
-from app.api.dependencies.token_context import (
-    get_current_activation_context,
-    get_current_reset_password_context,
-)
-from app.api.schemas.user import (
-    ChangeEmailRequest,
-    ChangePasswordRequest,
-    FirstActivationRequest,
-    ResetPasswordEmailRequest,
-    ResetPasswordEmailResponse,
-    ResetPasswordRequest,
-)
-from app.api.dependencies.auth import (
-    get_current_active_user,
-)
 from app.core.security.versioned_token_service import VersionedTokenService
 
 router = APIRouter(prefix="/me")
 
 
-@router.post(
-    "/first-activation", status_code=status.HTTP_200_OK, response_model=TokenPair
-)
+@router.post("/first-activation", status_code=status.HTTP_200_OK, response_model=TokenPair)
 def first_activation(
     data: FirstActivationRequest,
-    current_activation_context: ActivationContext = Depends(
-        get_current_activation_context
-    ),
+    current_activation_context: ActivationContext = Depends(get_current_activation_context),
     write_uow: WriteUnitOfWork = Depends(get_write_unit_of_work),
     read_uow: ReadUnitOfWork = Depends(get_read_unit_of_work),
     access_tokens: VersionedTokenService = Depends(get_access_token_service),
@@ -105,39 +94,14 @@ def first_activation(
         password=data.password,
     )
 
-    try:
-        use_case.execute(dto)
-    except UserNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="user_not_found"
-        )
-    except UserActivatedBeforeError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail="user_was_activated_before"
-        )
-    except InvalidActivationTokenError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_activation_token"
-        )
-    except UsernameAlreadyTakenError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="username_already_taken",
-        )
-    except ValidationError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail=str(exc),
-        )
+    use_case.execute(dto)
 
     login_dto = LoginInput(identifier=data.username, password=data.password)
     login_use_case = LoginUserUseCase(
         access_tokens=access_tokens, refresh_tokens=refresh_tokens, uow=read_uow
     )
     tokens = login_use_case.execute(login_dto)
-    return TokenPair(
-        access_token=tokens.access_token, refresh_token=tokens.refresh_token
-    )
+    return TokenPair(access_token=tokens.access_token, refresh_token=tokens.refresh_token)
 
 
 @router.patch("/change-password", status_code=status.HTTP_204_NO_CONTENT)
@@ -158,16 +122,7 @@ def change_password(
     We kept the user_not_found error in use_case as a placeholder for a business rule.
     """
 
-    try:
-        use_case.execute(dto)
-    except UserNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_credentials"
-        )
-    except AuthenticationFailedError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_credentials"
-        )
+    use_case.execute(dto)
 
 
 @router.patch("/change-email", status_code=status.HTTP_204_NO_CONTENT)
@@ -177,29 +132,14 @@ def change_email(
     uow: WriteUnitOfWork = Depends(get_write_unit_of_work),
 ):
     use_case = ChangeEmailUseCase(uow)
-    dto = ChangeEmailInput(
-        password=data.password, new_email=data.new_email, user_id=current_user.id
-    )
+    dto = ChangeEmailInput(password=data.password, new_email=data.new_email, user_id=current_user.id)
     """
     In use_case we have an exception for user_not_found that is untreated in route.
     This is expected because the userid in this route is already validate in dependency.
     We kept the user_not_found error in use_case as a placeholder for a business rule.
     """
 
-    try:
-        use_case.execute(dto)
-    except UserNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="invalid_credentials"
-        )
-    except AuthenticationFailedError:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="invalid_credentials"
-        )
-    except EmailAlreadyTakenError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail="email_chosen_is_already_taken"
-        )
+    use_case.execute(dto)
 
 
 @router.post(
@@ -222,9 +162,7 @@ async def send_reset_password(
 
     except (UserNotFoundError, UserInactiveError):
         # retornamos 200 com uma msg generica para não dar info
-        return {
-            "message": "if user exists and is active a link was sent to reset password"
-        }
+        return {"message": "if user exists and is active a link was sent to reset password"}
 
     return {"message": "if user exists and is active a link was sent to reset password"}
 
@@ -232,9 +170,7 @@ async def send_reset_password(
 @router.post("/reset-password", status_code=status.HTTP_204_NO_CONTENT)
 def reset_password(
     data: ResetPasswordRequest,
-    current_password_context: PasswordContext = Depends(
-        get_current_reset_password_context
-    ),
+    current_password_context: PasswordContext = Depends(get_current_reset_password_context),
     uow: WriteUnitOfWork = Depends(get_write_unit_of_work),
 ):
     use_case = ResetPasswordUseCase(uow)
@@ -244,22 +180,4 @@ def reset_password(
         password=data.new_password,
     )
 
-    try:
-        use_case.execute(dto)
-    except UserNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="user_not_found"
-        )
-    except UserInactiveError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail="user_inactive"
-        )
-    except InvalidPasswordTokenError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_activation_token"
-        )
-    except ValidationError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail=str(exc),
-        )
+    use_case.execute(dto)

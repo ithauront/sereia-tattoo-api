@@ -66,15 +66,6 @@ from app.application.studio.use_cases.users_use_cases.prepare_resend_activation_
 from app.application.studio.use_cases.users_use_cases.promote_user_to_admin import (
     PromoteUserToAdminUseCase,
 )
-from app.core.exceptions.users import (
-    CannotDeactivateYourselfError,
-    CannotDemoteYourselfError,
-    LastAdminCannotBeDeactivatedError,
-    LastAdminCannotBeDemotedError,
-    UserActivatedBeforeError,
-    UserAlreadyExistsError,
-    UserNotFoundError,
-)
 
 router = APIRouter(prefix="/users")
 
@@ -86,14 +77,10 @@ async def create_user(
     uow: WriteUnitOfWork = Depends(get_write_unit_of_work),
     integration_bus: IntegrationEventBus = Depends(get_integration_event_bus),
 ):
-    try:
-        use_case = CreateUserUseCase(uow, integration_bus=integration_bus)
-        dto = CreateUserInput(user_email=data.email, actor_id=current_user.id)
+    use_case = CreateUserUseCase(uow, integration_bus=integration_bus)
+    dto = CreateUserInput(user_email=data.email, actor_id=current_user.id)
 
-        await use_case.execute(dto)
-
-    except UserAlreadyExistsError:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="user_already_exists")
+    await use_case.execute(dto)
 
     return {"message": "User created if you dont recive an email please try resend email option"}
 
@@ -110,21 +97,10 @@ async def resend_email(
 ):
     # Escolhi deixar essa rota publica porque a segurança vai estar no
     # email do usuario que foi cadastrado pelo ADMIN"
-    try:
-        prepare_use_case = PrepareResendActivationEmailUseCase(
-            write_uow, integration_bus=integration_bus
-        )
-        dto = PrepareResendActivationEmailInput(user_email=data.email)
+    prepare_use_case = PrepareResendActivationEmailUseCase(write_uow, integration_bus=integration_bus)
+    dto = PrepareResendActivationEmailInput(user_email=data.email)
 
-        await prepare_use_case.execute(dto)
-
-    except UserNotFoundError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user_not_found")
-    except UserActivatedBeforeError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="user_has_been_activated_before",
-        )
+    await prepare_use_case.execute(dto)
 
     return {"message": "Activation email request accepted"}
 
@@ -167,10 +143,7 @@ def get_user(
     use_case = GetUserUseCase(uow)
     dto = GetUserInput(user_id=user_id)
 
-    try:
-        return use_case.execute(dto)
-    except UserNotFoundError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user_not_found")
+    return use_case.execute(dto)
 
 
 @router.patch("/{user_id}/deactivate", status_code=status.HTTP_204_NO_CONTENT)
@@ -182,17 +155,7 @@ def deactivate_user(
     use_case = DeactivateUserUseCase(uow)
     dto = DeactivateUserInput(user_id=user_id, actor_id=current_user.id)
 
-    try:
-        use_case.execute(dto)
-    except UserNotFoundError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user_not_found")
-    except LastAdminCannotBeDeactivatedError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="last_admin_cannot_be_deactivated",
-        )
-    except CannotDeactivateYourselfError:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="cannot_deactivate_yourself")
+    use_case.execute(dto)
 
 
 @router.patch("/{user_id}/activate", status_code=status.HTTP_204_NO_CONTENT)
@@ -204,10 +167,7 @@ def activate_user(
     use_case = ActivateUserUseCase(uow)
     dto = ActivateUserInput(user_id=user_id, actor_id=current_user.id)
 
-    try:
-        use_case.execute(dto)
-    except UserNotFoundError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user_not_found")
+    use_case.execute(dto)
 
 
 @router.patch("/{user_id}/demote", status_code=status.HTTP_204_NO_CONTENT)
@@ -219,14 +179,7 @@ def demote_user(
     use_case = DemoteUserFromAdminUseCase(uow)
     dto = DemoteUserInput(user_id=user_id, actor_id=current_user.id)
 
-    try:
-        use_case.execute(dto)
-    except UserNotFoundError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user_not_found")
-    except LastAdminCannotBeDemotedError:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="last_admin_cannot_be_demoted")
-    except CannotDemoteYourselfError:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="cannot_demote_yourself")
+    use_case.execute(dto)
 
 
 @router.patch("/{user_id}/promote", status_code=status.HTTP_204_NO_CONTENT)
@@ -238,7 +191,4 @@ def promote_user(
     use_case = PromoteUserToAdminUseCase(uow)
     dto = PromoteUserInput(user_id=user_id, actor_id=current_user.id)
 
-    try:
-        use_case.execute(dto)
-    except UserNotFoundError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user_not_found")
+    use_case.execute(dto)

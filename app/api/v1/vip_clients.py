@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 
 from app.api.dependencies.auth import get_current_active_user, get_current_admin_user
 from app.api.dependencies.events import get_integration_event_bus
@@ -55,14 +55,6 @@ from app.application.studio.use_cases.users_use_cases.get_vip_client import (
 from app.application.studio.use_cases.users_use_cases.list_vip_clients import (
     ListVipClientsUseCase,
 )
-from app.core.exceptions.users import (
-    AllClientCodesTakenError,
-    ClientCodeAlreadyTakenError,
-    EmailAlreadyTakenError,
-    PhoneAlreadyTakenError,
-    VipClientNotFoundError,
-)
-from app.core.exceptions.validation import ValidationError
 
 router = APIRouter(prefix="/vip-clients")
 
@@ -80,58 +72,28 @@ def generate_vip_client_code_suggestions(
     generator = ClientCodeGenerator(uow)
     use_case = GenerateVipClientCodeUseCase(generator=generator)
 
-    try:
-        codes = use_case.execute(data.name)
-        return {"codes": [str(code) for code in codes]}
-    except AllClientCodesTakenError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="please_try_creating_client_code_with_last_name",
-        )
+    codes = use_case.execute(data.name)
+    return {"codes": [str(code) for code in codes]}
 
 
-@router.post(
-    "", status_code=status.HTTP_201_CREATED, response_model=CreateVipClientResponse
-)
+@router.post("", status_code=status.HTTP_201_CREATED, response_model=CreateVipClientResponse)
 async def create_vip_client(
     data: CreateVipClientRequest,
     current_user=Depends(get_current_admin_user),
     uow: WriteUnitOfWork = Depends(get_write_unit_of_work),
     integration_bus: IntegrationEventBus = Depends(get_integration_event_bus),
 ):
-    try:
-        use_case = CreateVipClientUseCase(uow, integration_bus=integration_bus)
-        dto = CreateVipClientInput(
-            first_name=data.first_name,
-            last_name=data.last_name,
-            email=data.email,
-            phone=data.phone,
-            client_code=data.client_code,
-            actor_id=current_user.id,
-        )
+    use_case = CreateVipClientUseCase(uow, integration_bus=integration_bus)
+    dto = CreateVipClientInput(
+        first_name=data.first_name,
+        last_name=data.last_name,
+        email=data.email,
+        phone=data.phone,
+        client_code=data.client_code,
+        actor_id=current_user.id,
+    )
 
-        await use_case.execute(dto)
-
-    except EmailAlreadyTakenError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="email_already_taken",
-        )
-    except PhoneAlreadyTakenError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="phone_already_taken",
-        )
-    except ClientCodeAlreadyTakenError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="client_code_already_taken_please_generate_another",
-        )
-    except ValidationError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail=str(exc),
-        )
+    await use_case.execute(dto)
 
     return {"message": "VIP Client created"}
 
@@ -148,16 +110,7 @@ def change_vip_client_email(
         vip_client_id=vip_client_id, new_email=data.new_email, actor_id=current_user.id
     )
 
-    try:
-        use_case.execute(dto)
-    except VipClientNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="vip_client_not_found"
-        )
-    except EmailAlreadyTakenError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail="email_chosen_is_already_taken"
-        )
+    use_case.execute(dto)
 
 
 @router.patch("/{vip_client_id}/change-phone", status_code=status.HTTP_204_NO_CONTENT)
@@ -172,21 +125,7 @@ def change_vip_client_phone(
         vip_client_id=vip_client_id, new_phone=data.new_phone, actor_id=current_user.id
     )
 
-    try:
-        use_case.execute(dto)
-    except VipClientNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="vip_client_not_found"
-        )
-    except ValidationError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail=str(exc),
-        )
-    except PhoneAlreadyTakenError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail="phone_chosen_is_already_taken"
-        )
+    use_case.execute(dto)
 
 
 @router.get("", status_code=status.HTTP_200_OK, response_model=ListVipClientsOutput)
@@ -224,10 +163,4 @@ def get_vip_client(
     use_case = GetVipClientUseCase(uow)
     dto = GetVipClientInput(vip_client_id=vip_client_id)
 
-    try:
-        return use_case.execute(dto)
-
-    except VipClientNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="vip_client_not_found"
-        )
+    return use_case.execute(dto)

@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
+
 from app.api.dependencies.auth import get_current_user
 from app.api.dependencies.read_unit_of_work import get_read_unit_of_work
 from app.api.dependencies.security import (
@@ -19,13 +20,7 @@ from app.application.studio.use_cases.users_use_cases.logout_user import (
 from app.application.studio.use_cases.users_use_cases.refresh_user import (
     RefreshUserUseCase,
 )
-from app.core.exceptions.security import TokenError
-from app.core.exceptions.users import (
-    AuthenticationFailedError,
-    UserInactiveError,
-)
 from app.core.security.versioned_token_service import VersionedTokenService
-
 
 router = APIRouter(prefix="/auth")
 
@@ -39,20 +34,9 @@ def login(
 ) -> TokenPair:
     use_case = LoginUserUseCase(uow, access_tokens, refresh_tokens)
     use_case_input = LoginInput(identifier=data.identifier, password=data.password)
-    try:
-        result = use_case.execute(use_case_input)
-    except UserInactiveError:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, detail="inactive_user"
-        )
-    except AuthenticationFailedError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_credentials"
-        )
+    result = use_case.execute(use_case_input)
 
-    return TokenPair(
-        access_token=result.access_token, refresh_token=result.refresh_token
-    )
+    return TokenPair(access_token=result.access_token, refresh_token=result.refresh_token)
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
@@ -82,17 +66,6 @@ def refresh(
 ) -> TokenPair:
     use_case = RefreshUserUseCase(uow, refresh_tokens, access_tokens)
     use_case_input = RefreshInput(refresh_token=data.refresh_token)
-    try:
-        result = use_case.execute(use_case_input)
-    except AuthenticationFailedError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_credentials"
-        )
-    except TokenError as exception:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail=exception.message
-        )
+    result = use_case.execute(use_case_input)
 
-    return TokenPair(
-        access_token=result.access_token, refresh_token=result.refresh_token
-    )
+    return TokenPair(access_token=result.access_token, refresh_token=result.refresh_token)
