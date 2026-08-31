@@ -9,6 +9,9 @@ from app.application.notifications.handlers.send_activation_confirmation_email i
 from app.application.notifications.handlers.send_create_appointment_email import (
     SendCreateAppointmentEmailHandler,
 )
+from app.application.notifications.handlers.send_deposit_confirmation_email import (
+    SendDepositConfirmationEmailHandler,
+)
 from app.application.notifications.handlers.send_password_reset_email import (
     SendPasswordResetEmailHandler,
 )
@@ -24,6 +27,7 @@ from app.application.notifications.handlers.send_vip_client_creation_notificatio
 from app.application.studio.handlers.add_credits_from_completed_appointment import (
     AddCreditsFromCompletedAppointmentHandler,
 )
+from app.application.studio.handlers.confirm_deposit import ConfirmDepositHandler
 from app.core.security.versioned_token_service import VersionedTokenService
 from app.domain.studio.appointments.events.appointment_completed import (
     AppointmentCompleted,
@@ -33,6 +37,10 @@ from app.domain.studio.appointments.events.create_appointment_request import (
     CreateAppointmentEmailRequested,
 )
 from app.domain.studio.appointments.events.notify_of_appointment_quoted import NotifyOfAppointmentQuoted
+from app.domain.studio.finances.events.deposit_payment_recorded_event import DepositPaymentRecordedEvent
+from app.domain.studio.finances.events.send_deposit_confirmation_email import (
+    SendDepositConfirmationEmailEvent,
+)
 from app.domain.studio.users.events.activation_email_requested import (
     ActivationEmailRequested,
 )
@@ -92,10 +100,15 @@ def setup_event_bus(
     integration_bus.register(
         NotifyOfAppointmentQuoted, SendQuoteAppointmentEmailHandler(email_service=email_service)
     )
-
+    integration_bus.register(
+        SendDepositConfirmationEmailEvent,
+        SendDepositConfirmationEmailHandler(email_service=email_service),
+    )
     transactional_bus.register(
         AppointmentCompleted,
         AddCreditsFromCompletedAppointmentHandler(),
     )
+
+    transactional_bus.register(DepositPaymentRecordedEvent, ConfirmDepositHandler())
 
     return transactional_bus, integration_bus
