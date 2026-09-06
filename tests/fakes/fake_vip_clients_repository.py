@@ -32,6 +32,9 @@ class FakeVipClientsRepository(VipClientsRepository):
                 return user
         return None
 
+    def find_by_id_for_update(self, vip_client_id) -> Optional[VipClient]:
+        return self.find_by_id(vip_client_id)
+
     def find_by_phone(self, phone: str) -> Optional[VipClient]:
         for user in self.vip_clients:
             if user.phone == phone:
