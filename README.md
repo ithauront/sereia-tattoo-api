@@ -157,6 +157,165 @@ enviando um body json com:
 GET http://127.0.0.1:8000/api/auth/verify
 enviando no header um bearer token com o seu access token.
 
+PATCH `/api/appointments/{appointment_id}/quote`
+
+Rota utilizada para definir o preço de um agendamento.
+
+O body deve ser enviado como JSON:
+
+```json
+{
+  "price": "700,50"
+}
+```
+
+O campo `price` aceita valores decimais usando **ponto ou vírgula como separador decimal**. O backend normaliza ambos os formatos para `Decimal`.
+
+**Formatos aceitos**
+
+```json
+{ "price": "700.50" }
+```
+
+```json
+{ "price": "700,50" }
+```
+
+Também são aceitos valores sem casas decimais:
+
+```json
+{ "price": "700" }
+```
+
+O valor será convertido e armazenado como `Decimal`.
+
+**Formatos não aceitos**
+
+O preço deve ser um número positivo, com **no máximo 2 casas decimais**.
+
+Exemplos que retornam `422 Unprocessable Entity`:
+
+```json
+{ "price": "not-a-decimal" }
+```
+
+```json
+{ "price": "700.501" }
+```
+
+```json
+{ "price": "700,501" }
+```
+
+```json
+{ "price": "4.700.50" }
+```
+
+```json
+{ "price": "4,700,50" }
+```
+
+Também não é permitido omitir o campo:
+
+```json
+{}
+```
+
+Valores `0` ou negativos também são rejeitados:
+
+```json
+{ "price": "0" }
+```
+
+```json
+{ "price": "-50" }
+```
+
+**Observação para o frontend**
+
+O frontend pode enviar o preço utilizando `.` ou `,` como separador decimal. Por exemplo, tanto `"700.50"` quanto `"700,50"` serão interpretados como `700.50`.
+
+O backend **não aceita separadores de milhares**. Portanto, valores como `"4.700,50"` ou `"4,700.50"` devem ser normalizados pelo frontend antes do envio.
+
+## Pagamentos e caução
+
+Um appointment pode possuir vários pagamentos e cada pagamento registra separadamente
+o método utilizado, como PIX, dinheiro ou cartão.
+
+Quando a caução for dividida entre vários métodos, o operador registra o primeiro
+recebimento com o propósito `DEPOSIT`. Esse lançamento confirma a caução e dispara a
+transição do appointment de `QUOTED` para `SCHEDULED`.
+
+Os recebimentos seguintes são registrados com o propósito `APPOINTMENT`, mesmo que
+tenham sido combinados com o cliente como parte do valor antecipado. Todos os pagamentos
+com propósito `DEPOSIT` ou `APPOINTMENT` vinculados ao appointment compõem o total pago e
+reduzem o saldo restante. Pagamentos com propósito `TIP` ou `OTHER` não quitam o preço do
+appointment.
+
+Essa convenção evita confirmar a mesma caução várias vezes e não exige agrupar pagamentos
+feitos por métodos diferentes.
+
+### Idempotência na criação de pagamentos
+
+Toda solicitação de criação de pagamento deve incluir o campo
+`idempotency_key`. O frontend deve gerar um UUID v4 novo quando o usuário iniciar
+uma nova operação de pagamento:
+
+```json
+{
+  "idempotency_key": "05df804e-223a-4f34-bc40-9e98a6809782"
+}
+```
+
+Essa chave deve ser gerada apenas uma vez por operação e reutilizada sem
+alteração em todas as tentativas causadas por timeout, falha de rede ou retry.
+Um pagamento diferente deve sempre receber uma chave nova. O frontend não deve
+gerar outra chave apenas porque não recebeu a resposta da primeira tentativa.
+
+Internamente, a API usa `idempotency_key` como o `payment.id` definitivo. Por isso,
+não existe um segundo identificador provisório, e a chave não deve ser reutilizada
+para outro pagamento.
+
+Quando uma chave já existe:
+
+- se todos os dados do pagamento forem iguais, a API retorna o pagamento existente
+  e não cria novos registros de pagamento, crédito ou auditoria;
+- se algum dado for diferente, a API rejeita a solicitação como conflito de
+  idempotência.
+
+O UUID pode ser gerado no navegador com `crypto.randomUUID()`:
+
+```javascript
+const idempotencyKey = crypto.randomUUID();
+```
+
+O valor deve ser enviado no campo JSON `idempotency_key`. Ele não deve ser enviado
+como `payment_id`, `temporary_id` ou `frontend_id`.
+
+### Arredondamento dos créditos de cliente
+
+Os créditos são unidades inteiras e `1 crédito` equivale a `R$ 1,00`. Como os
+pagamentos aceitam centavos, a criação e o consumo de créditos seguem regras de
+arredondamento diferentes e intencionais.
+
+Na geração de créditos por indicação, o sistema calcula a porcentagem aplicável
+sobre os pagamentos elegíveis do appointment e arredonda o resultado para cima.
+Por exemplo, `10,01` créditos calculados geram `11` créditos. A diferença é sempre
+inferior a um crédito por appointment que gera a bonificação.
+
+No pagamento com créditos, o sistema arredonda o valor para baixo. Por exemplo, um
+pagamento de `R$ 10,99` consome `10` créditos. A diferença também é sempre inferior
+a um crédito por pagamento.
+
+Consequentemente, uma geração seguida de um consumo pode produzir uma vantagem
+total inferior a dois créditos. Esse limite é por par de operações, não um limite
+global: as diferenças podem se acumular quando existem vários appointments ou
+pagamentos.
+
+Pagamentos com créditos abaixo de `R$ 1,00` resultariam em consumo de zero créditos
+e não são aceitos pelo ledger atual. Essa regra deve ser reconsiderada caso valores
+fracionários passem a ser frequentes no negócio.
+
 ## LOGOUT
 
 Estamos usando um sistema de tokens para autentificação totalmente stateless com versionamento de access e refresh token. o tradeoff disso é que no momento de logout o access token com a versão antiga ainda fica valido até sua expiração (tempo curto, porem existente). Para mitigar isso na experiencia para usuario é essencial que o frontend remova os cookies de access e refresh token no momento de logout confirmado.
