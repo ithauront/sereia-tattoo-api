@@ -1,4 +1,7 @@
+import asyncio
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
+from uuid import uuid4
 
 from fastapi.testclient import TestClient
 
@@ -6,6 +9,15 @@ from app.api.dependencies.events import get_integration_event_bus
 from app.api.dependencies.read_unit_of_work import get_read_unit_of_work
 from app.api.dependencies.write_unit_of_work import get_write_unit_of_work
 from app.application.event_bus.setup import setup_event_bus
+from app.application.studio.use_cases.DTO.payment_dto import CreatePaymentInput
+from app.application.studio.use_cases.finances_use_cases.create_payment_use_case import (
+    CreatePaymentUseCase,
+)
+from app.core.types.appointment_enums import AppointmentStatus, AppointmentType
+from app.core.types.payment_enums import PaymentMethodType, PaymentPurposeType
+from app.domain.studio.appointments.events.create_appointment_request import (
+    CreateAppointmentEmailRequested,
+)
 from app.main import app
 from tests.fakes.fake_email_service import FakeEmailService
 from tests.integration.utils.wait_until import wait_until
@@ -13,7 +25,45 @@ from tests.integration.utils.wait_until import wait_until
 client = TestClient(app)
 
 
-# TODO: quando tiver a rota e o script de atualizar o booking window testar se esses fluxos vão enviar o email
+async def test_deposit_confirmation_triggers_email(
+    write_uow,
+    make_user,
+    make_quoted_appointment,
+    jwt_service_instance,
+):
+    actor = make_user()
+    write_uow.users.create(actor)
+    appointment = make_quoted_appointment(user_id=actor.id)
+    write_uow.appointments.create(appointment)
+    fake_email_service = FakeEmailService()
+    transactional_bus, integration_bus = setup_event_bus(
+        email_service=fake_email_service,
+        token_service=jwt_service_instance,
+    )
+    data = CreatePaymentInput(
+        idempotency_key=uuid4(),
+        actor=actor,
+        amount=Decimal("50.25"),
+        payment_method=PaymentMethodType.PIX,
+        payment_purpose=PaymentPurposeType.DEPOSIT,
+        appointment_id=appointment.id,
+        description="caução",
+    )
+
+    await CreatePaymentUseCase(write_uow, transactional_bus, integration_bus).execute(data)
+    await asyncio.sleep(0)
+
+    assert appointment.status == AppointmentStatus.SCHEDULED
+    assert appointment.deposit_confirmed_at is not None
+    assert len(fake_email_service.sent_emails) == 1
+    assert fake_email_service.last_payload is not None
+    assert fake_email_service.last_payload["to"] == "client@email.com"
+    assert fake_email_service.last_payload["subject"] == "Parabéns, seu agendamento esta confirmado!"
+    assert "R$ 50.25" in fake_email_service.last_payload["html"]
+
+
+# TODO: quando tiver a rota e o script de atualizar o booking window,
+# testar se esses fluxos vão enviar o email
 def test_create_user_triggers_email(write_uow, read_uow, make_user, make_token, jwt_service_instance):
     admin = make_user(is_admin=True, email="admin@admin.com")
     write_uow.users.create(admin)
@@ -311,6 +361,42 @@ def test_reset_password_request_failure_does_not_trigger_email(
     app.dependency_overrides = {}
 
 
+async def test_create_appointment_event_triggers_email(
+    read_uow,
+    write_uow,
+    make_user,
+    jwt_service_instance,
+):
+    user = make_user(email="jhon@doe.com")
+    write_uow.users.create(user)
+    start_at = datetime.now(timezone.utc) + timedelta(days=1)
+    fake_email_service = FakeEmailService()
+    _, integration_bus = setup_event_bus(
+        email_service=fake_email_service,
+        token_service=jwt_service_instance,
+    )
+
+    await integration_bus.publish(
+        CreateAppointmentEmailRequested(
+            appointment_type=AppointmentType.TATTOO,
+            user_id=user.id,
+            start_at=start_at,
+            end_at=start_at + timedelta(hours=2),
+            client_email_or_vip_id="jane@doe.com",
+        ),
+        uow=read_uow,
+    )
+    for _ in range(100):
+        if len(fake_email_service.sent_emails) == 2:
+            break
+        await asyncio.sleep(0.01)
+
+    assert {email["to"] for email in fake_email_service.sent_emails} == {
+        "jane@doe.com",
+        "jhon@doe.com",
+    }
+
+
 def test_create_appointment_request_triggers_email(
     write_uow,
     read_uow,
@@ -439,6 +525,90 @@ def test_create_appointmnet_request_failure_does_not_trigger_email(
     )
 
     assert response.status_code == 422  # wrong payload should fail request
+    assert fake_email_service.sent is False
+
+    app.dependency_overrides = {}
+
+
+def test_quote_appointment_triggers_email(
+    write_uow,
+    read_uow,
+    make_user,
+    make_token,
+    make_appointment_base,
+    jwt_service_instance,
+):
+    user = make_user(email="jhon@doe.com")
+    write_uow.users.create(user)
+    token = make_token(user)
+
+    appointment = make_appointment_base(user_id=user.id)
+    write_uow.appointments.create(appointment)
+
+    fake_email_service = FakeEmailService()
+
+    _, integration_bus = setup_event_bus(
+        email_service=fake_email_service,
+        token_service=jwt_service_instance,
+    )
+
+    app.dependency_overrides[get_integration_event_bus] = lambda: integration_bus
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
+
+    response = client.patch(
+        f"/appointments/{appointment.id}/quote",
+        json={"price": "700.50"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 204
+
+    wait_until(lambda: fake_email_service.sent)
+
+    assert len(fake_email_service.sent_emails) == 1
+    assert fake_email_service.last_payload is not None
+    assert fake_email_service.last_payload["to"] == "client@email.com"
+    assert fake_email_service.last_payload["subject"] == "Seu orçamento está pronto!"
+    assert "R$ 700,50" in fake_email_service.last_payload["html"]
+
+    app.dependency_overrides = {}
+
+
+def test_quote_appointment_failure_does_not_trigger_email(
+    write_uow,
+    read_uow,
+    make_user,
+    make_token,
+    make_quoted_appointment,
+    jwt_service_instance,
+):
+    user = make_user(email="jhon@doe.com")
+    write_uow.users.create(user)
+    token = make_token(user)
+
+    appointment = make_quoted_appointment(user_id=user.id)
+    write_uow.appointments.create(appointment)
+
+    fake_email_service = FakeEmailService()
+
+    _, integration_bus = setup_event_bus(
+        email_service=fake_email_service,
+        token_service=jwt_service_instance,
+    )
+
+    app.dependency_overrides[get_integration_event_bus] = lambda: integration_bus
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
+
+    response = client.patch(
+        f"/appointments/{appointment.id}/quote",
+        json={"price": "800"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "appointment_cannot_be_quoted_in_current_status"
     assert fake_email_service.sent is False
 
     app.dependency_overrides = {}
