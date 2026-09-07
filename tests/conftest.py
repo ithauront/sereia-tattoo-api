@@ -250,8 +250,8 @@ def make_client_credit_entry():
                 created_at=created_at,
             )
 
-        if source_type == ClientCreditSourceType.USED_HAS_PAYMENT:
-            return ClientCreditEntry.used_has_payment(
+        if source_type == ClientCreditSourceType.USED_AS_PAYMENT:
+            return ClientCreditEntry.used_as_payment(
                 vip_client_id=vip_client_id,
                 payment_id=source_id,
                 quantity=quantity,
@@ -343,6 +343,7 @@ def make_appointment_base():
                 AppointmentStatus.REQUESTED,
             ),
             appointment_type=kwargs.get("appointment_type", AppointmentType.TATTOO),
+            project_id=kwargs.get("project_id", None),
             user_id=kwargs.get("user_id", uuid4()),
             start_at=start_at,
             end_at=end_at,

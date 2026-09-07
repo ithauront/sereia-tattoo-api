@@ -1,20 +1,19 @@
 from uuid import uuid4
 
 import pytest
+from sqlalchemy.exc import IntegrityError
 
 from app.application.studio.use_cases.DTO.commun import Direction
-from app.domain.studio.finances.entities.client_credit_entry import ClientCreditEntry
 from app.core.types.client_credit_source_type import (
     ClientCreditSourceType,
 )
+from app.domain.studio.finances.entities.client_credit_entry import ClientCreditEntry
 from app.infrastructure.sqlalchemy.repositories.client_credit_entries_repository import (
     SQLAlchemyClientCreditEntriesRepository,
 )
 from app.infrastructure.sqlalchemy.repositories.vip_clients_repository_sqlalchemy import (
     SQLAlchemyVipClientsRepository,
 )
-
-from sqlalchemy.exc import IntegrityError
 
 
 def test_create_and_find_by_id(
@@ -117,9 +116,7 @@ def test_related_entry_points_to_another_credit_entry(
     related_entry_id = found.related_entry_id
     assert related_entry_id is not None
 
-    found_related_entry = sqlalchemy_client_credits_entries_repo.find_by_id(
-        related_entry_id
-    )
+    found_related_entry = sqlalchemy_client_credits_entries_repo.find_by_id(related_entry_id)
 
     assert isinstance(found_related_entry, ClientCreditEntry)
 
@@ -221,16 +218,14 @@ def test_get_correct_balance_from_entries(
 
     entry5 = make_client_credit_entry(
         quantity=10,
-        source_type=ClientCreditSourceType.USED_IN_APPOINTMENT,
-        source_id=uuid4(),  # appointment id
+        source_type=ClientCreditSourceType.USED_AS_PAYMENT,
+        source_id=uuid4(),  # payment id
         vip_client_id=vip_client.id,
     )
     sqlalchemy_client_credits_entries_repo.create(entry5)
     # sum of all must be 5
 
-    balance = sqlalchemy_client_credits_entries_repo.get_balance(
-        vip_client_id=vip_client.id
-    )
+    balance = sqlalchemy_client_credits_entries_repo.get_balance(vip_client_id=vip_client.id)
 
     assert balance == 5
 
@@ -279,8 +274,8 @@ def test_find_many_by_vip_cient_id(
 
     entry5 = make_client_credit_entry(
         quantity=10,
-        source_type=ClientCreditSourceType.USED_IN_APPOINTMENT,
-        source_id=uuid4(),  # appointment id
+        source_type=ClientCreditSourceType.USED_AS_PAYMENT,
+        source_id=uuid4(),  # payment id
         vip_client_id=vip_client.id,
     )
     sqlalchemy_client_credits_entries_repo.create(entry5)
@@ -342,15 +337,13 @@ def test_count_by_vip_cient_id(
 
     entry5 = make_client_credit_entry(
         quantity=10,
-        source_type=ClientCreditSourceType.USED_IN_APPOINTMENT,
-        source_id=uuid4(),  # appointment id
+        source_type=ClientCreditSourceType.USED_AS_PAYMENT,
+        source_id=uuid4(),  # payment id
         vip_client_id=vip_client.id,
     )
     sqlalchemy_client_credits_entries_repo.create(entry5)
 
-    result = sqlalchemy_client_credits_entries_repo.count_by_vip_client_id(
-        vip_client_id=vip_client.id
-    )
+    result = sqlalchemy_client_credits_entries_repo.count_by_vip_client_id(vip_client_id=vip_client.id)
 
     assert result == 5
     assert isinstance(result, int)
@@ -400,8 +393,8 @@ def test_pagination_and_direction(
 
     entry5 = make_client_credit_entry(
         quantity=5,
-        source_type=ClientCreditSourceType.USED_IN_APPOINTMENT,
-        source_id=uuid4(),  # appointment id
+        source_type=ClientCreditSourceType.USED_AS_PAYMENT,
+        source_id=uuid4(),  # payment id
         vip_client_id=vip_client.id,
     )
     sqlalchemy_client_credits_entries_repo.create(entry5)
@@ -465,8 +458,8 @@ def test_offset_over_total(
 
     entry5 = make_client_credit_entry(
         quantity=5,
-        source_type=ClientCreditSourceType.USED_IN_APPOINTMENT,
-        source_id=uuid4(),  # appointment id
+        source_type=ClientCreditSourceType.USED_AS_PAYMENT,
+        source_id=uuid4(),  # payment id
         vip_client_id=vip_client.id,
     )
     sqlalchemy_client_credits_entries_repo.create(entry5)
@@ -522,15 +515,13 @@ def test_find_many_by_source_id(
 
     entry5 = make_client_credit_entry(
         quantity=10,
-        source_type=ClientCreditSourceType.USED_IN_APPOINTMENT,
-        source_id=uuid4(),  # appointment id
+        source_type=ClientCreditSourceType.USED_AS_PAYMENT,
+        source_id=uuid4(),  # payment id
         vip_client_id=vip_client.id,
     )
     sqlalchemy_client_credits_entries_repo.create(entry5)
 
-    result = sqlalchemy_client_credits_entries_repo.find_many_by_source_id(
-        source_id=admin.id
-    )
+    result = sqlalchemy_client_credits_entries_repo.find_many_by_source_id(source_id=admin.id)
 
     created_ats = [entry.created_at for entry in result]
 
@@ -550,9 +541,7 @@ def test_combined_queries(
     vip_client1 = make_vip_client()
     sqlalchemy_vip_clients_repo.create(vip_client1)
 
-    vip_client2 = make_vip_client(
-        phone="71988888888", email="jane@doe.com", client_code="JHON-RED"
-    )
+    vip_client2 = make_vip_client(phone="71988888888", email="jane@doe.com", client_code="JHON-RED")
     sqlalchemy_vip_clients_repo.create(vip_client2)
     admin = make_user(is_admin=True)
 
@@ -589,8 +578,8 @@ def test_combined_queries(
 
     entry5 = make_client_credit_entry(
         quantity=10,
-        source_type=ClientCreditSourceType.USED_IN_APPOINTMENT,
-        source_id=uuid4(),  # appointment id
+        source_type=ClientCreditSourceType.USED_AS_PAYMENT,
+        source_id=uuid4(),  # payment id
         vip_client_id=vip_client2.id,
     )
     sqlalchemy_client_credits_entries_repo.create(entry5)

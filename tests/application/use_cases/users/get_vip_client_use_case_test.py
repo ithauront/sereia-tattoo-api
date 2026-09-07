@@ -57,7 +57,7 @@ def test_get_vip_client_with_negative_credits_success(
     entry = make_client_credit_entry(
         quantity=10,
         vip_client_id=vip_client.id,
-        source_type=ClientCreditSourceType.USED_IN_APPOINTMENT,
+        source_type=ClientCreditSourceType.USED_AS_PAYMENT,
     )
     write_uow.client_credit_entries.create(entry)
 
@@ -78,7 +78,7 @@ def test_get_vip_client_with_multiple_credits_success(
     entry = make_client_credit_entry(
         quantity=10,
         vip_client_id=vip_client.id,
-        source_type=ClientCreditSourceType.USED_IN_APPOINTMENT,
+        source_type=ClientCreditSourceType.USED_AS_PAYMENT,
     )
     write_uow.client_credit_entries.create(entry)
     entry = make_client_credit_entry(
@@ -117,7 +117,7 @@ def test_get_right_vip_client_credits_success(
     entry = make_client_credit_entry(
         quantity=10,
         vip_client_id=vip_client.id,
-        source_type=ClientCreditSourceType.USED_IN_APPOINTMENT,
+        source_type=ClientCreditSourceType.USED_AS_PAYMENT,
     )
     write_uow.client_credit_entries.create(entry)
     entry = make_client_credit_entry(

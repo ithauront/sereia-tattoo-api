@@ -26,13 +26,13 @@ def test_get_vip_client_credits_balance_success(
         )
         write_uow.client_credit_entries.create(client_credit_entry)
 
-    client_credit_entry_used = make_client_credit_entry(
-        vip_client_id=vip_client.id,
-        source_id=admin.id,
-        source_type=ClientCreditSourceType.USED_IN_APPOINTMENT,
-        quantity=20,
-        reason="Teste de credito adicionado por admin",
-    )
+        client_credit_entry_used = make_client_credit_entry(
+            vip_client_id=vip_client.id,
+            source_id=uuid4(),
+            source_type=ClientCreditSourceType.USED_AS_PAYMENT,
+            quantity=20,
+            reason="Teste de credito adicionado por admin",
+        )
     write_uow.client_credit_entries.create(client_credit_entry_used)
 
     use_case = GetClientCreditBalanceUseCase(read_uow)

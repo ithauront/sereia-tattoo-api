@@ -191,7 +191,7 @@ def test_reverse_negative_credits_error(
     write_uow.vip_clients.create(vip_client)
 
     original_credits = make_client_credit_entry(
-        vip_client_id=vip_client.id, source_type=ClientCreditSourceType.USED_IN_APPOINTMENT
+        vip_client_id=vip_client.id, source_type=ClientCreditSourceType.USED_AS_PAYMENT
     )
     write_uow.client_credit_entries.create(original_credits)
 

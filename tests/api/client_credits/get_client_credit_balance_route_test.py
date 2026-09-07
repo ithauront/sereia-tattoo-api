@@ -33,7 +33,7 @@ def test_get_client_credit_balance_success(
     client_credit_entry_used = make_client_credit_entry(
         vip_client_id=vip_client.id,
         source_id=admin.id,
-        source_type=ClientCreditSourceType.USED_IN_APPOINTMENT,
+        source_type=ClientCreditSourceType.USED_AS_PAYMENT,
         quantity=20,
         reason="Teste de credito adicionado por admin",
     )
@@ -113,7 +113,7 @@ def test_get_client_credit_balance_not_user_cannot_access(
     client_credit_entry_used = make_client_credit_entry(
         vip_client_id=vip_client.id,
         source_id=admin.id,
-        source_type=ClientCreditSourceType.USED_IN_APPOINTMENT,
+        source_type=ClientCreditSourceType.USED_AS_PAYMENT,
         quantity=20,
         reason="Teste de credito adicionado por admin",
     )
@@ -161,7 +161,7 @@ def test_get_client_credit_balance_inactive_user_cannot_access(
     client_credit_entry_used = make_client_credit_entry(
         vip_client_id=vip_client.id,
         source_id=admin.id,
-        source_type=ClientCreditSourceType.USED_IN_APPOINTMENT,
+        source_type=ClientCreditSourceType.USED_AS_PAYMENT,
         quantity=20,
         reason="Teste de credito adicionado por admin",
     )

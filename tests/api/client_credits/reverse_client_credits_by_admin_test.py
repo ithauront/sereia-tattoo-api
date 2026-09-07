@@ -196,7 +196,7 @@ def test_reverse_negative_credit_error(
     write_uow.vip_clients.create(vip_client)
 
     original_credit = make_client_credit_entry(
-        vip_client_id=vip_client.id, source_type=ClientCreditSourceType.USED_IN_APPOINTMENT
+        vip_client_id=vip_client.id, source_type=ClientCreditSourceType.USED_AS_PAYMENT
     )
     write_uow.client_credit_entries.create(original_credit)
 
@@ -225,7 +225,7 @@ def test_reverse_negative_credit_error(
 
     assert len(client_credits) == 1
 
-    assert client_credits[0].source_type == ClientCreditSourceType.USED_IN_APPOINTMENT
+    assert client_credits[0].source_type == ClientCreditSourceType.USED_AS_PAYMENT
 
     logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="client_credit_entry")
 
@@ -296,7 +296,7 @@ def test_reverse_not_found_credit_error(
     write_uow.vip_clients.create(vip_client)
 
     original_credit = make_client_credit_entry(
-        vip_client_id=vip_client.id, source_type=ClientCreditSourceType.USED_IN_APPOINTMENT
+        vip_client_id=vip_client.id, source_type=ClientCreditSourceType.USED_AS_PAYMENT
     )
     # we do not persist credit for this test
 
@@ -338,7 +338,7 @@ def test_reverse_credit_by_not_admin_error(
     write_uow.vip_clients.create(vip_client)
 
     original_credit = make_client_credit_entry(
-        vip_client_id=vip_client.id, source_type=ClientCreditSourceType.USED_IN_APPOINTMENT
+        vip_client_id=vip_client.id, source_type=ClientCreditSourceType.USED_AS_PAYMENT
     )
     write_uow.client_credit_entries.create(original_credit)
 
@@ -362,7 +362,7 @@ def test_reverse_credit_by_not_admin_error(
 
     assert len(client_credits) == 1
 
-    assert client_credits[0].source_type == ClientCreditSourceType.USED_IN_APPOINTMENT
+    assert client_credits[0].source_type == ClientCreditSourceType.USED_AS_PAYMENT
 
     logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="client_credit_entry")
 
@@ -382,7 +382,7 @@ def test_reverse_credit_by_inactive_admin_error(
     write_uow.vip_clients.create(vip_client)
 
     original_credit = make_client_credit_entry(
-        vip_client_id=vip_client.id, source_type=ClientCreditSourceType.USED_IN_APPOINTMENT
+        vip_client_id=vip_client.id, source_type=ClientCreditSourceType.USED_AS_PAYMENT
     )
     write_uow.client_credit_entries.create(original_credit)
 
@@ -406,7 +406,7 @@ def test_reverse_credit_by_inactive_admin_error(
 
     assert len(client_credits) == 1
 
-    assert client_credits[0].source_type == ClientCreditSourceType.USED_IN_APPOINTMENT
+    assert client_credits[0].source_type == ClientCreditSourceType.USED_AS_PAYMENT
 
     logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="client_credit_entry")
 
@@ -426,7 +426,7 @@ def test_reverse_credit_by_not_user_error(
     write_uow.vip_clients.create(vip_client)
 
     original_credit = make_client_credit_entry(
-        vip_client_id=vip_client.id, source_type=ClientCreditSourceType.USED_IN_APPOINTMENT
+        vip_client_id=vip_client.id, source_type=ClientCreditSourceType.USED_AS_PAYMENT
     )
     write_uow.client_credit_entries.create(original_credit)
 
@@ -450,7 +450,7 @@ def test_reverse_credit_by_not_user_error(
 
     assert len(client_credits) == 1
 
-    assert client_credits[0].source_type == ClientCreditSourceType.USED_IN_APPOINTMENT
+    assert client_credits[0].source_type == ClientCreditSourceType.USED_AS_PAYMENT
 
     logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="client_credit_entry")
 
@@ -470,7 +470,7 @@ def test_reverse_credit_wrong_payload_error(
     write_uow.vip_clients.create(vip_client)
 
     original_credit = make_client_credit_entry(
-        vip_client_id=vip_client.id, source_type=ClientCreditSourceType.USED_IN_APPOINTMENT
+        vip_client_id=vip_client.id, source_type=ClientCreditSourceType.USED_AS_PAYMENT
     )
     write_uow.client_credit_entries.create(original_credit)
 
@@ -504,7 +504,7 @@ def test_reverse_credit_missing_payload_field_error(
     write_uow.vip_clients.create(vip_client)
 
     original_credit = make_client_credit_entry(
-        vip_client_id=vip_client.id, source_type=ClientCreditSourceType.USED_IN_APPOINTMENT
+        vip_client_id=vip_client.id, source_type=ClientCreditSourceType.USED_AS_PAYMENT
     )
     write_uow.client_credit_entries.create(original_credit)
 
@@ -535,7 +535,7 @@ def test_reverse_credit_invalid_original_credit_id_error(
     write_uow.vip_clients.create(vip_client)
 
     original_credit = make_client_credit_entry(
-        vip_client_id=vip_client.id, source_type=ClientCreditSourceType.USED_IN_APPOINTMENT
+        vip_client_id=vip_client.id, source_type=ClientCreditSourceType.USED_AS_PAYMENT
     )
     write_uow.client_credit_entries.create(original_credit)
 

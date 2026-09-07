@@ -3,10 +3,10 @@ from uuid import uuid4
 import pytest
 
 from app.core.exceptions.validation import ValidationError
-from app.domain.studio.finances.entities.client_credit_entry import ClientCreditEntry
 from app.core.types.client_credit_source_type import (
     ClientCreditSourceType,
 )
+from app.domain.studio.finances.entities.client_credit_entry import ClientCreditEntry
 
 
 def test_source_type_unknown_raises_error():
@@ -22,9 +22,9 @@ def test_source_type_unknown_raises_error():
 
 
 def test_source_type_correct_not_enum_success(make_client_credit_entry):
-    entry = make_client_credit_entry(source_type="used_in_appointment")
+    entry = make_client_credit_entry(source_type="used_as_payment")
 
-    assert entry.source_type == ClientCreditSourceType.USED_IN_APPOINTMENT
+    assert entry.source_type == ClientCreditSourceType.USED_AS_PAYMENT
 
 
 def test_source_type_enum_success(make_client_credit_entry):

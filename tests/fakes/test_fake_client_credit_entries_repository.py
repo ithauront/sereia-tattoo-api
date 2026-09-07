@@ -94,7 +94,7 @@ def test_get_balance(make_client_credit_entry, entry_repo, make_vip_client, vip_
     )
     entry3 = make_client_credit_entry(
         quantity=10,
-        source_type=ClientCreditSourceType.USED_IN_APPOINTMENT,
+        source_type=ClientCreditSourceType.USED_AS_PAYMENT,
         vip_client_id=vip_client.id,
     )
     # balance must be 10 + 10 - 10 = 10
@@ -127,7 +127,7 @@ def test_find_many_by_vip_client_id(
     )
     entry3 = make_client_credit_entry(
         quantity=10,
-        source_type=ClientCreditSourceType.USED_IN_APPOINTMENT,
+        source_type=ClientCreditSourceType.USED_AS_PAYMENT,
         vip_client_id=vip_client2.id,
     )
 
@@ -174,7 +174,7 @@ def test_find_many_by_source_id(make_client_credit_entry, entry_repo, make_vip_c
     )
     entry3 = make_client_credit_entry(
         quantity=10,
-        source_type=ClientCreditSourceType.USED_IN_APPOINTMENT,
+        source_type=ClientCreditSourceType.USED_AS_PAYMENT,
         source_id=vip_client2.id,
     )
 
@@ -225,7 +225,7 @@ def test_find_many_by_source_type_and_vip_client_id(
     )
     entry3 = make_client_credit_entry(
         quantity=10,
-        source_type=ClientCreditSourceType.USED_IN_APPOINTMENT,
+        source_type=ClientCreditSourceType.USED_AS_PAYMENT,
         vip_client_id=vip_client2.id,
     )
     entry4 = make_client_credit_entry(

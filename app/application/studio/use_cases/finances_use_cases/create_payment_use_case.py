@@ -85,7 +85,7 @@ class CreatePaymentUseCase:
                     vip_client=vip_client,
                     credits_to_consume=credits_to_consume,
                 )
-                deducted_client_credit = ClientCreditEntry.used_has_payment(
+                deducted_client_credit = ClientCreditEntry.used_as_payment(
                     vip_client_id=vip_client.id,
                     payment_id=payment.id,
                     quantity=credits_to_consume,
@@ -207,7 +207,7 @@ class CreatePaymentUseCase:
                     if deducted_client_credit.vip_client_id
                     else None,
                     "credits_deducted": str(abs(deducted_client_credit.quantity)),
-                    "reason": f"used_has_payment in payment_id: {payment.id}",
+                    "reason": f"used_as_payment in payment_id: {payment.id}",
                 },
                 performed_at=datetime.now(timezone.utc),
             )
