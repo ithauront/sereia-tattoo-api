@@ -6,7 +6,7 @@ from app.application.studio.handlers.add_credits_from_completed_appointment impo
 )
 from app.core.types.audit_actor_type import AuditActorType
 from app.core.types.client_credit_source_type import ClientCreditSourceType
-from app.core.types.payment_enums import PaymentMethodType
+from app.core.types.payment_enums import PaymentMethodType, PaymentPurposeType
 from app.domain.studio.appointments.entities.value_objects.client_info import ClientInfo
 from app.domain.studio.appointments.events.appointment_completed import (
     AppointmentCompleted,
@@ -47,9 +47,7 @@ async def test_should_create_10_percent_credit_for_indication(
 
     await handler.handle(event=event, uow=write_uow)
 
-    credits_created = read_uow.client_credit_entries.get_balance(
-        vip_client_id=vip_client.id
-    )
+    credits_created = read_uow.client_credit_entries.get_balance(vip_client_id=vip_client.id)
     assert credits_created == 70
 
     quantity_of_entries = read_uow.client_credit_entries.count_by_vip_client_id(
@@ -65,9 +63,7 @@ async def test_should_create_10_percent_credit_for_indication(
     assert client_credit.source_type == ClientCreditSourceType.INDICATION
     assert client_credit.reason == "Créditos referentes a indicação."
 
-    logs = read_uow.audit_logs.find_many_by_entity_name(
-        entity_name="client_credit_entry"
-    )
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="client_credit_entry")
     assert len(logs) == 1
     log = logs[0]
 
@@ -127,9 +123,7 @@ async def test_ceil_should_round_for_more(
 
     await handler.handle(event=event, uow=write_uow)
 
-    credits_created = read_uow.client_credit_entries.get_balance(
-        vip_client_id=vip_client.id
-    )
+    credits_created = read_uow.client_credit_entries.get_balance(vip_client_id=vip_client.id)
     assert credits_created == 71
 
 
@@ -162,15 +156,11 @@ async def test_should_create_5_percent_credit_for_self_referral(
 
     await handler.handle(event=event, uow=write_uow)
 
-    credits_created = read_uow.client_credit_entries.get_balance(
-        vip_client_id=vip_client.id
-    )
+    credits_created = read_uow.client_credit_entries.get_balance(vip_client_id=vip_client.id)
 
     assert credits_created == 35
 
-    logs = read_uow.audit_logs.find_many_by_entity_name(
-        entity_name="client_credit_entry"
-    )
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="client_credit_entry")
     log = logs[0]
 
     assert log.action == "create credits from appointment done"
@@ -216,9 +206,7 @@ async def test_add_credits_client_has_credits_before(
     )
     write_uow.payments.create(payment)
 
-    old_credits_for_client = make_client_credit_entry(
-        quantity=50, vip_client_id=vip_client.id
-    )
+    old_credits_for_client = make_client_credit_entry(quantity=50, vip_client_id=vip_client.id)
     write_uow.client_credit_entries.create(old_credits_for_client)
 
     event = AppointmentCompleted(
@@ -235,14 +223,10 @@ async def test_add_credits_client_has_credits_before(
 
     await handler.handle(event=event, uow=write_uow)
 
-    total_credits = read_uow.client_credit_entries.get_balance(
-        vip_client_id=vip_client.id
-    )
+    total_credits = read_uow.client_credit_entries.get_balance(vip_client_id=vip_client.id)
     assert total_credits == 120
 
-    logs = read_uow.audit_logs.find_many_by_entity_name(
-        entity_name="client_credit_entry"
-    )
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="client_credit_entry")
     log = logs[0]
 
     assert log.changes == {
@@ -314,9 +298,7 @@ async def test_part_of_payment_from_credits(
 
     await handler.handle(event=event, uow=write_uow)
 
-    credits_created = read_uow.client_credit_entries.get_balance(
-        vip_client_id=vip_client.id
-    )
+    credits_created = read_uow.client_credit_entries.get_balance(vip_client_id=vip_client.id)
     assert credits_created == 60
 
 
@@ -354,14 +336,10 @@ async def test_total_payment_from_credits(
 
     await handler.handle(event=event, uow=write_uow)
 
-    credits_created = read_uow.client_credit_entries.get_balance(
-        vip_client_id=vip_client.id
-    )
+    credits_created = read_uow.client_credit_entries.get_balance(vip_client_id=vip_client.id)
     assert credits_created == 0
 
-    logs = read_uow.audit_logs.find_many_by_entity_name(
-        entity_name="client_credit_entry"
-    )
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="client_credit_entry")
     assert logs == []
 
 
@@ -408,14 +386,10 @@ async def test_existing_entry_should_silent_return(
 
     await handler.handle(event=event, uow=write_uow)
 
-    credits_created = read_uow.client_credit_entries.get_balance(
-        vip_client_id=vip_client.id
-    )
+    credits_created = read_uow.client_credit_entries.get_balance(vip_client_id=vip_client.id)
     assert credits_created == 10  # only the existing entry
 
-    logs = read_uow.audit_logs.find_many_by_entity_name(
-        entity_name="client_credit_entry"
-    )
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="client_credit_entry")
     assert logs == []
 
 
@@ -470,14 +444,10 @@ async def test_existing_credits_from_other_sources_should_not_prevent_addition(
 
     await handler.handle(event=event, uow=write_uow)
 
-    credits_created = read_uow.client_credit_entries.get_balance(
-        vip_client_id=vip_client.id
-    )
+    credits_created = read_uow.client_credit_entries.get_balance(vip_client_id=vip_client.id)
     assert credits_created == 90
 
-    logs = read_uow.audit_logs.find_many_by_entity_name(
-        entity_name="client_credit_entry"
-    )
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="client_credit_entry")
     log = logs[0]
 
     assert log.changes == {
@@ -533,14 +503,10 @@ async def test_non_existing_referral_code_should_silent_return(
 
     await handler.handle(event=event, uow=write_uow)
 
-    credits_created = read_uow.client_credit_entries.get_balance(
-        vip_client_id=vip_client.id
-    )
+    credits_created = read_uow.client_credit_entries.get_balance(vip_client_id=vip_client.id)
     assert credits_created == 0
 
-    logs = read_uow.audit_logs.find_many_by_entity_name(
-        entity_name="client_credit_entry"
-    )
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="client_credit_entry")
     assert logs == []
 
 
@@ -591,14 +557,10 @@ async def test_add_credits_from_correct_appointment(
 
     await handler.handle(event=event, uow=write_uow)
 
-    credits_created = read_uow.client_credit_entries.get_balance(
-        vip_client_id=vip_client.id
-    )
+    credits_created = read_uow.client_credit_entries.get_balance(vip_client_id=vip_client.id)
     assert credits_created == 70
 
-    logs = read_uow.audit_logs.find_many_by_entity_name(
-        entity_name="client_credit_entry"
-    )
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="client_credit_entry")
     log = logs[0]
 
     assert log.changes == {
@@ -654,14 +616,10 @@ async def test_handler_is_idempotent(
     await handler.handle(event=event, uow=write_uow)
     await handler.handle(event=event, uow=write_uow)
 
-    credits_created = read_uow.client_credit_entries.get_balance(
-        vip_client_id=vip_client.id
-    )
+    credits_created = read_uow.client_credit_entries.get_balance(vip_client_id=vip_client.id)
     assert credits_created == 70
 
-    logs = read_uow.audit_logs.find_many_by_entity_name(
-        entity_name="client_credit_entry"
-    )
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="client_credit_entry")
     assert len(logs) == 1
 
 
@@ -693,12 +651,102 @@ async def test_total_less_equal_to_zero_should_silent_return(
 
     await handler.handle(event=event, uow=write_uow)
 
-    credits_created = read_uow.client_credit_entries.get_balance(
-        vip_client_id=vip_client.id
-    )
+    credits_created = read_uow.client_credit_entries.get_balance(vip_client_id=vip_client.id)
     assert credits_created == 0
 
-    logs = read_uow.audit_logs.find_many_by_entity_name(
-        entity_name="client_credit_entry"
-    )
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="client_credit_entry")
     assert logs == []
+
+
+async def test_payments_should_have_appointment_or_deposit_purpose(
+    write_uow,
+    read_uow,
+    make_vip_client,
+    make_completed_appointment,
+    make_payment,
+):
+    vip_client = make_vip_client()
+    write_uow.vip_clients.create(vip_client)
+
+    appointment = make_completed_appointment(price=Decimal("700"))
+    write_uow.appointments.create(appointment)
+
+    payment_deposit = make_payment(
+        appointment_id=appointment.id, amount=Decimal("30"), payment_purpose=PaymentPurposeType.DEPOSIT
+    )
+    write_uow.payments.create(payment_deposit)
+
+    payment = make_payment(
+        appointment_id=appointment.id,
+        amount=Decimal("670"),
+        payment_purpose=PaymentPurposeType.APPOINTMENT,
+    )
+    write_uow.payments.create(payment)
+
+    tip = make_payment(
+        appointment_id=appointment.id, amount=Decimal("100"), payment_purpose=PaymentPurposeType.TIP
+    )
+    write_uow.payments.create(tip)
+    # tip should not be included for credits calculation
+
+    other = make_payment(
+        appointment_id=appointment.id, amount=Decimal("100"), payment_purpose=PaymentPurposeType.OTHER
+    )
+    write_uow.payments.create(other)
+    # other should not be included for credits calculation
+
+    event = AppointmentCompleted(
+        appointment_id=appointment.id,
+        referral_code=vip_client.client_code,
+        client_info=ClientInfo(
+            name="jane",
+            email="jane@doe.com",
+            phone="011988888888",
+        ),
+    )
+
+    handler = AddCreditsFromCompletedAppointmentHandler()
+
+    await handler.handle(event=event, uow=write_uow)
+
+    credits_created = read_uow.client_credit_entries.get_balance(vip_client_id=vip_client.id)
+    assert credits_created == 70
+
+    quantity_of_entries = read_uow.client_credit_entries.count_by_vip_client_id(
+        vip_client_id=vip_client.id
+    )
+    assert quantity_of_entries == 1
+
+    client_credits = read_uow.client_credit_entries.find_many_by_vip_client_id(
+        vip_client_id=vip_client.id
+    )
+    client_credit = client_credits[0]
+    assert client_credit.source_id == appointment.id
+    assert client_credit.source_type == ClientCreditSourceType.INDICATION
+    assert client_credit.reason == "Créditos referentes a indicação."
+
+    logs = read_uow.audit_logs.find_many_by_entity_name(entity_name="client_credit_entry")
+    assert len(logs) == 1
+    log = logs[0]
+
+    assert log.action == "create credits from appointment done"
+    assert log.actor_id is None
+    assert log.actor_type == AuditActorType.SYSTEM
+    assert log.changes == {
+        "balance": {
+            "from": 0,
+            "to": 70,
+        },
+        "credit": {
+            "source_type": ClientCreditSourceType.INDICATION,
+            "quantity": 70,
+        },
+        "vip_client": {
+            "id": vip_client.id,
+            "client_code": vip_client.client_code,
+        },
+        "appointment": {
+            "id": appointment.id,
+        },
+    }
+    assert log.reason == "credits from referral in appointment"
