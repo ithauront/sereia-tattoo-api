@@ -34,11 +34,6 @@ should be interpreted.
 """
 
 
-# TODO: refatorar USED_IN_APPOINTMENT para usar payment.id como source_id, pois o
-# Payment ja aponta para o appointment e identifica exatamente qual pagamento consumiu
-# o saldo. Manter related_entry_id exclusivamente para relacionar entradas do proprio
-# ledger (por exemplo, uma reversao e sua entrada original), conforme sua FK atual.
-# Atualizar a documentacao de source_id, a factory used_in_appointment e seus testes.
 class ClientCreditEntry:
     def __init__(
         self,
@@ -142,7 +137,7 @@ class ClientCreditEntry:
         )
 
     @classmethod
-    def used_has_payment(
+    def used_as_payment(
         cls,
         *,
         vip_client_id: UUID,
@@ -157,7 +152,7 @@ class ClientCreditEntry:
         return cls._create(
             vip_client_id=vip_client_id,
             source_id=payment_id,
-            source_type=ClientCreditSourceType.USED_HAS_PAYMENT,
+            source_type=ClientCreditSourceType.USED_AS_PAYMENT,
             quantity=-abs(quantity),
             reason="Créditos usados como pagamento",
             created_at=created_at,
