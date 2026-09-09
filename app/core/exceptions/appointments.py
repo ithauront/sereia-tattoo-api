@@ -26,6 +26,34 @@ class TotalSessionsNumberMustBeDefineError(Exception):
     pass
 
 
+class ForMultipleSessionsProjectIdMustBeDefinedError(Exception):
+    pass
+
+
+class AppointmentProjectNotFoundError(Exception):
+    pass
+
+
+class AppointmentProjectStateError(Exception):
+    """Raised when appointments sharing a project contain inconsistent session data."""
+
+
+class AppointmentProjectRequiresAuthenticatedUserError(Exception):
+    pass
+
+
+class TotalSessionsMustMatchProjectError(Exception):
+    pass
+
+
+class TotalSessionsExceededError(Exception):
+    pass
+
+
+class TotalSessionsMustBeAtLeastTwoError(Exception):
+    pass
+
+
 class CurrentSessionMustBeLessThanTotalError(Exception):
     pass
 
