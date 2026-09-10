@@ -24,6 +24,9 @@ class AppointmentsRepository(ABC):
     def find_by_id(self, appointment_id: UUID) -> Optional[Appointment]: ...
 
     @abstractmethod
+    def find_many_by_project_id(self, project_id: UUID) -> List[Appointment]: ...
+
+    @abstractmethod
     def find_many(
         self,
         *,

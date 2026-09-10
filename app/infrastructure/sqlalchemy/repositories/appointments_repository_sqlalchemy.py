@@ -62,6 +62,7 @@ class SQLAlchemyAppointmentsRepository(AppointmentsRepository):
 
         orm_appointment.status = appointment.status
         orm_appointment.appointment_type = appointment.appointment_type
+        orm_appointment.project_id = appointment.project_id
         orm_appointment.user_id = appointment.user_id
         orm_appointment.start_at = appointment.start_at
         orm_appointment.end_at = appointment.end_at
@@ -78,6 +79,20 @@ class SQLAlchemyAppointmentsRepository(AppointmentsRepository):
         orm_appointment.updated_at = appointment.updated_at
 
         self.session.flush()
+
+    def find_many_by_project_id(self, project_id: UUID) -> List[Appointment]:
+        appointments_in_project = select(AppointmentModel).where(
+            AppointmentModel.project_id == project_id
+        )
+
+        appointments_in_project = appointments_in_project.order_by(
+            AppointmentModel.current_session.desc().nulls_last()
+        )
+
+        return [
+            self._to_entity(orm_appointments)
+            for orm_appointments in self.session.scalars(appointments_in_project)
+        ]
 
     def find_many(
         self,
@@ -234,6 +249,7 @@ class SQLAlchemyAppointmentsRepository(AppointmentsRepository):
             id=appointment.id,
             status=appointment.status,
             appointment_type=appointment.appointment_type,
+            project_id=appointment.project_id,
             user_id=appointment.user_id,
             start_at=appointment.start_at,
             end_at=appointment.end_at,
@@ -282,6 +298,7 @@ class SQLAlchemyAppointmentsRepository(AppointmentsRepository):
         return Appointment(
             id=UUID(str(orm_appointment.id)),
             appointment_type=orm_appointment.appointment_type,
+            project_id=orm_appointment.project_id,
             user_id=orm_appointment.user_id,
             status=orm_appointment.status,
             start_at=orm_appointment.start_at,

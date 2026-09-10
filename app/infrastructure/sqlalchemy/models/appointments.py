@@ -50,6 +50,11 @@ class AppointmentModel(Base):
     appointment_type: Mapped[AppointmentType] = mapped_column(
         Enum(AppointmentType, name="appointment_type_enum"), nullable=False, index=True
     )
+    project_id: Mapped[pyUUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        nullable=True,
+        index=True,
+    )
     user_id: Mapped[pyUUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id"),
