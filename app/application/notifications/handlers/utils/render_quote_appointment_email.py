@@ -1,13 +1,21 @@
 from decimal import Decimal
 
 
-def render_quote_appointment_client_email(price: Decimal, appointment_type: str) -> str:
+def render_quote_appointment_client_email(
+    price: Decimal,
+    appointment_type: str,
+    total_sessions: int | None = None,
+    current_session: int | None = None,
+) -> str:
+
     if appointment_type == "piercing":
         finisher = "Estamos ansiosos para brilharmos seu dia com um piercing incrivel! 🧜‍♀️🌊"
         appointment_name = "seu Piercing"
+        project_name = "seu projeto de Piercing"
     else:
         finisher = "Estamos ansiosos para transformar sua ideia em uma tatuagem incrível! 🧜‍♀️🌊"
         appointment_name = "sua Tattoo"
+        project_name = "seu projeto de Tattoo"
 
     formatted_price = f"{price:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
@@ -16,6 +24,51 @@ def render_quote_appointment_client_email(price: Decimal, appointment_type: str)
 
     formatted_price = f"R$ {formatted_price}"
 
+    if total_sessions is None:
+        project_paragraph = f"""
+              <p>
+                Para realizar {appointment_name} no
+                <strong>Sereia Tattoo Studio</strong>, o investimento será de
+                <strong>{formatted_price}</strong>.
+              </p>
+        """
+
+        details_paragraph = """
+              <p>
+                Ficamos muito felizes em poder fazer parte dessa ideia.
+                Agora só falta alinhar os últimos
+                detalhes e confirmar tudo para o seu atendimento. ✨
+              </p>
+        """
+
+    else:
+        session_description = (
+            "primeira sessão"
+            if current_session == 1
+            else f"sessão {current_session} de {total_sessions}"
+        )
+        project_paragraph = f"""
+              <p>
+                Para realizar {project_name} no
+                <strong>Sereia Tattoo Studio</strong>, o investimento para a
+                <strong>{session_description}</strong> será de
+                <strong>{formatted_price}</strong>.
+              </p>
+
+              <p>
+                Esse projeto está previsto para ser realizado em
+                <strong>{total_sessions} sessões</strong> no total.
+              </p>
+        """
+
+        details_paragraph = """
+              <p>
+                Ficamos muito felizes em poder fazer parte desse projeto.
+                Agora só falta alinhar os últimos
+                detalhes e confirmar tudo para o seu atendimento. ✨
+              </p>
+        """
+
     return f"""
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -23,8 +76,8 @@ def render_quote_appointment_client_email(price: Decimal, appointment_type: str)
   <meta charset="UTF-8" />
   <title>Seu orçamento está pronto!</title>
 </head>
-
 <body style="margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;background-color:#f5f5f5;">
+
   <table width="100%" cellpadding="0" cellspacing="0">
     <tr>
       <td align="center" style="padding:40px 16px;">
@@ -52,17 +105,9 @@ def render_quote_appointment_client_email(price: Decimal, appointment_type: str)
                 temos uma ótima notícia: já preparamos o seu orçamento!
               </p>
 
-              <p>
-                Para realizar {appointment_name} no
-                <strong>Sereia Tattoo Studio</strong>, o investimento será de
-                <strong>{formatted_price}</strong>.
-              </p>
+              {project_paragraph}
 
-              <p>
-                Ficamos muito felizes em poder fazer parte dessa ideia.
-                Agora só falta alinhar os últimos
-                detalhes e confirmar tudo para o seu atendimento. ✨
-              </p>
+              {details_paragraph}
 
               <p>
                 Para reservar o seu horário, trabalhamos com um sinal de
@@ -86,6 +131,7 @@ def render_quote_appointment_client_email(price: Decimal, appointment_type: str)
 
           <tr>
             <td style="padding-top:28px;color:#999;font-size:12px;text-align:center;line-height:1.6;">
+
               <p style="margin:0;">
                 Este é um e-mail enviado automaticamente pelo sistema do
                 <strong>Sereia Tattoo Studio</strong>.
@@ -95,6 +141,7 @@ def render_quote_appointment_client_email(price: Decimal, appointment_type: str)
                 Caso você não tenha solicitado este orçamento, basta
                 desconsiderar esta mensagem.
               </p>
+
             </td>
           </tr>
 
@@ -103,6 +150,7 @@ def render_quote_appointment_client_email(price: Decimal, appointment_type: str)
       </td>
     </tr>
   </table>
+
 </body>
 </html>
 """.strip()

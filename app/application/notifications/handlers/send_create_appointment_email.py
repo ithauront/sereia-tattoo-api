@@ -27,7 +27,6 @@ configured event processing strategy.
 """
 
 
-# TODO: fazer teste de integração para ver se o email esta sendo enviado.
 class SendCreateAppointmentEmailHandler:
     def __init__(self, email_service: EmailService):
         self.email_service = email_service

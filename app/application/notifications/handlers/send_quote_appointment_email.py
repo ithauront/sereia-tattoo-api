@@ -27,7 +27,10 @@ class SendQuoteAppointmentEmailHandler:
                 client_email = vip_client.email
 
             html = render_quote_appointment_client_email(
-                price=event.price, appointment_type=event.appointment_type
+                price=event.price,
+                appointment_type=event.appointment_type,
+                total_sessions=event.total_sessions,
+                current_session=event.current_session,
             )
 
         await self.email_service.send_email(
