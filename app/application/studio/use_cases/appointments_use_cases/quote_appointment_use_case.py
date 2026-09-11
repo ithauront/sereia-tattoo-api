@@ -4,7 +4,10 @@ from app.application.event_bus.integration_event_bus import IntegrationEventBus
 from app.application.studio.unit_of_work.read_unit_of_work import ReadUnitOfWork
 from app.application.studio.unit_of_work.write_unit_of_work import WriteUnitOfWork
 from app.application.studio.use_cases.DTO.audit_logs import AuditLogEntry
-from app.application.studio.use_cases.DTO.quote_appointement_dto import QuoteAppointmentInput
+from app.application.studio.use_cases.DTO.quote_appointement_dto import (
+    QuoteAppointmentInput,
+    QuoteAppointmentOutput,
+)
 from app.core.exceptions.appointments import (
     AppointmentNotFoundError,
 )
@@ -27,7 +30,7 @@ class QuoteAppointmentUseCase:
         self.integration_bus = integration_bus
         self.appointment_authorization_policy = appointment_authorization_policy
 
-    async def execute(self, data: QuoteAppointmentInput):
+    async def execute(self, data: QuoteAppointmentInput) -> QuoteAppointmentOutput:
         with self.write_uow:
             appointment = self.write_uow.appointments.find_by_id(data.appointment_id)
 
@@ -38,8 +41,17 @@ class QuoteAppointmentUseCase:
                 actor=data.actor, appointment=appointment
             )
 
-            appointment.quote(price=data.price)
+            appointment.quote(price=data.price, total_sessions=data.total_sessions)
             self.write_uow.appointments.update(appointment)
+
+            changes = {"price_quoted": str(appointment.price)}
+            if data.total_sessions is not None:
+                changes = {
+                    "price_quoted": str(appointment.price),
+                    "project_id": str(appointment.project_id),
+                    "current_session": appointment.current_session,
+                    "total_sessions": appointment.total_sessions,
+                }
 
             log = AuditLogEntry(
                 entity_name="appointments",
@@ -47,9 +59,7 @@ class QuoteAppointmentUseCase:
                 action="quote appointment",
                 actor_id=data.actor.id,
                 actor_type=AuditActorType.USER,
-                changes={
-                    "price_quoted": str(appointment.price),
-                },
+                changes=changes,
                 performed_at=datetime.now(timezone.utc),
             )
             self.write_uow.audit_logs.create(log)
@@ -57,4 +67,11 @@ class QuoteAppointmentUseCase:
         await self.integration_bus.publish(
             appointment.notify_of_appointment_quoted(),
             uow=self.read_uow,
+        )
+
+        return QuoteAppointmentOutput(
+            appointment_id=appointment.id,
+            project_id=appointment.project_id,
+            current_session=appointment.current_session,
+            total_sessions=appointment.total_sessions,
         )
