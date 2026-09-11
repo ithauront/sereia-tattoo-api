@@ -13,9 +13,6 @@ from sqlalchemy.orm import Mapped, mapped_column
 class PaymentModel(Base):
     __tablename__ = "payments"
 
-    # TODO: criar migration para payment_purpose_enum/payment_purpose e, quando a
-    # idempotencia for implementada, para a idempotency_key UNIQUE.
-
     id: Mapped[pyUUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     amount: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     payment_method: Mapped[PaymentMethodType] = mapped_column(
