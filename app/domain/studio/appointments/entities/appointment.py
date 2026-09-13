@@ -17,6 +17,7 @@ from app.core.exceptions.appointments import (
     ForMultipleSessionsProjectIdMustBeDefinedError,
     PriceMustBeDefinedError,
     PriceMustBePositiveError,
+    ReasonForCancelationMustBeProvidedError,
     TotalSessionsMustBeAtLeastTwoError,
     TotalSessionsMustMatchProjectError,
     TotalSessionsNumberMustBeDefineError,
@@ -30,6 +31,7 @@ from app.domain.studio.appointments.entities.value_objects.client_info import Cl
 from app.domain.studio.appointments.events.appointment_completed import (
     AppointmentCompleted,
 )
+from app.domain.studio.appointments.events.cancel_appointment import CancelAppointmentEmailRequested
 from app.domain.studio.appointments.events.create_appointment_request import (
     CreateAppointmentEmailRequested,
 )
@@ -238,6 +240,17 @@ class Appointment:
         self.status = AppointmentStatus.SCHEDULED
         self._touch()
 
+    def invalidate_deposit(self):
+        now = self._utc_now()
+        if self.deposit_confirmed_at is None:
+            return
+
+        self.deposit_confirmed_at = None
+        self.add_observations(
+            f"Caução retido e invalidado para fins de pagamento segundo as regras do estudio em {now}"
+        )
+        self._touch()
+
     def complete(self, total_paid: Decimal) -> Optional[AppointmentCompleted]:
         if self.price is None:
             raise PriceMustBeDefinedError()
@@ -259,9 +272,28 @@ class Appointment:
 
         return None
 
-    def mark_as_canceled(self, observations: str):
+    def mark_as_canceled(
+        self, *, observations: str, is_eligible_for_deposit_refund: bool
+    ) -> CancelAppointmentEmailRequested:
+        if self.status == AppointmentStatus.CANCELED or self.status == AppointmentStatus.COMPLETED:
+            raise AppointmentMustBeInCorrectPreviousStatusError()
+        if not observations.strip():
+            raise ReasonForCancelationMustBeProvidedError()
+
+        recipient = self._get_recipient()
+
         self.status = AppointmentStatus.CANCELED
-        self.add_observations(observations)
+        self.add_observations(f"Cancelado por motivo de: {observations}")
+
+        return CancelAppointmentEmailRequested(
+            start_at=self.start_at,
+            end_at=self.end_at,
+            appointment_type=self.appointment_type,
+            client_email_or_vip_id=recipient,
+            user_id=self.user_id,
+            has_confirmed_deposit=self.deposit_confirmed_at is not None,
+            is_eligible_for_deposit_refund=is_eligible_for_deposit_refund,
+        )
 
     def add_observations(self, new_observation: str):
         if self.observations:
@@ -274,12 +306,7 @@ class Appointment:
         self,
     ) -> CreateAppointmentEmailRequested:
 
-        if self.client_info.email is not None:
-            recipient = self.client_info.email
-        elif self.client_info.vip_client_id is not None:
-            recipient = self.client_info.vip_client_id
-        else:
-            raise AppointmentClientContactInfoCorruptedError()
+        recipient = self._get_recipient()
 
         return CreateAppointmentEmailRequested(
             start_at=self.start_at,
@@ -293,12 +320,7 @@ class Appointment:
         self,
     ) -> NotifyOfAppointmentQuoted:
 
-        if self.client_info.email is not None:
-            recipient = self.client_info.email
-        elif self.client_info.vip_client_id is not None:
-            recipient = self.client_info.vip_client_id
-        else:
-            raise AppointmentClientContactInfoCorruptedError()
+        recipient = self._get_recipient()
 
         if self.price is None:
             raise PriceMustBeDefinedError()
@@ -313,6 +335,16 @@ class Appointment:
 
     def _touch(self):
         self.updated_at = self._utc_now()
+
+    def _get_recipient(self):
+        if self.client_info.email is not None:
+            recipient = self.client_info.email
+        elif self.client_info.vip_client_id is not None:
+            recipient = self.client_info.vip_client_id
+        else:
+            raise AppointmentClientContactInfoCorruptedError()
+
+        return recipient
 
     def _validate_state(self):
         if self.total_sessions is not None:
