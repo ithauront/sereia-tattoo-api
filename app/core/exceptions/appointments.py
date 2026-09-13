@@ -34,6 +34,10 @@ class AppointmentProjectNotFoundError(Exception):
     pass
 
 
+class ReasonForCancelationMustBeProvidedError(Exception):
+    pass
+
+
 class AppointmentProjectStateError(Exception):
     """Raised when appointments sharing a project contain inconsistent session data."""
 

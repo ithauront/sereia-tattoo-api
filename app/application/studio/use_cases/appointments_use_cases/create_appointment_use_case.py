@@ -148,12 +148,8 @@ class CreateAppointmentUseCase:
                     },
                     "start_at": data.start_at.isoformat(),
                     "end_at": data.end_at.isoformat(),
-                    "referral_code": (
-                        str(data.referral_code) if data.referral_code else None
-                    ),
-                    "project_id": (
-                        str(appointment.project_id) if appointment.project_id else None
-                    ),
+                    "referral_code": (str(data.referral_code) if data.referral_code else None),
+                    "project_id": (str(appointment.project_id) if appointment.project_id else None),
                     "current_session": appointment.current_session,
                     "total_sessions": appointment.total_sessions,
                 }
