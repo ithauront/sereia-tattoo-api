@@ -3,6 +3,9 @@ from app.application.event_bus.transactional_event_bus import TransactionalEvent
 from app.application.notifications.handlers.notificate_booking_window_update import (
     NotificateBookingWindowUpdateHandler,
 )
+from app.application.notifications.handlers.notificate_cancelation import (
+    NotificateAppointmentCanceledEmailHandler,
+)
 from app.application.notifications.handlers.send_activation_confirmation_email import (
     SendActivationConfirmationEmailHandler,
 )
@@ -33,6 +36,7 @@ from app.domain.studio.appointments.events.appointment_completed import (
     AppointmentCompleted,
 )
 from app.domain.studio.appointments.events.booking_window_updated import BookingWindowUpdated
+from app.domain.studio.appointments.events.cancel_appointment import CancelAppointmentEmailRequested
 from app.domain.studio.appointments.events.create_appointment_request import (
     CreateAppointmentEmailRequested,
 )
@@ -103,6 +107,10 @@ def setup_event_bus(
     integration_bus.register(
         SendDepositConfirmationEmailEvent,
         SendDepositConfirmationEmailHandler(email_service=email_service),
+    )
+    integration_bus.register(
+        CancelAppointmentEmailRequested,
+        NotificateAppointmentCanceledEmailHandler(email_service=email_service),
     )
     transactional_bus.register(
         AppointmentCompleted,
