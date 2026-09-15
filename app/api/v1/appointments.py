@@ -9,17 +9,31 @@ from fastapi import (
 from app.api.dependencies.actor_id import get_optional_actor_id
 from app.api.dependencies.auth import get_current_active_user
 from app.api.dependencies.events import get_integration_event_bus, get_transactional_event_bus
-from app.api.dependencies.policies import get_appointment_authorization_policy, get_calendar_policy
+from app.api.dependencies.policies import (
+    get_appointment_authorization_policy,
+    get_appointment_project_policy,
+    get_calendar_policy,
+    get_deposit_policy,
+)
 from app.api.dependencies.read_unit_of_work import get_read_unit_of_work
 from app.api.dependencies.write_unit_of_work import (
     get_write_unit_of_work,
 )
-from app.api.schemas.appointments import CreateAppointmentRequest, QuoteAppointmentRequest
+from app.api.schemas.appointments import (
+    CancelAppointmentRequest,
+    CreateAppointmentRequest,
+    CreateAppointmentResponse,
+    QuoteAppointmentRequest,
+    QuoteAppointmentResponse,
+)
 from app.application.event_bus.integration_event_bus import IntegrationEventBus
 from app.application.event_bus.transactional_event_bus import TransactionalEventBus
 from app.application.studio.unit_of_work.read_unit_of_work import ReadUnitOfWork
 from app.application.studio.unit_of_work.write_unit_of_work import (
     WriteUnitOfWork,
+)
+from app.application.studio.use_cases.appointments_use_cases.cancel_appointment_use_case import (
+    CancelAppointmentUseCase,
 )
 from app.application.studio.use_cases.appointments_use_cases.complete_paid_appointment_use_case import (
     CompletePaidAppointmentUseCase,
@@ -30,6 +44,7 @@ from app.application.studio.use_cases.appointments_use_cases.create_appointment_
 from app.application.studio.use_cases.appointments_use_cases.quote_appointment_use_case import (
     QuoteAppointmentUseCase,
 )
+from app.application.studio.use_cases.DTO.cancel_appointment import CancelAppointmentInput
 from app.application.studio.use_cases.DTO.complete_paid_appointment_dto import (
     CompletePaidAppointmentInput,
 )
@@ -39,15 +54,19 @@ from app.domain.studio.appointments.entities.value_objects.client_info import Cl
 from app.domain.studio.appointments.policies.appointment_authorization_policy import (
     AppointmentAuthorizationPolicy,
 )
+from app.domain.studio.appointments.policies.appointment_project_policy import (
+    AppointmentProjectPolicy,
+)
 from app.domain.studio.appointments.policies.calendar_availability_policy import (
     CalendarAvailabilityPolicy,
 )
+from app.domain.studio.appointments.policies.deposit_policy import DepositPolicy
 from app.domain.studio.value_objects.client_code import ClientCode
 
 router = APIRouter(prefix="/appointments")
 
 
-@router.post("", status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED, response_model=CreateAppointmentResponse)
 async def create_appointment(
     data: CreateAppointmentRequest,
     write_uow: WriteUnitOfWork = Depends(get_write_unit_of_work),
@@ -55,6 +74,7 @@ async def create_appointment(
     integration_bus: IntegrationEventBus = Depends(get_integration_event_bus),
     actor_id: UUID | None = Depends(get_optional_actor_id),
     calendar_policy: CalendarAvailabilityPolicy = Depends(get_calendar_policy),
+    project_policy: AppointmentProjectPolicy = Depends(get_appointment_project_policy),
 ):
     client_info = ClientInfo(
         vip_client_id=data.vip_client_id,
@@ -69,25 +89,41 @@ async def create_appointment(
         write_uow=write_uow,
         read_uow=read_uow,
         calendar_policy=calendar_policy,
+        project_policy=project_policy,
     )
     dto = CreateAppointmentInput(
         appointment_type=data.appointment_type,
         user_id=data.user_id,
-        client_info=client_info,
         start_at=data.start_at,
         end_at=data.end_at,
         placement=data.placement,
-        color=data.color,
         details=data.details,
+        client_info=client_info,
+        total_sessions=data.total_sessions,
+        project_id=data.project_id,
         size=data.size,
+        color=data.color,
         referral_code=referral_code,
         actor_id=actor_id,
     )
 
-    await use_case.execute(dto)
+    result = await use_case.execute(dto)
+
+    response = CreateAppointmentResponse(
+        appointment_id=result.appointment_id,
+        project_id=result.project_id,
+        current_session=result.current_session,
+        total_sessions=result.total_sessions,
+    )
+
+    return response
 
 
-@router.patch("/{appointment_id}/quote", status_code=status.HTTP_204_NO_CONTENT)
+@router.patch(
+    "/{appointment_id}/quote",
+    status_code=status.HTTP_200_OK,
+    response_model=QuoteAppointmentResponse,
+)
 async def quote_appointment(
     appointment_id: UUID,
     data: QuoteAppointmentRequest,
@@ -103,9 +139,21 @@ async def quote_appointment(
         integration_bus=integration_bus,
         appointment_authorization_policy=authorization_policy,
     )
-    dto = QuoteAppointmentInput(price=data.price, actor=current_user, appointment_id=appointment_id)
+    dto = QuoteAppointmentInput(
+        price=data.price,
+        actor=current_user,
+        appointment_id=appointment_id,
+        total_sessions=data.total_sessions,
+    )
 
-    await use_case.execute(dto)
+    result = await use_case.execute(dto)
+
+    return QuoteAppointmentResponse(
+        appointment_id=result.appointment_id,
+        project_id=result.project_id,
+        current_session=result.current_session,
+        total_sessions=result.total_sessions,
+    )
 
 
 @router.patch("/{appointment_id}/complete", status_code=status.HTTP_204_NO_CONTENT)
@@ -117,5 +165,35 @@ async def complete_paid_appointment(
 ):
     use_case = CompletePaidAppointmentUseCase(uow=uow, transactional_bus=transactional_bus)
     dto = CompletePaidAppointmentInput(appointment_id=appointment_id, actor_id=current_user.id)
+
+    await use_case.execute(dto)
+
+
+@router.patch(
+    "/{appointment_id}/cancel",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def cancel_appointment(
+    appointment_id: UUID,
+    data: CancelAppointmentRequest,
+    current_user=Depends(get_current_active_user),
+    write_uow: WriteUnitOfWork = Depends(get_write_unit_of_work),
+    read_uow: ReadUnitOfWork = Depends(get_read_unit_of_work),
+    integration_bus: IntegrationEventBus = Depends(get_integration_event_bus),
+    authorization_policy: AppointmentAuthorizationPolicy = Depends(get_appointment_authorization_policy),
+    deposit_policy: DepositPolicy = Depends(get_deposit_policy),
+):
+    use_case = CancelAppointmentUseCase(
+        read_uow=read_uow,
+        write_uow=write_uow,
+        integration_bus=integration_bus,
+        appointment_authorization_policy=authorization_policy,
+        deposit_policy=deposit_policy,
+    )
+    dto = CancelAppointmentInput(
+        reason=data.reason,
+        actor=current_user,
+        appointment_id=appointment_id,
+    )
 
     await use_case.execute(dto)
