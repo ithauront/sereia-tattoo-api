@@ -246,10 +246,35 @@ class Appointment:
             return
 
         self.deposit_confirmed_at = None
+        self.status = AppointmentStatus.QUOTED
         self.add_observations(
-            f"Caução retido e invalidado para fins de pagamento segundo as regras do estudio em {now}"
+            "Caução retida e invalidada para fins de pagamento segundo as regras "
+            f"do estúdio em {now}; o appointment voltou para o status quoted."
         )
-        self._touch()
+
+    def reschedule(self, *, new_start_at: datetime, new_end_at: datetime) -> bool:
+
+        if self.status in (AppointmentStatus.COMPLETED, AppointmentStatus.CANCELED):
+            raise AppointmentMustBeInCorrectPreviousStatusError()
+
+        if new_start_at.utcoffset() is None or new_end_at.utcoffset() is None:
+            raise AppointmentMustHaveRealisticTimeAndDateError()
+        if new_start_at >= new_end_at:
+            raise AppointmentMustHaveRealisticTimeAndDateError()
+
+        now = self._utc_now()
+        if new_start_at <= now:
+            raise AppointmentMustHaveRealisticTimeAndDateError()
+
+        if self.start_at == new_start_at and self.end_at == new_end_at:
+            return False
+
+        self.start_at = new_start_at
+        self.end_at = new_end_at
+
+        self.add_observations("Horários atuais são provenientes de um reagendamento")
+
+        return True
 
     def complete(self, total_paid: Decimal) -> Optional[AppointmentCompleted]:
         if self.price is None:
