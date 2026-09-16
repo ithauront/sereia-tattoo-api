@@ -174,8 +174,25 @@ class SQLAlchemyAppointmentsRepository(AppointmentsRepository):
         start_date: datetime | None = None,
         end_date: datetime | None = None,
         user_id: UUID | None = None,
+        exclude_appointment_id: UUID | None = None,
     ) -> list[Appointment]:
-        return self.find_many(start_date=start_date, end_date=end_date, user_id=user_id)
+        filters = [AppointmentModel.status != AppointmentStatus.CANCELED]
+
+        if start_date is not None:
+            filters.append(AppointmentModel.end_at > start_date)
+        if end_date is not None:
+            filters.append(AppointmentModel.start_at < end_date)
+        if user_id is not None:
+            filters.append(AppointmentModel.user_id == user_id)
+        if exclude_appointment_id is not None:
+            filters.append(AppointmentModel.id != exclude_appointment_id)
+
+        overlapping_appointments = select(AppointmentModel).where(*filters)
+
+        return [
+            self._to_entity(orm_appointment)
+            for orm_appointment in self.session.scalars(overlapping_appointments)
+        ]
 
     def _build_filters(
         self,

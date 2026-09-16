@@ -68,4 +68,5 @@ class AppointmentsRepository(ABC):
         start_date: datetime | None = None,
         end_date: datetime | None = None,
         user_id: UUID | None = None,
+        exclude_appointment_id: UUID | None = None,
     ) -> List[Appointment]: ...
