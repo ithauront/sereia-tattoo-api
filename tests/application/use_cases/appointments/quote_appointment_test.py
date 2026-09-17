@@ -1,4 +1,5 @@
 from decimal import Decimal
+from uuid import uuid4
 
 import pytest
 
@@ -11,6 +12,7 @@ from app.core.exceptions.appointments import (
     AppointmentNotFoundError,
     OnlyAdminOrOwnerOfAppointmentError,
     PriceMustBePositiveError,
+    TotalSessionsMustMatchProjectError,
 )
 from app.core.types.appointment_enums import AppointmentStatus
 from app.core.types.audit_actor_type import AuditActorType
@@ -62,6 +64,82 @@ async def test_quote_appointment_successful(make_user, make_appointment_base, wr
     assert log.actor_id == user.id
     assert log.actor_type == AuditActorType.USER
     assert log.changes == {"price_quoted": "700"}
+
+
+@pytest.mark.asyncio
+async def test_quote_can_start_multi_session_project(
+    make_user, make_appointment_base, write_uow, read_uow
+):
+    user = make_user()
+    write_uow.users.create(user)
+    appointment = make_appointment_base(user_id=user.id)
+    write_uow.appointments.create(appointment)
+    use_case = QuoteAppointmentUseCase(
+        write_uow=write_uow,
+        read_uow=read_uow,
+        integration_bus=FakeIntegrationEventBus(),
+        appointment_authorization_policy=AppointmentAuthorizationPolicy(),
+    )
+
+    result = await use_case.execute(
+        QuoteAppointmentInput(
+            actor=user,
+            appointment_id=appointment.id,
+            price=Decimal("700"),
+            total_sessions=3,
+        )
+    )
+
+    found = read_uow.appointments.find_by_id(appointment.id)
+    assert found.project_id is not None
+    assert found.current_session == 1
+    assert found.total_sessions == 3
+    assert result.appointment_id == found.id
+    assert result.project_id == found.project_id
+    assert result.current_session == 1
+    assert result.total_sessions == 3
+
+    log = read_uow.audit_logs.find_many_by_entity_id(appointment.id)[0]
+    assert log.changes == {
+        "price_quoted": "700",
+        "project_id": str(found.project_id),
+        "current_session": 1,
+        "total_sessions": 3,
+    }
+
+
+@pytest.mark.asyncio
+async def test_quote_cannot_redefine_existing_project_total(
+    make_user, make_appointment_base, write_uow, read_uow
+):
+    user = make_user()
+    write_uow.users.create(user)
+    appointment = make_appointment_base(
+        user_id=user.id,
+        project_id=uuid4(),
+        current_session=1,
+        total_sessions=3,
+    )
+    write_uow.appointments.create(appointment)
+    use_case = QuoteAppointmentUseCase(
+        write_uow=write_uow,
+        read_uow=read_uow,
+        integration_bus=FakeIntegrationEventBus(),
+        appointment_authorization_policy=AppointmentAuthorizationPolicy(),
+    )
+
+    with pytest.raises(TotalSessionsMustMatchProjectError):
+        await use_case.execute(
+            QuoteAppointmentInput(
+                actor=user,
+                appointment_id=appointment.id,
+                price=Decimal("700"),
+                total_sessions=4,
+            )
+        )
+
+    assert appointment.status == AppointmentStatus.REQUESTED
+    assert appointment.price is None
 
 
 @pytest.mark.asyncio
