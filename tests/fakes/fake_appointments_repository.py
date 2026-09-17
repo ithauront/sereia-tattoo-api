@@ -35,6 +35,21 @@ class FakeAppointmentsRepository(AppointmentsRepository):
                 return appointment_in_memory
         return None
 
+    def find_many_by_project_id(self, project_id: UUID) -> List[Appointment]:
+        filtred = []
+        for appointment in self._appointments:
+            if appointment.project_id == project_id:
+                filtred.append(appointment)
+
+        return sorted(
+            filtred,
+            key=lambda appointment: (
+                appointment.current_session is not None,
+                appointment.current_session or 0,
+            ),
+            reverse=True,
+        )
+
     def find_many(
         self,
         *,
@@ -109,8 +124,15 @@ class FakeAppointmentsRepository(AppointmentsRepository):
         start_date: datetime | None = None,
         end_date: datetime | None = None,
         user_id: UUID | None = None,
+        exclude_appointment_id: UUID | None = None,
     ):
-        return self.find_many(start_date=start_date, end_date=end_date, user_id=user_id)
+        appointments = self.find_many(start_date=start_date, end_date=end_date, user_id=user_id)
+        return [
+            appointment
+            for appointment in appointments
+            if appointment.status != AppointmentStatus.CANCELED
+            and appointment.id != exclude_appointment_id
+        ]
 
     def _filter_appointments(
         self,

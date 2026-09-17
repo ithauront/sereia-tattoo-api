@@ -477,3 +477,55 @@ def test_find_overlap_has_multiple_overlaps(
     )
 
     assert len(result) == 2
+
+
+def test_find_overlap_excludes_the_selected_appointment(
+    appointments_repo, make_quoted_appointment, make_user, users_repo
+):
+    user = make_user()
+    users_repo.create(user)
+    start_at = datetime(2030, 1, 1, 10, tzinfo=timezone.utc)
+    excluded = make_quoted_appointment(
+        user_id=user.id,
+        start_at=start_at,
+        end_at=start_at + timedelta(hours=2),
+    )
+    another_overlap = make_quoted_appointment(
+        user_id=user.id,
+        start_at=start_at + timedelta(hours=1),
+        end_at=start_at + timedelta(hours=3),
+    )
+    appointments_repo.create(excluded)
+    appointments_repo.create(another_overlap)
+
+    result = appointments_repo.find_overlap(
+        start_date=start_at,
+        end_date=start_at + timedelta(hours=2),
+        user_id=user.id,
+        exclude_appointment_id=excluded.id,
+    )
+
+    assert [appointment.id for appointment in result] == [another_overlap.id]
+
+
+def test_find_overlap_does_not_treat_canceled_appointment_as_occupied(
+    appointments_repo, make_appointment_base, make_user, users_repo
+):
+    user = make_user()
+    users_repo.create(user)
+    start_at = datetime(2030, 1, 1, 10, tzinfo=timezone.utc)
+    canceled = make_appointment_base(
+        user_id=user.id,
+        status=AppointmentStatus.CANCELED,
+        start_at=start_at,
+        end_at=start_at + timedelta(hours=2),
+    )
+    appointments_repo.create(canceled)
+
+    result = appointments_repo.find_overlap(
+        start_date=start_at,
+        end_date=start_at + timedelta(hours=2),
+        user_id=user.id,
+    )
+
+    assert result == []
