@@ -32,3 +32,40 @@ async def test_quote_appointment_sends_email(make_user, read_uow, write_uow):
     assert email_service.last_payload["to"] == "jane@doe.com"
     assert email_service.last_payload["subject"] == "Seu orçamento está pronto!"
     assert "Seu orçamento está pronto!" in email_service.last_payload["html"]
+    assert "primeira sessão" not in email_service.last_payload["html"]
+
+
+async def test_project_quote_email_mentions_first_session_and_total(read_uow):
+    event = NotifyOfAppointmentQuoted(
+        appointment_type=AppointmentType.TATTOO,
+        price=Decimal("700"),
+        client_email_or_vip_id="jane@doe.com",
+        total_sessions=3,
+        current_session=1,
+    )
+    email_service = FakeEmailService()
+    handler = SendQuoteAppointmentEmailHandler(email_service=email_service)
+
+    await handler.handle(event, uow=read_uow)
+
+    assert email_service.last_payload is not None
+    assert "primeira sessão" in email_service.last_payload["html"]
+    assert "3 sessões" in email_service.last_payload["html"]
+
+
+async def test_later_project_quote_email_mentions_current_session(read_uow):
+    event = NotifyOfAppointmentQuoted(
+        appointment_type=AppointmentType.TATTOO,
+        price=Decimal("700"),
+        client_email_or_vip_id="jane@doe.com",
+        total_sessions=3,
+        current_session=2,
+    )
+    email_service = FakeEmailService()
+    handler = SendQuoteAppointmentEmailHandler(email_service=email_service)
+
+    await handler.handle(event, uow=read_uow)
+
+    assert email_service.last_payload is not None
+    assert "sessão 2 de 3" in email_service.last_payload["html"]
+    assert "primeira sessão" not in email_service.last_payload["html"]
