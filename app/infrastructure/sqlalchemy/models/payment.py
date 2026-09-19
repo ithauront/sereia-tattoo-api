@@ -3,7 +3,7 @@ from decimal import Decimal
 from uuid import UUID as pyUUID
 from uuid import uuid4
 
-from app.core.types.payment_enums import PaymentMethodType, PaymentPurposeType
+from app.core.types.payment_enums import PaymentAllocationStatus, PaymentMethodType, PaymentPurposeType
 from app.infrastructure.sqlalchemy.base_class import Base
 from sqlalchemy import DateTime, Enum, ForeignKey, Numeric, String, Text
 from sqlalchemy.dialects.postgresql import UUID
@@ -35,6 +35,16 @@ class PaymentModel(Base):
     )
     external_reference: Mapped[str | None] = mapped_column(
         String(255), nullable=True, index=True, unique=True
+    )
+    allocation_status: Mapped[PaymentAllocationStatus] = mapped_column(
+        Enum(PaymentAllocationStatus, name="payment_allocation_status_enum"), nullable=False
+    )
+    allocation_changed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    allocation_change_reason: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
     )
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
 

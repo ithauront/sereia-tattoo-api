@@ -4,7 +4,7 @@ from uuid import UUID
 
 from app.application.studio.repositories.payments_repository import PaymentsRepository
 from app.application.studio.use_cases.DTO.commun import Direction
-from app.core.types.payment_enums import PaymentPurposeType
+from app.core.types.payment_enums import PaymentAllocationStatus, PaymentPurposeType
 from app.domain.studio.finances.entities.payment import Payment
 from app.infrastructure.sqlalchemy.models.payment import PaymentModel
 from sqlalchemy import exists, func, literal, select
@@ -24,10 +24,26 @@ class SQLAlchemyPaymentsRepository(PaymentsRepository):
             vip_client_id=payment.vip_client_id,
             appointment_id=payment.appointment_id,
             external_reference=payment.external_reference,
+            allocation_status=payment.allocation_status,
+            allocation_changed_at=payment.allocation_changed_at,
+            allocation_change_reason=payment.allocation_change_reason,
             description=payment.description,
             created_at=payment.created_at,
         )
         self.session.add(orm_payment)
+        self.session.flush()
+
+    def update_allocation_status(self, *, payment: Payment) -> None:
+        payment_in_question = select(PaymentModel).where(PaymentModel.id == payment.id)
+
+        orm_payment = self.session.scalar(payment_in_question)
+        if orm_payment is None:
+            return
+
+        orm_payment.allocation_status = payment.allocation_status
+        orm_payment.allocation_changed_at = payment.allocation_changed_at
+        orm_payment.allocation_change_reason = payment.allocation_change_reason
+
         self.session.flush()
 
     def find_by_id(self, payment_id: UUID) -> Optional[Payment]:
@@ -96,6 +112,7 @@ class SQLAlchemyPaymentsRepository(PaymentsRepository):
                     PaymentPurposeType.APPOINTMENT,
                 ]
             ),
+            PaymentModel.allocation_status != PaymentAllocationStatus.RETAINED,
         )
 
         return self.session.scalar(sum_of_payments) or Decimal("0")
@@ -130,6 +147,9 @@ class SQLAlchemyPaymentsRepository(PaymentsRepository):
                 UUID(str(orm_payment.appointment_id)) if orm_payment.appointment_id is not None else None
             ),
             external_reference=orm_payment.external_reference,
+            allocation_status=orm_payment.allocation_status,
+            allocation_changed_at=orm_payment.allocation_changed_at,
+            allocation_change_reason=orm_payment.allocation_change_reason,
             description=orm_payment.description,
             created_at=orm_payment.created_at,
         )

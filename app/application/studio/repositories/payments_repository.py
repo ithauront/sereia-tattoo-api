@@ -12,6 +12,9 @@ class PaymentsRepository(ABC):
     def create(self, payment: Payment) -> None: ...
 
     @abstractmethod
+    def update_allocation_status(self, *, payment: Payment) -> None: ...
+
+    @abstractmethod
     def find_by_id(self, payment_id: UUID) -> Optional[Payment]: ...
 
     @abstractmethod

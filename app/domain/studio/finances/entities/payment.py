@@ -3,7 +3,10 @@ from decimal import Decimal
 from uuid import UUID, uuid4
 
 from app.core.exceptions.payment import (
+    AllocationChangesRequireReasonError,
+    InvalidPaymentAllocationStateError,
     InvalidPaymentAmountError,
+    PaymentAllocationChangeMustHaveAwareDatetimeError,
     PaymentAmountExceedsMaximumError,
     PaymentAmountHasSubCentPrecisionError,
     PaymentLinkToAppointmentIsCorruptedError,
@@ -12,7 +15,8 @@ from app.core.exceptions.payment import (
     PaymentWithoutAppointmentRequireDescriptionError,
     VipClientIdIsRequiredError,
 )
-from app.core.types.payment_enums import PaymentMethodType, PaymentPurposeType
+from app.core.types.payment_enums import PaymentAllocationStatus, PaymentMethodType, PaymentPurposeType
+from app.core.validations.text import validate_text
 from app.domain.studio.finances.events.deposit_payment_recorded_event import (
     DepositPaymentRecordedEvent,
 )
@@ -34,6 +38,9 @@ class Payment:
         appointment_id: UUID | None = None,
         external_reference: str | None = None,
         # external reference for if we accept automatic payment one day
+        allocation_status: PaymentAllocationStatus = PaymentAllocationStatus.ACTIVE,
+        allocation_changed_at: datetime | None = None,
+        allocation_change_reason: str | None = None,
         description: str | None = None,
         created_at: datetime | None = None,
     ):
@@ -42,6 +49,7 @@ class Payment:
 
         payment_method = ensure_enum(payment_method, PaymentMethodType)
         payment_purpose = ensure_enum(payment_purpose, PaymentPurposeType)
+        allocation_status = ensure_enum(allocation_status, PaymentAllocationStatus)
 
         if payment_method == PaymentMethodType.CLIENT_CREDIT and not vip_client_id:
             raise VipClientIdIsRequiredError()
@@ -63,6 +71,13 @@ class Payment:
         if not appointment_id and not (description and description.strip()):
             raise PaymentWithoutAppointmentRequireDescriptionError()
 
+        self._validate_allocation_state(
+            payment_purpose=payment_purpose,
+            allocation_status=allocation_status,
+            allocation_changed_at=allocation_changed_at,
+            allocation_change_reason=allocation_change_reason,
+        )
+
         self.id = id or uuid4()
         self.amount = normalized_amount
         self.payment_method = payment_method
@@ -70,8 +85,34 @@ class Payment:
         self.vip_client_id = vip_client_id
         self.appointment_id = appointment_id
         self.external_reference = external_reference
+        self.allocation_status = allocation_status
+        self.allocation_changed_at = allocation_changed_at
+        self.allocation_change_reason = allocation_change_reason
         self.description = description
         self.created_at = created_at or now
+
+    @staticmethod
+    def _validate_allocation_state(
+        *,
+        payment_purpose: PaymentPurposeType,
+        allocation_status: PaymentAllocationStatus,
+        allocation_changed_at: datetime | None,
+        allocation_change_reason: str | None,
+    ) -> None:
+        has_allocation_change_data = (
+            allocation_changed_at is not None or allocation_change_reason is not None
+        )
+        if allocation_status == PaymentAllocationStatus.ACTIVE and has_allocation_change_data:
+            raise InvalidPaymentAllocationStateError()
+
+        if allocation_status == PaymentAllocationStatus.RETAINED:
+            if allocation_changed_at is None or allocation_change_reason is None:
+                raise AllocationChangesRequireReasonError()
+            if payment_purpose != PaymentPurposeType.DEPOSIT:
+                raise InvalidPaymentAllocationStateError()
+
+        if allocation_changed_at is not None and allocation_changed_at.utcoffset() is None:
+            raise PaymentAllocationChangeMustHaveAwareDatetimeError()
 
     @property
     def is_credit_payment(self) -> bool:
@@ -124,6 +165,7 @@ class Payment:
             vip_client_id=vip_client_id,
             appointment_id=appointment_id,
             external_reference=external_reference,
+            allocation_status=PaymentAllocationStatus.ACTIVE,
             description=description,
             created_at=None,
         )
@@ -134,3 +176,23 @@ class Payment:
         if self.payment_purpose != PaymentPurposeType.DEPOSIT:
             raise PaymentMustHaveDepositPurposeError()
         return DepositPaymentRecordedEvent(amount=self.amount, appointment_id=self.appointment_id)
+
+    def retain_deposit(self, *, reason: str, retained_at: datetime) -> None:
+        if self.payment_purpose != PaymentPurposeType.DEPOSIT:
+            raise PaymentMustHaveDepositPurposeError()
+        if self.allocation_status == PaymentAllocationStatus.RETAINED:
+            return
+        if retained_at.utcoffset() is None:
+            raise PaymentAllocationChangeMustHaveAwareDatetimeError()
+
+        validated_reason = validate_text(reason)
+
+        self.allocation_status = PaymentAllocationStatus.RETAINED
+        self.allocation_change_reason = validated_reason
+        self.allocation_changed_at = retained_at
+
+    def add_description(self, new_description: str):
+        if self.description:
+            self.description += f"\n{new_description}"
+        else:
+            self.description = new_description

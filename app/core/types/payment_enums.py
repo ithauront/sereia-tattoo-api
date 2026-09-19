@@ -13,3 +13,8 @@ class PaymentPurposeType(str, Enum):
     DEPOSIT = "deposit"
     TIP = "tip"
     OTHER = "other"
+
+
+class PaymentAllocationStatus(str, Enum):
+    ACTIVE = "active"
+    RETAINED = "retained"

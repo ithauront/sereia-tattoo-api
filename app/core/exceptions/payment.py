@@ -22,6 +22,18 @@ class PaymentMustHaveDepositPurposeError(Exception):
     pass
 
 
+class AllocationChangesRequireReasonError(Exception):
+    pass
+
+
+class InvalidPaymentAllocationStateError(Exception):
+    pass
+
+
+class PaymentAllocationChangeMustHaveAwareDatetimeError(Exception):
+    pass
+
+
 class PaymentOfThisPurposeMustHaveAppointmentError(Exception):
     pass
 
