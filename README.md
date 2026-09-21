@@ -157,6 +157,50 @@ enviando um body json com:
 GET http://127.0.0.1:8000/api/auth/verify
 enviando no header um bearer token com o seu access token.
 
+### Projetos de múltiplas sessões
+
+O modelo inicial não possui uma entidade ou tabela própria para projeto. Um projeto é o
+agrupamento de appointments que compartilham o mesmo `project_id`. Cada sessão persiste sua
+posição em `current_session` e a quantidade prevista em `total_sessions`.
+
+O estado de conclusão do projeto não é persistido. Ele é derivado das sessões: o projeto está
+concluído quando sua última sessão esperada estiver `COMPLETED`. Sessões `REQUESTED`, `QUOTED`,
+`SCHEDULED` ou `CANCELED` não concluem o projeto.
+
+Datas, preço, artista, placement, details, size e color pertencem a cada sessão e podem variar.
+Para o MVP, qualquer artista autenticado e ativo pode criar ou continuar projetos, inclusive no
+calendário de outro artista. Essa permissão ampla deverá ser reavaliada após o MVP se surgirem
+papéis ou equipes com níveis de acesso diferentes.
+
+**Orientação para o frontend**
+
+Um appointment comum não é representado como um projeto de uma sessão. Nesse caso, o
+frontend deve omitir `project_id` e `total_sessions` ou enviar ambos como `null`. O backend
+persistirá `project_id`, `current_session` e `total_sessions` como `null`.
+
+Se a interface exibir a opção `1/1`, ela deve normalizá-la antes da requisição:
+
+```json
+{
+  "project_id": null,
+  "total_sessions": null
+}
+```
+
+Não enviar `total_sessions: 1`. Projetos reais possuem no mínimo duas sessões e a API rejeita
+o valor `1` com `422 Unprocessable Entity`. Essa regra vale tanto para a criação do appointment
+quanto para o quote. O campo `current_session` é calculado pelo backend e não deve ser enviado
+pelo frontend.
+
+Ao criar uma nova sessão para um projeto existente, o backend resolve a numeração
+automaticamente. Se houver várias sessões canceladas, a criação comum prioriza a cancelada de
+menor número. Por exemplo, em um projeto 1–5 com as sessões 3 e 4 canceladas, o próximo POST cria
+uma nova tentativa para 3; não é possível criar a sessão 5 enquanto houver essa pendência.
+
+O reagendamento específico de uma sessão cancelada ainda não está disponível na API. Quando
+implementado, ele criará um novo appointment; o registro cancelado não será apagado nem
+reativado, pois faz parte do histórico.
+
 PATCH `/api/appointments/{appointment_id}/quote`
 
 Rota utilizada para definir o preço de um agendamento.
