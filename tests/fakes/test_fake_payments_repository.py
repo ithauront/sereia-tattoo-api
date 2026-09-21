@@ -6,7 +6,11 @@ import pytest
 
 from app.application.studio.use_cases.DTO.commun import Direction
 from app.core.exceptions.payment import DuplicateExternalReferenceError
-from app.core.types.payment_enums import PaymentMethodType, PaymentPurposeType
+from app.core.types.payment_enums import (
+    PaymentAllocationStatus,
+    PaymentMethodType,
+    PaymentPurposeType,
+)
 from app.domain.studio.finances.entities.payment import Payment
 from tests.fakes.fake_appointments_repository import FakeAppointmentsRepository
 from tests.fakes.fake_payments_repository import FakePaymentsRepository
@@ -280,6 +284,30 @@ def test_payable_by_appointment_id(
     total = payments_repo.sum_payable_by_appointment_id(appointment_id=appointment.id)
 
     assert total == Decimal("15")
+
+
+def test_retained_deposit_remains_in_gross_total_but_not_in_payable_total(
+    make_payment, payments_repo
+):
+    appointment_id = uuid4()
+    deposit = make_payment(
+        appointment_id=appointment_id,
+        amount=Decimal("50"),
+        payment_purpose=PaymentPurposeType.DEPOSIT,
+    )
+    payments_repo.create(deposit)
+
+    deposit.retain_deposit(
+        reason="Reagendamento fora do prazo",
+        retained_at=datetime(2026, 1, 2, 10, 0, tzinfo=timezone.utc),
+    )
+    payments_repo.update_allocation_status(payment=deposit)
+
+    persisted_payment = payments_repo.find_by_id(deposit.id)
+    assert persisted_payment is not None
+    assert persisted_payment.allocation_status == PaymentAllocationStatus.RETAINED
+    assert payments_repo.sum_by_appointment_id(appointment_id) == Decimal("50")
+    assert payments_repo.sum_payable_by_appointment_id(appointment_id) == Decimal("0")
 
 
 def test_find_by_external_reference(make_payment, payments_repo):

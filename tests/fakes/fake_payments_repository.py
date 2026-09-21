@@ -5,7 +5,7 @@ from uuid import UUID
 from app.application.studio.repositories.payments_repository import PaymentsRepository
 from app.application.studio.use_cases.DTO.commun import Direction
 from app.core.exceptions.payment import DuplicateExternalReferenceError
-from app.core.types.payment_enums import PaymentPurposeType
+from app.core.types.payment_enums import PaymentAllocationStatus, PaymentPurposeType
 from app.domain.studio.finances.entities.payment import Payment
 
 
@@ -20,6 +20,12 @@ class FakePaymentsRepository(PaymentsRepository):
             raise DuplicateExternalReferenceError()
         # This simulates the constraint unique=True of the model for payment in sqlAlchemy layer
         self._payments.append(payment)
+
+    def update_allocation_status(self, *, payment: Payment) -> None:
+        for index, in_memory_payment in enumerate(self._payments):
+            if in_memory_payment.id == payment.id:
+                self._payments[index] = payment
+                return
 
     def find_by_id(self, payment_id: UUID) -> Optional[Payment]:
         for payment in self._payments:
@@ -62,9 +68,14 @@ class FakePaymentsRepository(PaymentsRepository):
         total = Decimal("0")
 
         for payment in self._payments:
-            if payment.appointment_id == appointment_id and payment.payment_purpose in (
-                PaymentPurposeType.APPOINTMENT,
-                PaymentPurposeType.DEPOSIT,
+            if (
+                payment.appointment_id == appointment_id
+                and payment.payment_purpose
+                in (
+                    PaymentPurposeType.APPOINTMENT,
+                    PaymentPurposeType.DEPOSIT,
+                )
+                and payment.allocation_status != PaymentAllocationStatus.RETAINED
             ):
                 total += payment.amount
 
