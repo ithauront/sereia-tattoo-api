@@ -19,7 +19,11 @@ from app.core.types.calendar_enums import CalendarExceptionType
 from app.core.types.client_credit_source_type import (
     ClientCreditSourceType,
 )
-from app.core.types.payment_enums import PaymentMethodType, PaymentPurposeType
+from app.core.types.payment_enums import (
+    PaymentAllocationStatus,
+    PaymentMethodType,
+    PaymentPurposeType,
+)
 from app.core.types.refund_enums import RefundMethodType, RefundStatus
 from app.domain.studio.appointments.entities.appointment import Appointment
 from app.domain.studio.appointments.entities.calendar_exception import CalendarException
@@ -299,6 +303,9 @@ def make_payment():
             vip_client_id=kwargs.get("vip_client_id", uuid4()),
             description=kwargs.get("description", "Pagamento da tatuagem"),
             external_reference=kwargs.get("external_reference", f"ref-{uuid4()}"),
+            allocation_status=kwargs.get("allocation_status", PaymentAllocationStatus.ACTIVE),
+            allocation_changed_at=kwargs.get("allocation_changed_at"),
+            allocation_change_reason=kwargs.get("allocation_change_reason"),
             created_at=kwargs.get("created_at", base_now),
         )
 
