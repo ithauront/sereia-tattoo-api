@@ -9,15 +9,26 @@ from app.api.dependencies.events import get_integration_event_bus
 from app.api.dependencies.read_unit_of_work import get_read_unit_of_work
 from app.api.dependencies.write_unit_of_work import get_write_unit_of_work
 from app.application.event_bus.setup import setup_event_bus
+from app.application.studio.use_cases.appointments_use_cases.cancel_appointment_use_case import (
+    CancelAppointmentUseCase,
+)
+from app.application.studio.use_cases.DTO.cancel_appointment import CancelAppointmentInput
 from app.application.studio.use_cases.DTO.payment_dto import CreatePaymentInput
 from app.application.studio.use_cases.finances_use_cases.create_payment_use_case import (
     CreatePaymentUseCase,
 )
 from app.core.types.appointment_enums import AppointmentStatus, AppointmentType
 from app.core.types.payment_enums import PaymentMethodType, PaymentPurposeType
+from app.domain.studio.appointments.events.cancel_appointment import (
+    CancelAppointmentEmailRequested,
+)
 from app.domain.studio.appointments.events.create_appointment_request import (
     CreateAppointmentEmailRequested,
 )
+from app.domain.studio.appointments.policies.appointment_authorization_policy import (
+    AppointmentAuthorizationPolicy,
+)
+from app.domain.studio.appointments.policies.deposit_policy import DepositPolicy
 from app.main import app
 from tests.fakes.fake_email_service import FakeEmailService
 from tests.integration.utils.wait_until import wait_until
@@ -562,7 +573,8 @@ def test_quote_appointment_triggers_email(
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    assert response.status_code == 204
+    # Quoting now returns the appointment/project identifiers needed by the UI.
+    assert response.status_code == 200
 
     wait_until(lambda: fake_email_service.sent)
 
@@ -612,3 +624,148 @@ def test_quote_appointment_failure_does_not_trigger_email(
     assert fake_email_service.sent is False
 
     app.dependency_overrides = {}
+
+
+async def test_registered_cancellation_event_notifies_user_and_client(
+    write_uow,
+    read_uow,
+    make_user,
+    jwt_service_instance,
+):
+    user = make_user(email="artist@example.com")
+    write_uow.users.create(user)
+    fake_email_service = FakeEmailService()
+    _, integration_bus = setup_event_bus(
+        email_service=fake_email_service,
+        token_service=jwt_service_instance,
+    )
+    start_at = datetime.now(timezone.utc) + timedelta(days=3)
+
+    await integration_bus.publish(
+        CancelAppointmentEmailRequested(
+            appointment_type=AppointmentType.TATTOO,
+            user_id=user.id,
+            start_at=start_at,
+            end_at=start_at + timedelta(hours=2),
+            client_email_or_vip_id="client@example.com",
+            has_confirmed_deposit=True,
+            is_eligible_for_deposit_refund=False,
+        ),
+        uow=read_uow,
+    )
+    await asyncio.to_thread(
+        wait_until,
+        lambda: len(fake_email_service.sent_emails) == 2,
+    )
+
+    assert {email["to"] for email in fake_email_service.sent_emails} == {
+        "artist@example.com",
+        "client@example.com",
+    }
+
+
+async def test_cancel_appointment_flow_triggers_cancellation_emails(
+    write_uow,
+    read_uow,
+    make_user,
+    make_scheduled_appointment,
+    jwt_service_instance,
+):
+    actor = make_user(email="artist@example.com")
+    write_uow.users.create(actor)
+    start_at = datetime.now(timezone.utc) + timedelta(days=3)
+    appointment = make_scheduled_appointment(
+        user_id=actor.id,
+        start_at=start_at,
+        end_at=start_at + timedelta(hours=2),
+    )
+    write_uow.appointments.create(appointment)
+    fake_email_service = FakeEmailService()
+    _, integration_bus = setup_event_bus(
+        email_service=fake_email_service,
+        token_service=jwt_service_instance,
+    )
+    use_case = CancelAppointmentUseCase(
+        write_uow=write_uow,
+        read_uow=read_uow,
+        integration_bus=integration_bus,
+        appointment_authorization_policy=AppointmentAuthorizationPolicy(),
+        deposit_policy=DepositPolicy(),
+    )
+
+    await use_case.execute(
+        CancelAppointmentInput(
+            appointment_id=appointment.id,
+            actor=actor,
+            reason="Cliente solicitou o cancelamento",
+        )
+    )
+    await asyncio.to_thread(
+        wait_until,
+        lambda: len(fake_email_service.sent_emails) == 2,
+    )
+
+    assert appointment.status == AppointmentStatus.CANCELED
+    assert {email["to"] for email in fake_email_service.sent_emails} == {
+        "artist@example.com",
+        "client@email.com",
+    }
+    artist_email = next(
+        email for email in fake_email_service.sent_emails if email["to"] == "artist@example.com"
+    )
+    assert artist_email["subject"] == "Agendamento cancelado — caução reembolsável"
+
+
+def test_cancel_appointment_route_triggers_use_case_and_cancellation_emails(
+    write_uow,
+    read_uow,
+    make_user,
+    make_token,
+    make_scheduled_appointment,
+    jwt_service_instance,
+):
+    actor = make_user(email="artist@example.com")
+    write_uow.users.create(actor)
+    start_at = datetime.now(timezone.utc) + timedelta(days=3)
+    appointment = make_scheduled_appointment(
+        user_id=actor.id,
+        start_at=start_at,
+        end_at=start_at + timedelta(hours=2),
+    )
+    write_uow.appointments.create(appointment)
+    fake_email_service = FakeEmailService()
+    _, integration_bus = setup_event_bus(
+        email_service=fake_email_service,
+        token_service=jwt_service_instance,
+    )
+    app.dependency_overrides[get_integration_event_bus] = lambda: integration_bus
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
+
+    try:
+        with TestClient(app) as route_client:
+            response = route_client.patch(
+                f"/appointments/{appointment.id}/cancel",
+                json={"reason": "Cliente solicitou o cancelamento"},
+                headers={"Authorization": f"Bearer {make_token(actor)}"},
+            )
+
+            assert response.status_code == 204
+            wait_until(lambda: len(fake_email_service.sent_emails) == 2)
+    finally:
+        app.dependency_overrides = {}
+
+    assert appointment.status == AppointmentStatus.CANCELED
+    assert "Cliente solicitou o cancelamento" in (appointment.observations or "")
+    assert {email["to"] for email in fake_email_service.sent_emails} == {
+        "artist@example.com",
+        "client@email.com",
+    }
+    artist_email = next(
+        email for email in fake_email_service.sent_emails if email["to"] == "artist@example.com"
+    )
+    client_email = next(
+        email for email in fake_email_service.sent_emails if email["to"] == "client@email.com"
+    )
+    assert artist_email["subject"] == "Agendamento cancelado — caução reembolsável"
+    assert client_email["subject"] == "Seu horário agendado foi cancelado"
