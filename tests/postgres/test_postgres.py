@@ -22,10 +22,10 @@ def test_datetime_timezone_is_preserved(
     sqlalchemy_appointments_repo: SQLAlchemyAppointmentsRepository,
     make_quoted_appointment,
     make_user,
-    users_repo: SQLAlchemyUsersRepository,
+    sqlalchemy_users_repo: SQLAlchemyUsersRepository,
 ):
     user = make_user()
-    users_repo.create(user)
+    sqlalchemy_users_repo.create(user)
 
     start = datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc)
     end = datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc)
@@ -46,10 +46,10 @@ def test_timezone_is_utc_normalized(
     sqlalchemy_appointments_repo: SQLAlchemyAppointmentsRepository,
     make_quoted_appointment,
     make_user,
-    users_repo: SQLAlchemyUsersRepository,
+    sqlalchemy_users_repo: SQLAlchemyUsersRepository,
 ):
     user = make_user()
-    users_repo.create(user)
+    sqlalchemy_users_repo.create(user)
 
     start = datetime(2026, 1, 1, 10, 0, tzinfo=timezone.utc)
 
@@ -68,10 +68,10 @@ def test_color_default_to_false(
     sqlalchemy_appointments_repo: SQLAlchemyAppointmentsRepository,
     make_appointment_base,
     make_user,
-    users_repo: SQLAlchemyUsersRepository,
+    sqlalchemy_users_repo: SQLAlchemyUsersRepository,
 ):
     user = make_user()
-    users_repo.create(user)
+    sqlalchemy_users_repo.create(user)
 
     appointment = make_appointment_base(color=None, user_id=user.id)
 
@@ -88,10 +88,10 @@ def test_posted_on_socials_default_to_false(
     sqlalchemy_appointments_repo: SQLAlchemyAppointmentsRepository,
     make_appointment_base,
     make_user,
-    users_repo: SQLAlchemyUsersRepository,
+    sqlalchemy_users_repo: SQLAlchemyUsersRepository,
 ):
     user = make_user()
-    users_repo.create(user)
+    sqlalchemy_users_repo.create(user)
 
     appointment = make_appointment_base(is_posted_on_socials=None, user_id=user.id)
 
@@ -129,10 +129,10 @@ def test_numeric_decimal_precision_is_preserved(
     sqlalchemy_appointments_repo,
     make_quoted_appointment,
     make_user,
-    users_repo: SQLAlchemyUsersRepository,
+    sqlalchemy_users_repo: SQLAlchemyUsersRepository,
 ):
     user = make_user()
-    users_repo.create(user)
+    sqlalchemy_users_repo.create(user)
 
     appointment = make_quoted_appointment(price=Decimal("10.50"), user_id=user.id)
 
@@ -163,10 +163,10 @@ def test_session_recovers_after_rollback(
     sqlalchemy_appointments_repo,
     make_quoted_appointment,
     make_user,
-    users_repo: SQLAlchemyUsersRepository,
+    sqlalchemy_users_repo: SQLAlchemyUsersRepository,
 ):
     user = make_user()
-    users_repo.create(user)
+    sqlalchemy_users_repo.create(user)
 
     now = datetime.now(timezone.utc)
 
@@ -190,7 +190,9 @@ def test_session_recovers_after_rollback(
 
     db_session.rollback()
 
-    valid = make_quoted_appointment()
+    # The rollback also undoes the user inserted in the failed transaction.
+    sqlalchemy_users_repo.create(user)
+    valid = make_quoted_appointment(user_id=user.id)
 
     sqlalchemy_appointments_repo.create(valid)
 
