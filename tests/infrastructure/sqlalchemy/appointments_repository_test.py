@@ -41,6 +41,101 @@ def test_create_and_find_by_id(
     assert found.status == AppointmentStatus.QUOTED
 
 
+def test_find_many_by_project_id_returns_latest_session_first(
+    sqlalchemy_appointments_repo: SQLAlchemyAppointmentsRepository,
+    make_quoted_appointment,
+    sqlalchemy_users_repo: SQLAlchemyUsersRepository,
+    make_user,
+):
+    user = make_user()
+    sqlalchemy_users_repo.create(user)
+    project_id = uuid4()
+
+    first = make_quoted_appointment(
+        user_id=user.id,
+        project_id=project_id,
+        current_session=1,
+        total_sessions=3,
+    )
+    second = make_quoted_appointment(
+        user_id=user.id,
+        project_id=project_id,
+        current_session=2,
+        total_sessions=3,
+    )
+    another_project = make_quoted_appointment(
+        user_id=user.id,
+        project_id=uuid4(),
+        current_session=1,
+        total_sessions=2,
+    )
+    sqlalchemy_appointments_repo.create(first)
+    sqlalchemy_appointments_repo.create(second)
+    sqlalchemy_appointments_repo.create(another_project)
+
+    found = sqlalchemy_appointments_repo.find_many_by_project_id(project_id)
+
+    assert [appointment.id for appointment in found] == [second.id, first.id]
+
+
+def test_find_overlap_excludes_selected_appointment_in_database_query(
+    sqlalchemy_appointments_repo,
+    sqlalchemy_users_repo,
+    make_user,
+    make_quoted_appointment,
+):
+    user = make_user()
+    sqlalchemy_users_repo.create(user)
+    start_at = datetime(2030, 1, 1, 10, tzinfo=timezone.utc)
+    excluded = make_quoted_appointment(
+        user_id=user.id,
+        start_at=start_at,
+        end_at=start_at + timedelta(hours=2),
+    )
+    another_overlap = make_quoted_appointment(
+        user_id=user.id,
+        start_at=start_at + timedelta(hours=1),
+        end_at=start_at + timedelta(hours=3),
+    )
+    sqlalchemy_appointments_repo.create(excluded)
+    sqlalchemy_appointments_repo.create(another_overlap)
+
+    result = sqlalchemy_appointments_repo.find_overlap(
+        start_date=start_at,
+        end_date=start_at + timedelta(hours=2),
+        user_id=user.id,
+        exclude_appointment_id=excluded.id,
+    )
+
+    assert [appointment.id for appointment in result] == [another_overlap.id]
+
+
+def test_find_overlap_ignores_canceled_appointment_in_database_query(
+    sqlalchemy_appointments_repo,
+    sqlalchemy_users_repo,
+    make_user,
+    make_appointment_base,
+):
+    user = make_user()
+    sqlalchemy_users_repo.create(user)
+    start_at = datetime(2030, 1, 1, 10, tzinfo=timezone.utc)
+    canceled = make_appointment_base(
+        user_id=user.id,
+        status=AppointmentStatus.CANCELED,
+        start_at=start_at,
+        end_at=start_at + timedelta(hours=2),
+    )
+    sqlalchemy_appointments_repo.create(canceled)
+
+    result = sqlalchemy_appointments_repo.find_overlap(
+        start_date=start_at,
+        end_date=start_at + timedelta(hours=2),
+        user_id=user.id,
+    )
+
+    assert result == []
+
+
 def test_db_constraint_rejects_invalid_client_info(
     db_session,
     make_user,
