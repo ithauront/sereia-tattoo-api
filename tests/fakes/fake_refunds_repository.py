@@ -4,7 +4,7 @@ from uuid import UUID
 
 from app.application.studio.repositories.refunds_repository import RefundsRepository
 from app.application.studio.use_cases.DTO.commun import Direction
-from app.core.types.payment_enums import PaymentPurposeType
+from app.core.types.payment_enums import PaymentAllocationStatus, PaymentPurposeType
 from app.core.types.refund_enums import RefundStatus
 from app.core.types.refund_filter_types import RefundFilters
 from app.domain.studio.finances.entities.refund import Refund
@@ -85,6 +85,7 @@ class FakeRefundsRepository(RefundsRepository):
                 PaymentPurposeType.APPOINTMENT,
                 PaymentPurposeType.DEPOSIT,
             )
+            and payment.allocation_status != PaymentAllocationStatus.RETAINED
         }
 
         return sum(
@@ -116,6 +117,7 @@ class FakeRefundsRepository(RefundsRepository):
                 PaymentPurposeType.APPOINTMENT,
                 PaymentPurposeType.DEPOSIT,
             )
+            and payment.allocation_status != PaymentAllocationStatus.RETAINED
         }
 
         return sum(
