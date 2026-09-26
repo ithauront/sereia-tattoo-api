@@ -35,6 +35,9 @@ from app.domain.studio.appointments.events.cancel_appointment import CancelAppoi
 from app.domain.studio.appointments.events.create_appointment_request import (
     CreateAppointmentEmailRequested,
 )
+from app.domain.studio.appointments.events.notify_appointment_reschedule import (
+    NotifyOfAppointmentReschedule,
+)
 from app.domain.studio.appointments.events.notify_of_appointment_quoted import (
     NotifyOfAppointmentQuoted,
 )
@@ -252,7 +255,9 @@ class Appointment:
             f"do estúdio em {now}; o appointment voltou para o status quoted."
         )
 
-    def reschedule(self, *, new_start_at: datetime, new_end_at: datetime) -> bool:
+    def reschedule(
+        self, *, new_start_at: datetime, new_end_at: datetime, was_deposit_retained: bool
+    ) -> NotifyOfAppointmentReschedule | None:
 
         if self.status in (AppointmentStatus.COMPLETED, AppointmentStatus.CANCELED):
             raise AppointmentMustBeInCorrectPreviousStatusError()
@@ -267,14 +272,25 @@ class Appointment:
             raise AppointmentMustHaveRealisticTimeAndDateError()
 
         if self.start_at == new_start_at and self.end_at == new_end_at:
-            return False
+            return None
+
+        recipient = self._get_recipient()
 
         self.start_at = new_start_at
         self.end_at = new_end_at
 
         self.add_observations("Horários atuais são provenientes de um reagendamento")
 
-        return True
+        event = NotifyOfAppointmentReschedule(
+            user_id=self.user_id,
+            client_email_or_vip_id=recipient,
+            start_at=self.start_at,
+            end_at=self.end_at,
+            appointment_type=self.appointment_type,
+            was_deposit_retained=was_deposit_retained,
+        )
+
+        return event
 
     def complete(self, total_paid: Decimal) -> Optional[AppointmentCompleted]:
         if self.price is None:
