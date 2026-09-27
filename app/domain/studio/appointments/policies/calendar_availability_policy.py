@@ -10,6 +10,24 @@ from app.domain.studio.appointments.entities.calendar_settings import CalendarSe
 
 
 class CalendarAvailabilityPolicy:
+    def can_reschedule(
+        self,
+        *,
+        calendar_settings: CalendarSettings,
+        calendar_exceptions: list[CalendarException],
+        new_start_at: datetime,
+        new_end_at: datetime,
+        can_ignore_booking_window: bool,
+    ) -> None:
+
+        self.can_schedule(
+            calendar_settings=calendar_settings,
+            calendar_exceptions=calendar_exceptions,
+            start_at=new_start_at,
+            end_at=new_end_at,
+            can_ignore_booking_window=can_ignore_booking_window,
+        )
+
     def can_schedule(
         self,
         *,
