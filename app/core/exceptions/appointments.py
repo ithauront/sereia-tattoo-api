@@ -38,6 +38,10 @@ class ReasonForCancelationMustBeProvidedError(Exception):
     pass
 
 
+class ReasonForDepositRetentionOverrideMustBeProvidedError(Exception):
+    pass
+
+
 class AppointmentProjectStateError(Exception):
     """Raised when appointments sharing a project contain inconsistent session data."""
 
