@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta, timezone
+from uuid import uuid4
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.api.dependencies.events import get_integration_event_bus
@@ -9,6 +11,67 @@ from app.domain.studio.appointments.entities.value_objects.client_info import Cl
 from app.main import app
 
 client = TestClient(app)
+
+
+def _minimal_create_payload(user_id, **overrides):
+    start_at = datetime.now(timezone.utc) + timedelta(days=1)
+    payload = {
+        "appointment_type": "tattoo",
+        "user_id": str(user_id),
+        "start_at": str(start_at),
+        "end_at": str(start_at + timedelta(hours=1)),
+        "placement": "ombro",
+        "details": "Dragão chinês",
+        "size": "30cm",
+        "color": True,
+        "name": "Jane Doe",
+        "email": "jane@doe.com",
+        "phone": "71988888888",
+    }
+    payload.update(overrides)
+    return payload
+
+
+def test_anonymous_client_cannot_manage_project_fields(
+    write_uow, read_uow, fake_integration_event_bus
+):
+    app.dependency_overrides[get_integration_event_bus] = lambda: fake_integration_event_bus
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
+
+    response = client.post(
+        "/appointments",
+        json=_minimal_create_payload(uuid4(), total_sessions=3),
+    )
+
+    assert response.status_code == 403
+    assert response.json() == {
+        "detail": "appointment_project_management_requires_authenticated_user"
+    }
+    assert read_uow.appointments.find_many() == []
+    app.dependency_overrides = {}
+
+
+@pytest.mark.parametrize("total_sessions", [0, 1, -1])
+def test_create_project_requires_at_least_two_sessions(
+    total_sessions,
+    write_uow,
+    read_uow,
+    fake_integration_event_bus,
+):
+    # FastAPI resolves route dependencies while validating the request. These
+    # overrides keep this route test isolated from services stored in app.state.
+    app.dependency_overrides[get_integration_event_bus] = lambda: fake_integration_event_bus
+    app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
+
+    response = client.post(
+        "/appointments",
+        json=_minimal_create_payload(uuid4(), total_sessions=total_sessions),
+    )
+
+    assert response.status_code == 422
+    app.dependency_overrides = {}
 
 
 def test_create_appointment_without_actor_id_route_success(
@@ -74,6 +137,12 @@ def test_create_appointment_without_actor_id_route_success(
     assert found[0].start_at == start_at
     assert found[0].end_at == end_at
     assert found[0].client_info == ClientInfo(name="Jane Doe", email="jane@doe.com", phone="71988888888")
+    assert response.json() == {
+        "appointment_id": str(found[0].id),
+        "project_id": None,
+        "current_session": None,
+        "total_sessions": None,
+    }
 
     assert len(log) == 1
     assert log[0].actor_id is None
@@ -128,6 +197,7 @@ def test_create_appointment_with_actor_id_route_success(
         "name": "Jane Doe",
         "email": "jane@doe.com",
         "phone": "71988888888",
+        "total_sessions": 3,
     }
 
     app.dependency_overrides[get_integration_event_bus] = lambda: fake_integration_event_bus
@@ -148,6 +218,15 @@ def test_create_appointment_with_actor_id_route_success(
     assert found[0].details == "Dragão chines"
     assert found[0].start_at == start_at
     assert found[0].end_at == end_at
+    assert found[0].project_id is not None
+    assert found[0].current_session == 1
+    assert found[0].total_sessions == 3
+    assert response.json() == {
+        "appointment_id": str(found[0].id),
+        "project_id": str(found[0].project_id),
+        "current_session": 1,
+        "total_sessions": 3,
+    }
 
     assert len(log) == 1
     assert log[0].actor_id == admin.id
