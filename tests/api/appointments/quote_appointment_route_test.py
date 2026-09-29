@@ -26,7 +26,7 @@ def test_quote_appointment_with_admin_route_success(
     appointment = make_appointment_base(user_id=owner.id)
     write_uow.appointments.create(appointment)
 
-    payload = {"price": "700.50"}
+    payload = {"price": "700.50", "total_sessions": 3}
 
     app.dependency_overrides[get_integration_event_bus] = lambda: fake_integration_event_bus
     app.dependency_overrides[get_write_unit_of_work] = lambda: write_uow
@@ -38,13 +38,21 @@ def test_quote_appointment_with_admin_route_success(
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    assert response.status_code == 204
-    assert response.content == b""
+    assert response.status_code == 200
 
     found = read_uow.appointments.find_by_id(appointment_id=appointment.id)
     logs = read_uow.audit_logs.find_many_by_entity_id(appointment.id)
     assert found.price == Decimal("700.50")
     assert found.status == AppointmentStatus.QUOTED
+    assert found.project_id is not None
+    assert found.current_session == 1
+    assert found.total_sessions == 3
+    assert response.json() == {
+        "appointment_id": str(found.id),
+        "project_id": str(found.project_id),
+        "current_session": 1,
+        "total_sessions": 3,
+    }
 
     assert len(logs) == 1
     assert logs[0].actor_id == admin.id
@@ -79,8 +87,7 @@ def test_quote_appointment_accepts_decimal_comma(
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    assert response.status_code == 204
-    assert response.content == b""
+    assert response.status_code == 200
 
     found = read_uow.appointments.find_by_id(appointment_id=appointment.id)
     logs = read_uow.audit_logs.find_many_by_entity_id(appointment.id)
@@ -118,8 +125,7 @@ def test_quote_appointment_with_owner_route_success(
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    assert response.status_code == 204
-    assert response.content == b""
+    assert response.status_code == 200
 
     found = read_uow.appointments.find_by_id(appointment_id=appointment.id)
     logs = read_uow.audit_logs.find_many_by_entity_id(appointment.id)
@@ -213,7 +219,7 @@ def test_quote_appointment_twice_returns_conflict(
         headers={"Authorization": f"Bearer {token}"},
     )
 
-    assert first_response.status_code == 204
+    assert first_response.status_code == 200
     assert second_response.status_code == 409
     assert second_response.json()["detail"] == "appointment_cannot_be_quoted_in_current_status"
 
