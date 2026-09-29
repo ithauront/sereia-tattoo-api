@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from decimal import Decimal
 
 import pytest
@@ -626,3 +627,48 @@ async def test_non_payable_payment_cannot_complete_appointment(
 
     persisted_appointment = read_uow.appointments.find_by_id(appointment_id=appointment.id)
     assert persisted_appointment.status == AppointmentStatus.SCHEDULED
+
+
+@pytest.mark.parametrize("refund_status", [RefundStatus.COMPLETED, RefundStatus.PENDING])
+@pytest.mark.parametrize("active_amount", [Decimal("150"), Decimal("200")])
+async def test_completion_uses_only_active_payments_and_their_refunds(
+    refund_status,
+    active_amount,
+    make_user,
+    make_scheduled_appointment,
+    make_payment,
+    make_refund,
+    write_uow,
+):
+    user = make_user()
+    write_uow.users.create(user)
+    appointment = make_scheduled_appointment(price=Decimal("200"))
+    write_uow.appointments.create(appointment)
+    deposit = make_payment(
+        appointment_id=appointment.id,
+        amount=Decimal("50"),
+        payment_purpose=PaymentPurposeType.DEPOSIT,
+    )
+    deposit.retain_deposit(reason="Reagendamento fora do prazo", retained_at=datetime.now(timezone.utc))
+    write_uow.payments.create(deposit)
+    write_uow.refunds.create(
+        make_refund(
+            appointment_id=appointment.id,
+            payment_id=deposit.id,
+            amount=Decimal("50"),
+            refund_status=refund_status,
+        )
+    )
+    write_uow.payments.create(make_payment(appointment_id=appointment.id, amount=active_amount))
+    use_case = CompletePaidAppointmentUseCase(
+        uow=write_uow, transactional_bus=FakeTransactionalEventBus()
+    )
+    data = CompletePaidAppointmentInput(actor_id=user.id, appointment_id=appointment.id)
+
+    if active_amount < appointment.price:
+        with pytest.raises(AppointmentWasNotFullyPaidError):
+            await use_case.execute(data)
+        assert appointment.status == AppointmentStatus.SCHEDULED
+    else:
+        await use_case.execute(data)
+        assert appointment.status == AppointmentStatus.COMPLETED
