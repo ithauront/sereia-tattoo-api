@@ -85,9 +85,7 @@ def test_project_requires_multiple_session_data(make_appointment_base):
 
 
 def test_cannot_reduce_total_below_current_session(make_appointment_base):
-    appointment = make_appointment_base(
-        project_id=uuid4(), current_session=3, total_sessions=4
-    )
+    appointment = make_appointment_base(project_id=uuid4(), current_session=3, total_sessions=4)
 
     with pytest.raises(CurrentSessionMustBeLessThanTotalError):
         appointment.update_total_sessions(2)
@@ -103,7 +101,7 @@ def test_reschedule_changes_only_interval_and_preserves_project_data(make_appoin
     new_start_at = datetime.now(timezone.utc) + timedelta(days=2)
     new_end_at = new_start_at + timedelta(hours=3)
 
-    appointment.reschedule(new_start_at=new_start_at, new_end_at=new_end_at)
+    appointment.reschedule(was_deposit_retained=False, new_start_at=new_start_at, new_end_at=new_end_at)
 
     assert appointment.start_at == new_start_at
     assert appointment.end_at == new_end_at
@@ -125,6 +123,7 @@ def test_reschedule_rejects_invalid_interval_without_mutating_appointment(
 
     with pytest.raises(AppointmentMustHaveRealisticTimeAndDateError):
         appointment.reschedule(
+            was_deposit_retained=False,
             new_start_at=new_start_at,
             new_end_at=new_start_at + end_delta,
         )
@@ -141,6 +140,7 @@ def test_reschedule_rejects_past_interval_without_mutating_appointment(make_appo
 
     with pytest.raises(AppointmentMustHaveRealisticTimeAndDateError):
         appointment.reschedule(
+            was_deposit_retained=False,
             new_start_at=new_start_at,
             new_end_at=new_start_at + timedelta(hours=2),
         )
@@ -157,6 +157,7 @@ def test_reschedule_rejects_naive_datetimes_without_mutating_appointment(make_ap
 
     with pytest.raises(AppointmentMustHaveRealisticTimeAndDateError):
         appointment.reschedule(
+            was_deposit_retained=False,
             new_start_at=new_start_at,
             new_end_at=new_start_at + timedelta(hours=2),
         )
@@ -169,9 +170,7 @@ def test_reschedule_rejects_naive_datetimes_without_mutating_appointment(make_ap
     "status",
     [AppointmentStatus.COMPLETED, AppointmentStatus.CANCELED],
 )
-def test_reschedule_rejects_terminal_status_without_mutating_appointment(
-    status, make_appointment_base
-):
+def test_reschedule_rejects_terminal_status_without_mutating_appointment(status, make_appointment_base):
     appointment = make_appointment_base(status=status)
     old_start_at = appointment.start_at
     old_end_at = appointment.end_at
@@ -179,9 +178,88 @@ def test_reschedule_rejects_terminal_status_without_mutating_appointment(
 
     with pytest.raises(AppointmentMustBeInCorrectPreviousStatusError):
         appointment.reschedule(
+            was_deposit_retained=False,
             new_start_at=new_start_at,
             new_end_at=new_start_at + timedelta(hours=2),
         )
 
     assert appointment.start_at == old_start_at
     assert appointment.end_at == old_end_at
+
+
+def test_invalidate_deposit_returns_scheduled_appointment_to_quoted(make_scheduled_appointment):
+    appointment = make_scheduled_appointment()
+    original_price = appointment.price
+    original_interval = (appointment.start_at, appointment.end_at)
+    assert appointment.deposit_confirmed_at is not None
+
+    appointment.invalidate_deposit()
+
+    assert appointment.status == AppointmentStatus.QUOTED
+    assert appointment.deposit_confirmed_at is None
+    assert appointment.price == original_price
+    assert (appointment.start_at, appointment.end_at) == original_interval
+    observations = appointment.observations
+    appointment.invalidate_deposit()
+    assert appointment.status == AppointmentStatus.QUOTED
+    assert appointment.observations == observations
+
+
+def test_invalidate_deposit_without_confirmed_deposit_is_noop(make_quoted_appointment):
+    appointment = make_quoted_appointment()
+    observations = appointment.observations
+    appointment.invalidate_deposit()
+    assert appointment.status == AppointmentStatus.QUOTED
+    assert appointment.deposit_confirmed_at is None
+    assert appointment.observations == observations
+
+
+@pytest.mark.parametrize("retained", [False, True])
+@pytest.mark.parametrize("vip", [False, True])
+def test_reschedule_returns_notification_with_recipient_and_new_interval(
+    make_appointment_base,
+    retained,
+    vip,
+):
+    from app.domain.studio.appointments.entities.value_objects.client_info import ClientInfo
+    from app.domain.studio.appointments.events.notify_appointment_reschedule import (
+        NotifyOfAppointmentReschedule,
+    )
+
+    recipient = uuid4() if vip else "client@example.com"
+    client = (
+        ClientInfo(vip_client_id=recipient)
+        if vip
+        else ClientInfo(
+            vip_client_id=None,
+            email=recipient,
+            name="Client",
+            phone="71988888888",
+        )
+    )
+    appointment = make_appointment_base(client_info=client)
+    start = datetime.now(timezone.utc) + timedelta(days=3)
+    event = appointment.reschedule(
+        new_start_at=start,
+        new_end_at=start + timedelta(hours=1),
+        was_deposit_retained=retained,
+    )
+    assert isinstance(event, NotifyOfAppointmentReschedule)
+    assert event.user_id == appointment.user_id
+    assert event.client_email_or_vip_id == recipient
+    assert event.start_at == appointment.start_at == start
+    assert event.end_at == appointment.end_at
+    assert event.was_deposit_retained is retained
+
+
+def test_reschedule_same_interval_returns_no_event_and_does_not_mutate(make_appointment_base):
+    start = datetime.now(timezone.utc) + timedelta(days=3)
+    appointment = make_appointment_base(start_at=start, end_at=start + timedelta(hours=1))
+    before = (appointment.updated_at, appointment.observations)
+    event = appointment.reschedule(
+        new_start_at=appointment.start_at,
+        new_end_at=appointment.end_at,
+        was_deposit_retained=False,
+    )
+    assert event is None
+    assert (appointment.updated_at, appointment.observations) == before
