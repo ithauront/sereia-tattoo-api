@@ -201,6 +201,41 @@ O reagendamento específico de uma sessão cancelada ainda não está disponíve
 implementado, ele criará um novo appointment; o registro cancelado não será apagado nem
 reativado, pois faz parte do histórico.
 
+**Regra de reagendamento (use case; rota ainda pendente)**
+
+O artista responsável ou um administrador pode reagendar appointments em `REQUESTED`,
+`QUOTED` ou `SCHEDULED`, mesmo quando o horário original já passou. A passagem do tempo
+não significa que o serviço foi realizado: um cliente pode ter faltado e solicitado uma
+nova data depois. O novo intervalo deve estar no futuro e respeitar a disponibilidade
+do calendário. Esses operadores podem ignorar a janela de reservas, mas não os conflitos
+com outros appointments nem os bloqueios e horários de trabalho aplicáveis.
+
+O reagendamento preserva o ID, `project_id`, `current_session` e `total_sessions`.
+`COMPLETED` não pode ser reagendado; `CANCELED` pertence ao fluxo separado de substituição
+descrito acima. A rota deve obter o ator por `get_current_active_user`; o use case verifica
+se ele é administrador ou o artista responsável pelo appointment.
+
+A antecedência da caução é calculada entre o momento da operação e o início **original**.
+Com pelo menos 48 horas, a caução confirmada permanece válida. Com menos de 48 horas,
+inclusive quando o cliente faltou há uma semana, os pagamentos de caução ativos são
+retidos, a confirmação é removida e o appointment volta a `QUOTED`, exigindo nova caução.
+O artista responsável ou administrador pode excepcionalmente preservar a caução com
+`override_deposit_retention`, acompanhado de justificativa válida registrada na auditoria.
+Sem caução confirmada, o reagendamento não aplica retenção nem altera o status por esse motivo.
+
+Uma caução confirmada sem pagamento `DEPOSIT` ativo vinculado ao mesmo appointment é uma
+inconsistência financeira: uma mudança de horário é rejeitada antes de alterar dados ou
+publicar notificações, inclusive com override. O reagendamento não corrige esse histórico
+automaticamente. Repetir um intervalo futuro idêntico mantém o comportamento sem alterações,
+após as validações de autorização, justificativa e calendário.
+
+O appointment, a retenção de pagamentos e a auditoria são persistidos na mesma transação.
+Uma falha no commit impede o retorno de sucesso e a publicação do evento, inclusive quando
+o intervalo não muda. A decisão sobre a caução ocorre antes da alteração dos horários;
+a publicação do evento ocorre depois do commit. Isso não garante a entrega da notificação:
+handler, registro no bus e tratamento de falhas de entrega ainda precisam ser concluídos.
+A proteção contra operações concorrentes também permanece pendente nos TODOs de persistência.
+
 PATCH `/api/appointments/{appointment_id}/quote`
 
 Rota utilizada para definir o preço de um agendamento.
