@@ -6,6 +6,9 @@ from app.application.notifications.handlers.notificate_booking_window_update imp
 from app.application.notifications.handlers.notificate_cancelation import (
     NotificateAppointmentCanceledEmailHandler,
 )
+from app.application.notifications.handlers.reschedule_appointment_notificate import (
+    SendRescheduleAppointmentEmailHandler,
+)
 from app.application.notifications.handlers.send_activation_confirmation_email import (
     SendActivationConfirmationEmailHandler,
 )
@@ -40,6 +43,9 @@ from app.domain.studio.appointments.events.cancel_appointment import CancelAppoi
 from app.domain.studio.appointments.events.create_appointment_request import (
     CreateAppointmentEmailRequested,
 )
+from app.domain.studio.appointments.events.notify_appointment_reschedule import (
+    NotifyOfAppointmentReschedule,
+)
 from app.domain.studio.appointments.events.notify_of_appointment_quoted import NotifyOfAppointmentQuoted
 from app.domain.studio.finances.events.deposit_payment_recorded_event import DepositPaymentRecordedEvent
 from app.domain.studio.finances.events.send_deposit_confirmation_email import (
@@ -63,7 +69,6 @@ def setup_event_bus(
     email_service,
     token_service,
 ):
-
     activation_token_service = VersionedTokenService(
         jwt_service=token_service, token_type="activation", ttl_minutes=60
     )
@@ -111,6 +116,10 @@ def setup_event_bus(
     integration_bus.register(
         CancelAppointmentEmailRequested,
         NotificateAppointmentCanceledEmailHandler(email_service=email_service),
+    )
+    integration_bus.register(
+        NotifyOfAppointmentReschedule,
+        SendRescheduleAppointmentEmailHandler(email_service=email_service),
     )
     transactional_bus.register(
         AppointmentCompleted,

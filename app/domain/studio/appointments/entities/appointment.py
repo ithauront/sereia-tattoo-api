@@ -282,12 +282,14 @@ class Appointment:
         self.add_observations("Horários atuais são provenientes de um reagendamento")
 
         event = NotifyOfAppointmentReschedule(
+            appointment_id=self.id,
             user_id=self.user_id,
             client_email_or_vip_id=recipient,
             start_at=self.start_at,
             end_at=self.end_at,
             appointment_type=self.appointment_type,
             was_deposit_retained=was_deposit_retained,
+            has_confirmed_deposit=self.deposit_confirmed_at is not None,
         )
 
         return event

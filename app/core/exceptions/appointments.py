@@ -42,6 +42,10 @@ class ReasonForDepositRetentionOverrideMustBeProvidedError(Exception):
     pass
 
 
+class ConfirmedDepositWithoutActivePaymentError(Exception):
+    """A confirmed deposit has no active deposit payment for its appointment."""
+
+
 class AppointmentProjectStateError(Exception):
     """Raised when appointments sharing a project contain inconsistent session data."""
 
