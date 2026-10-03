@@ -2,9 +2,9 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator
 
-from app.core.types.appointment_enums import AppointmentType
+from app.core.types.appointment_enums import AppointmentStatus, AppointmentType
 
 
 class CreateAppointmentRequest(BaseModel):
@@ -55,3 +55,21 @@ class QuoteAppointmentResponse(BaseModel):
 
 class CancelAppointmentRequest(BaseModel):
     reason: str
+
+
+class RescheduleAppointmentRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    new_start_at: AwareDatetime
+    new_end_at: AwareDatetime
+    override_deposit_retention: bool = False
+    deposit_override_reason: str | None = None
+
+
+class RescheduleAppointmentResponse(BaseModel):
+    appointment_id: UUID
+    new_start_at: AwareDatetime
+    new_end_at: AwareDatetime
+    status: AppointmentStatus
+    was_deposit_retained: bool
+    deposit_override_applied: bool

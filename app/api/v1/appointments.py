@@ -25,6 +25,8 @@ from app.api.schemas.appointments import (
     CreateAppointmentResponse,
     QuoteAppointmentRequest,
     QuoteAppointmentResponse,
+    RescheduleAppointmentRequest,
+    RescheduleAppointmentResponse,
 )
 from app.application.event_bus.integration_event_bus import IntegrationEventBus
 from app.application.event_bus.transactional_event_bus import TransactionalEventBus
@@ -44,12 +46,16 @@ from app.application.studio.use_cases.appointments_use_cases.create_appointment_
 from app.application.studio.use_cases.appointments_use_cases.quote_appointment_use_case import (
     QuoteAppointmentUseCase,
 )
+from app.application.studio.use_cases.appointments_use_cases.reschedule_appointment_use_case import (
+    RescheduleAppointmentUseCase,
+)
 from app.application.studio.use_cases.DTO.cancel_appointment import CancelAppointmentInput
 from app.application.studio.use_cases.DTO.complete_paid_appointment_dto import (
     CompletePaidAppointmentInput,
 )
 from app.application.studio.use_cases.DTO.create_appointment_dto import CreateAppointmentInput
 from app.application.studio.use_cases.DTO.quote_appointement_dto import QuoteAppointmentInput
+from app.application.studio.use_cases.DTO.reschedule_appointment_dto import RescheduleAppointmentInput
 from app.domain.studio.appointments.entities.value_objects.client_info import ClientInfo
 from app.domain.studio.appointments.policies.appointment_authorization_policy import (
     AppointmentAuthorizationPolicy,
@@ -197,3 +203,49 @@ async def cancel_appointment(
     )
 
     await use_case.execute(dto)
+
+
+@router.patch(
+    "/{appointment_id}/reschedule",
+    status_code=status.HTTP_200_OK,
+    response_model=RescheduleAppointmentResponse,
+)
+async def reschedule_appointment(
+    appointment_id: UUID,
+    data: RescheduleAppointmentRequest,
+    current_user=Depends(get_current_active_user),
+    write_uow: WriteUnitOfWork = Depends(get_write_unit_of_work),
+    read_uow: ReadUnitOfWork = Depends(get_read_unit_of_work),
+    integration_bus: IntegrationEventBus = Depends(get_integration_event_bus),
+    authorization_policy: AppointmentAuthorizationPolicy = Depends(get_appointment_authorization_policy),
+    deposit_policy: DepositPolicy = Depends(get_deposit_policy),
+    calendar_policy: CalendarAvailabilityPolicy = Depends(get_calendar_policy),
+):
+    use_case = RescheduleAppointmentUseCase(
+        write_uow=write_uow,
+        read_uow=read_uow,
+        integration_bus=integration_bus,
+        authorization_policy=authorization_policy,
+        deposit_policy=deposit_policy,
+        calendar_policy=calendar_policy,
+    )
+
+    dto = RescheduleAppointmentInput(
+        actor=current_user,
+        appointment_id=appointment_id,
+        start_at=data.new_start_at,
+        end_at=data.new_end_at,
+        deposit_override_reason=data.deposit_override_reason,
+        override_deposit_retention=data.override_deposit_retention,
+    )
+
+    result = await use_case.execute(dto)
+
+    return RescheduleAppointmentResponse(
+        appointment_id=result.appointment_id,
+        new_start_at=result.start_at,
+        new_end_at=result.end_at,
+        status=result.status,
+        was_deposit_retained=result.was_deposit_retained,
+        deposit_override_applied=result.deposit_override_applied,
+    )
