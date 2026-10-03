@@ -5,15 +5,19 @@ from app.core.exceptions.appointments import (
     AppointmentClientContactInfoCorruptedError,
     AppointmentMustBeInCorrectPreviousStatusError,
     AppointmentMustBeScheduledError,
+    AppointmentMustHaveRealisticTimeAndDateError,
     AppointmentNotFoundError,
     AppointmentProjectNotFoundError,
     AppointmentProjectRequiresAuthenticatedUserError,
     AppointmentProjectStateError,
     AppointmentWasNotFullyPaidError,
+    ConfirmedDepositWithoutActivePaymentError,
+    IncorrectAppointmentStatusError,
     OnlyAdminOrOwnerOfAppointmentError,
     PriceMustBeDefinedError,
     PriceMustBePositiveError,
     ReasonForCancelationMustBeProvidedError,
+    ReasonForDepositRetentionOverrideMustBeProvidedError,
     SlotIsAlreadyOccupiedError,
     SlotIsNotAvailableError,
     TotalSessionsExceededError,
@@ -32,10 +36,19 @@ def cancellation_validation_detail(exception: Exception) -> str:
     validation_code = str(exception)
     return {
         "text_required": "cancellation_reason_required",
-        "text_must_have_at_least_5_characters": (
-            "cancellation_reason_must_have_at_least_5_characters"
-        ),
+        "text_must_have_at_least_5_characters": ("cancellation_reason_must_have_at_least_5_characters"),
         "text_must_contain_letters": "cancellation_reason_must_contain_letters",
+    }.get(validation_code, validation_code)
+
+
+def reschedule_validation_detail(exception: Exception) -> str:
+    validation_code = str(exception)
+    return {
+        "text_required": "deposit_override_reason_required",
+        "text_must_have_at_least_5_characters": (
+            "deposit_override_reason_must_have_at_least_5_characters"
+        ),
+        "text_must_contain_letters": "deposit_override_reason_must_contain_letters",
     }.get(validation_code, validation_code)
 
 
@@ -66,15 +79,11 @@ APPOINTMENT_ROUTE_ERROR_RESPONSES: dict[str, dict[type[Exception], ErrorResponse
             status.HTTP_403_FORBIDDEN,
             "appointment_project_management_requires_authenticated_user",
         ),
-        AppointmentProjectStateError: error(
-            status.HTTP_500_INTERNAL_SERVER_ERROR, "project_is_broken"
-        ),
+        AppointmentProjectStateError: error(status.HTTP_500_INTERNAL_SERVER_ERROR, "project_is_broken"),
         TotalSessionsMustMatchProjectError: error(
             status.HTTP_409_CONFLICT, "total_sessions_does_not_match_project"
         ),
-        TotalSessionsExceededError: error(
-            status.HTTP_409_CONFLICT, "project_has_no_remaining_sessions"
-        ),
+        TotalSessionsExceededError: error(status.HTTP_409_CONFLICT, "project_has_no_remaining_sessions"),
     },
     "quote_appointment": {
         AppointmentNotFoundError: error(status.HTTP_404_NOT_FOUND, "appointment_not_found"),
@@ -86,12 +95,8 @@ APPOINTMENT_ROUTE_ERROR_RESPONSES: dict[str, dict[type[Exception], ErrorResponse
         AppointmentClientContactInfoCorruptedError: error(
             status.HTTP_500_INTERNAL_SERVER_ERROR, "appointment_is_broken"
         ),
-        PriceMustBeDefinedError: error(
-            status.HTTP_500_INTERNAL_SERVER_ERROR, "appointment_is_broken"
-        ),
-        AppointmentProjectStateError: error(
-            status.HTTP_500_INTERNAL_SERVER_ERROR, "project_is_broken"
-        ),
+        PriceMustBeDefinedError: error(status.HTTP_500_INTERNAL_SERVER_ERROR, "appointment_is_broken"),
+        AppointmentProjectStateError: error(status.HTTP_500_INTERNAL_SERVER_ERROR, "project_is_broken"),
         TotalSessionsMustMatchProjectError: error(
             status.HTTP_409_CONFLICT, "total_sessions_does_not_match_project"
         ),
@@ -108,9 +113,7 @@ APPOINTMENT_ROUTE_ERROR_RESPONSES: dict[str, dict[type[Exception], ErrorResponse
         ),
     },
     "cancel_appointment": {
-        OnlyAdminOrOwnerOfAppointmentError: error(
-            status.HTTP_403_FORBIDDEN, "unauthorized_user"
-        ),
+        OnlyAdminOrOwnerOfAppointmentError: error(status.HTTP_403_FORBIDDEN, "unauthorized_user"),
         AppointmentMustBeInCorrectPreviousStatusError: error(
             status.HTTP_409_CONFLICT,
             "appointment_cannot_be_canceled_in_current_status",
@@ -121,6 +124,41 @@ APPOINTMENT_ROUTE_ERROR_RESPONSES: dict[str, dict[type[Exception], ErrorResponse
         ),
         ReasonForCancelationMustBeProvidedError: error(
             status.HTTP_422_UNPROCESSABLE_CONTENT, "cancellation_reason_required"
+        ),
+        AppointmentClientContactInfoCorruptedError: error(
+            status.HTTP_500_INTERNAL_SERVER_ERROR, "appointment_is_broken"
+        ),
+    },
+    "reschedule_appointment": {
+        AppointmentMustHaveRealisticTimeAndDateError: error(
+            status.HTTP_422_UNPROCESSABLE_CONTENT, "reschedule_must_have_realistic_time_and_date"
+        ),
+        AppointmentNotFoundError: error(status.HTTP_404_NOT_FOUND, "appointment_not_found"),
+        OnlyAdminOrOwnerOfAppointmentError: error(status.HTTP_403_FORBIDDEN, "unauthorized_user"),
+        IncorrectAppointmentStatusError: error(
+            status.HTTP_409_CONFLICT, "appointment_cannot_be_rescheduled_in_current_status"
+        ),
+        AppointmentMustBeInCorrectPreviousStatusError: error(
+            status.HTTP_409_CONFLICT, "appointment_cannot_be_rescheduled_in_current_status"
+        ),
+        SlotIsAlreadyOccupiedError: error(
+            status.HTTP_409_CONFLICT, "the_time_slot_required_is_occupied"
+        ),
+        CannotFindWorkingPeriodsForThisUserError: error(
+            status.HTTP_400_BAD_REQUEST, "the_time_slot_required_is_not_available"
+        ),
+        UserIsNotWorkingInDesignatedTimeframeError: error(
+            status.HTTP_400_BAD_REQUEST, "the_time_slot_required_is_not_available"
+        ),
+        SlotIsNotAvailableError: error(
+            status.HTTP_400_BAD_REQUEST, "the_time_slot_required_is_not_available"
+        ),
+        ReasonForDepositRetentionOverrideMustBeProvidedError: error(
+            status.HTTP_422_UNPROCESSABLE_CONTENT, "deposit_override_reason_required"
+        ),
+        ValidationError: error(status.HTTP_422_UNPROCESSABLE_CONTENT, reschedule_validation_detail),
+        ConfirmedDepositWithoutActivePaymentError: error(
+            status.HTTP_500_INTERNAL_SERVER_ERROR, "confirmed_deposit_without_active_payment"
         ),
         AppointmentClientContactInfoCorruptedError: error(
             status.HTTP_500_INTERNAL_SERVER_ERROR, "appointment_is_broken"
