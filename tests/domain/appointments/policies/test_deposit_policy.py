@@ -3,6 +3,7 @@ from uuid import uuid4
 
 import pytest
 
+from app.core.exceptions.appointments import ConfirmedDepositWithoutActivePaymentError
 from app.core.types.payment_enums import PaymentPurposeType
 from app.domain.studio.appointments.policies.deposit_policy import DepositPolicy
 
@@ -52,14 +53,12 @@ def test_transfer_requires_active_deposit_for_this_appointment(
     )
     if scenario == "retained":
         payment.retain_deposit(reason="Previous reschedule", retained_at=START_AT - timedelta(days=4))
-    assert (
+    with pytest.raises(ConfirmedDepositWithoutActivePaymentError):
         DepositPolicy().is_deposit_transferable_on_reschedule(
             appointment=appointment,
             payments=[] if scenario == "empty" else [payment],
             reschedule_at=START_AT - timedelta(days=3),
         )
-        is False
-    )
 
 
 def test_unconfirmed_deposit_is_not_transferable(make_quoted_appointment, make_payment):
