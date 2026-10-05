@@ -1,8 +1,10 @@
 import asyncio
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.api.dependencies.events import get_integration_event_bus
@@ -30,10 +32,72 @@ from app.domain.studio.appointments.policies.appointment_authorization_policy im
 )
 from app.domain.studio.appointments.policies.deposit_policy import DepositPolicy
 from app.main import app
+from tests.application.use_cases.appointments import reschedule_appointment_test
 from tests.fakes.fake_email_service import FakeEmailService
 from tests.integration.utils.wait_until import wait_until
 
 client = TestClient(app)
+
+reschedule_scenario = reschedule_appointment_test.scenario
+
+
+@pytest.fixture
+def reschedule_email_flow(reschedule_scenario, read_uow, make_token, jwt_service_instance):
+    previous_overrides = app.dependency_overrides.copy()
+    s = reschedule_scenario(advance=timedelta(days=3))
+    s.data.actor.email = "artist@example.com"
+    service = FakeEmailService()
+    _, bus = setup_event_bus(service, jwt_service_instance)
+    bus.publish = AsyncMock(wraps=bus.publish)
+    app.dependency_overrides[get_integration_event_bus] = lambda: bus
+    app.dependency_overrides[get_write_unit_of_work] = lambda: s.uow
+    app.dependency_overrides[get_read_unit_of_work] = lambda: read_uow
+    yield s, service, bus, {"Authorization": f"Bearer {make_token(s.data.actor)}"}
+    app.dependency_overrides = previous_overrides
+
+
+def test_reschedule_route_triggers_artist_and_client_emails(reschedule_email_flow):
+    s, service, bus, headers = reschedule_email_flow
+    with TestClient(app) as route_client:
+        response = route_client.patch(
+            f"/appointments/{s.appointment.id}/reschedule",
+            json={"new_start_at": s.data.start_at.isoformat(), "new_end_at": s.data.end_at.isoformat()},
+            headers=headers,
+        )
+        assert response.status_code == 200
+        wait_until(lambda: len(service.sent_emails) == 2)
+
+    bus.publish.assert_awaited_once()
+    assert {(email["to"], email["subject"]) for email in service.sent_emails} == {
+        ("artist@example.com", "Agendamento foi remarcado"),
+        (s.appointment.client_info.email, "Seu agendamento foi remarcado"),
+    }
+    for email in service.sent_emails:
+        assert s.data.start_at.strftime("%d/%m/%Y") in email["html"]
+        assert "09:00 às 10:00 (UTC)" in email["html"]
+
+
+def test_reschedule_route_conflict_does_not_trigger_emails(
+    reschedule_email_flow,
+    make_scheduled_appointment,
+):
+    s, service, bus, headers = reschedule_email_flow
+    s.uow.appointments.create(
+        make_scheduled_appointment(
+            user_id=s.appointment.user_id,
+            start_at=s.data.start_at,
+            end_at=s.data.end_at,
+        )
+    )
+    with TestClient(app) as route_client:
+        response = route_client.patch(
+            f"/appointments/{s.appointment.id}/reschedule",
+            json={"new_start_at": s.data.start_at.isoformat(), "new_end_at": s.data.end_at.isoformat()},
+            headers=headers,
+        )
+    assert response.status_code == 409
+    bus.publish.assert_not_awaited()
+    assert service.sent_emails == []
 
 
 async def test_deposit_confirmation_triggers_email(
