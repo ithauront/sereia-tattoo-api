@@ -110,6 +110,38 @@ def audit(s):
     return logs[0]
 
 
+async def test_partial_allow_rejection_does_not_retain_deposit_or_publish_event(
+    scenario,
+    make_calendar_exception,
+):
+    # Expediente 08h–12h, ALLOW 14h–16h, pedido 15h–17h: falta cobrir 16h–17h.
+    s = scenario()
+    data = replace(
+        s.data,
+        start_at=s.data.start_at.replace(hour=15),
+        end_at=s.data.end_at.replace(hour=17),
+    )
+    s.uow.calendar_exceptions.create(
+        make_calendar_exception(
+            calendar_of_user=s.appointment.user_id,
+            start_at=data.start_at.replace(hour=14),
+            end_at=data.end_at.replace(hour=16),
+            exception_type=CalendarExceptionType.ALLOW,
+        )
+    )
+    original_appointment = vars(s.appointment).copy()
+    original_payment = vars(s.deposit).copy()
+
+    with pytest.raises(UserIsNotWorkingInDesignatedTimeframeError):
+        await s.use_case.execute(data)
+
+    assert vars(s.appointment) == original_appointment
+    assert vars(s.deposit) == original_payment
+    assert s.uow.audit_logs.find_many_by_entity_id(s.appointment.id) == []
+    assert s.bus.events == []
+    assert not s.uow.committed
+
+
 @pytest.mark.parametrize("missing", ["appointment", "calendar"])
 async def test_missing_resources_reject_without_changes(scenario, monkeypatch, missing):
     s = scenario()

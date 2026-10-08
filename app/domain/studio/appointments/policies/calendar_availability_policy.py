@@ -38,21 +38,33 @@ class CalendarAvailabilityPolicy:
         can_ignore_booking_window: bool,
     ) -> None:
 
-        effective_exception = self._find_effective_exception(calendar_exceptions)
+        intervals = self._split_interval(
+            start_at=start_at, end_at=end_at, exceptions=calendar_exceptions
+        )
 
-        if effective_exception is not None:
-            if effective_exception.exception_type == CalendarExceptionType.BLOCK:
+        for interval_start, interval_end in intervals:
+            applicable_exceptions = [
+                exception
+                for exception in calendar_exceptions
+                if exception.start_at <= interval_start and exception.end_at >= interval_end
+            ]
+            effective_exception = self._find_effective_exception(applicable_exceptions)
+
+            if effective_exception is not None:
+                if effective_exception.exception_type == CalendarExceptionType.BLOCK:
+                    raise UserIsNotWorkingInDesignatedTimeframeError()
+                continue
+
+            inside_booking_window = calendar_settings.is_inside_booking_window(start=interval_start)
+            if not inside_booking_window and not can_ignore_booking_window:
+                raise SlotIsNotAvailableError()
+
+            inside_working_period = calendar_settings.is_inside_working_period(
+                start=interval_start, end=interval_end
+            )
+
+            if not inside_working_period:
                 raise UserIsNotWorkingInDesignatedTimeframeError()
-            return
-
-        inside_booking_window = calendar_settings.is_inside_booking_window(start=start_at)
-        if not inside_booking_window and not can_ignore_booking_window:
-            raise SlotIsNotAvailableError()
-
-        inside_working_period = calendar_settings.is_inside_working_period(start=start_at, end=end_at)
-
-        if not inside_working_period:
-            raise UserIsNotWorkingInDesignatedTimeframeError()
 
     def _find_effective_exception(
         self,
@@ -69,3 +81,23 @@ class CalendarAvailabilityPolicy:
                 exception.exception_type != CalendarExceptionType.BLOCK,
             ),
         )
+
+    def _split_interval(
+        self,
+        *,
+        start_at: datetime,
+        end_at: datetime,
+        exceptions: list[CalendarException],
+    ) -> list[tuple[datetime, datetime]]:
+        boundaries = {start_at, end_at}
+
+        for exception in exceptions:
+            if start_at < exception.start_at < end_at:
+                boundaries.add(exception.start_at)
+
+            if start_at < exception.end_at < end_at:
+                boundaries.add(exception.end_at)
+
+        ordered_boundaries = sorted(boundaries)
+
+        return list(zip(ordered_boundaries, ordered_boundaries[1:]))
