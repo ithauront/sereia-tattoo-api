@@ -2,6 +2,7 @@ from app.application.notifications.handlers.utils.render_vip_account_created_ema
     render_vip_account_created_email,
 )
 from app.application.notifications.ports.email_service import EmailService
+from app.application.studio.unit_of_work.read_unit_of_work import ReadUnitOfWork
 from app.domain.studio.users.events.create_vip_client_email_requested import (
     CreateVipClientEmailRequested,
 )
@@ -11,7 +12,9 @@ class SendVipClientCreationNotificationEmailHandler:
     def __init__(self, email_service: EmailService):
         self.email_service = email_service
 
-    async def handle(self, event: CreateVipClientEmailRequested) -> None:
+    async def handle(
+        self, event: CreateVipClientEmailRequested, *, uow: ReadUnitOfWork | None = None
+    ) -> None:
 
         html = render_vip_account_created_email(event.client_code)
 

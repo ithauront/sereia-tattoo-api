@@ -2,6 +2,7 @@ from app.application.notifications.handlers.utils.render_activation_email import
     render_activation_email,
 )
 from app.application.notifications.ports.email_service import EmailService
+from app.application.studio.unit_of_work.read_unit_of_work import ReadUnitOfWork
 from app.core.security.versioned_token_service import VersionedTokenService
 from app.domain.studio.users.events.activation_email_requested import (
     ActivationEmailRequested,
@@ -14,7 +15,9 @@ class SendUserActivationHandler:
         self.email_service = email_service
         self.token_service = token_service
 
-    async def handle(self, event: ActivationEmailRequested) -> None:
+    async def handle(
+        self, event: ActivationEmailRequested, *, uow: ReadUnitOfWork | None = None
+    ) -> None:
 
         token = self.token_service.create(str(event.user_id), version=event.activation_token_version)
         activation_link = f"https://frontend/activate?token={token}"

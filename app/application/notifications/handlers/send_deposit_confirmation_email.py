@@ -2,6 +2,7 @@ from app.application.notifications.handlers.utils.render_confirm_deposit_client_
     render_confirm_deposit_client_email,
 )
 from app.application.notifications.ports.email_service import EmailService
+from app.application.studio.unit_of_work.read_unit_of_work import ReadUnitOfWork
 from app.domain.studio.finances.events.send_deposit_confirmation_email import (
     SendDepositConfirmationEmailEvent,
 )
@@ -11,7 +12,9 @@ class SendDepositConfirmationEmailHandler:
     def __init__(self, email_service: EmailService):
         self.email_service = email_service
 
-    async def handle(self, event: SendDepositConfirmationEmailEvent) -> None:
+    async def handle(
+        self, event: SendDepositConfirmationEmailEvent, *, uow: ReadUnitOfWork | None = None
+    ) -> None:
 
         client_html = render_confirm_deposit_client_email(
             amount=event.amount,

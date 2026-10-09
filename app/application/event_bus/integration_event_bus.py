@@ -9,10 +9,4 @@ class IntegrationEventBus(EventBus):
         handlers = self._handlers[type(event)]
 
         for handler in handlers:
-            asyncio.create_task(self._safe_call(handler, event, uow))
-
-    async def _safe_call(self, handler, event, uow):
-        try:
-            await handler.handle(event, uow=uow)
-        except TypeError:
-            await handler.handle(event)
+            asyncio.create_task(handler.handle(event, uow=uow))

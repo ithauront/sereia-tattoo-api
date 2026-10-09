@@ -2,6 +2,7 @@ from app.application.notifications.handlers.utils.render_account_activated_email
     render_account_activated_email,
 )
 from app.application.notifications.ports.email_service import EmailService
+from app.application.studio.unit_of_work.read_unit_of_work import ReadUnitOfWork
 from app.domain.studio.users.events.send_action_made_email_requested import (
     SendActionMadeEmailRequested,
 )
@@ -11,7 +12,9 @@ class SendActivationConfirmationEmailHandler:
     def __init__(self, email_service: EmailService):
         self.email_service = email_service
 
-    async def handle(self, event: SendActionMadeEmailRequested) -> None:
+    async def handle(
+        self, event: SendActionMadeEmailRequested, *, uow: ReadUnitOfWork | None = None
+    ) -> None:
 
         html = render_account_activated_email()
 

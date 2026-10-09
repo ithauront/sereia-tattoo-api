@@ -1,5 +1,10 @@
+import asyncio
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
+import pytest
+
+from app.application.event_bus.integration_event_bus import IntegrationEventBus
 from app.application.notifications.handlers.send_password_reset_email import (
     SendPasswordResetEmailHandler,
 )
@@ -27,3 +32,44 @@ async def test_send_password_reset_handler_sends_email():
     assert email_service.last_payload["to"] == "jhon@doe.com"
     assert email_service.last_payload["subject"] == "Recuperação de senha"
     assert "fake-token" in email_service.last_payload["html"]
+
+
+@pytest.mark.parametrize("provider_fails", [False, True])
+async def test_password_reset_with_dispatch_without_typeerror_fallback(
+    read_uow,
+    monkeypatch,
+    provider_fails,
+):
+    bus = IntegrationEventBus()
+    tasks = []
+    create_task = asyncio.create_task
+
+    def capture_task(coroutine):
+        task = create_task(coroutine)
+        tasks.append(task)
+        return task
+
+    monkeypatch.setattr(asyncio, "create_task", capture_task)
+    service = FakeEmailService()
+    failure = TypeError("erro interno do serviço de email")
+    send = AsyncMock(wraps=service.send_email)
+    if provider_fails:
+        send.side_effect = failure
+    monkeypatch.setattr(service, "send_email", send)
+    handler = SendPasswordResetEmailHandler(service, FakeVersionedTokenService())
+    bus.register(PasswordResetEmailRequested, handler)
+    event = PasswordResetEmailRequested(uuid4(), "client@example.com", 1)
+
+    await bus.publish(event, uow=read_uow)
+
+    assert len(tasks) == 1
+    # publish continua fire-and-forget; o teste aguarda a tarefa para observar o resultado.
+    if provider_fails:
+        with pytest.raises(TypeError) as caught:
+            await tasks[0]
+        assert caught.value is failure
+    else:
+        await tasks[0]
+        assert service.last_payload["to"] == "client@example.com"
+        assert "fake-token" in service.last_payload["html"]
+    send.assert_awaited_once()
