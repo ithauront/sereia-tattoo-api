@@ -29,6 +29,8 @@ should be interpreted.
   `source_id` refers to the ID of a record in the APPOINTMENTS table.
 - If `source_type` is related to an appointment usage,
   `source_id` refers to the ID of a record in the PAYMENTS table.
+- For APPOINTMENT_CANCELLATION, `source_id` refers to the original deposit
+  payment in PAYMENTS, not to the canceled appointment.
 - If `source_type` represents an admin action, `source_id` refers
   to the ID of a user (admin) in the USERS table.
 """
@@ -133,6 +135,27 @@ class ClientCreditEntry:
             source_type=ClientCreditSourceType.ADDED_BY_ADMIN,
             quantity=quantity,
             reason=reason,
+            created_at=created_at,
+        )
+
+    @classmethod
+    def create_credits_from_cancellation(
+        cls,
+        *,
+        vip_client_id: UUID,
+        payment_id: UUID,
+        quantity: int,
+        created_at: datetime | None = None,
+    ) -> "ClientCreditEntry":
+        if quantity <= 0:
+            raise CreditMustBePositiveError("Cancellation credit must be positive")
+
+        return cls._create(
+            vip_client_id=vip_client_id,
+            source_id=payment_id,
+            source_type=ClientCreditSourceType.APPOINTMENT_CANCELLATION,
+            quantity=quantity,
+            reason="Créditos referentes à caução de agendamento cancelado.",
             created_at=created_at,
         )
 
