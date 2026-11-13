@@ -41,6 +41,9 @@ from app.domain.studio.appointments.events.notify_appointment_reschedule import 
 from app.domain.studio.appointments.events.notify_of_appointment_quoted import (
     NotifyOfAppointmentQuoted,
 )
+from app.domain.studio.appointments.events.notify_reschedule_canceled_appointment import (
+    NotifyRescheduleCanceledAppointment,
+)
 from app.domain.studio.value_objects.client_code import ClientCode
 from app.domain.utils.ensure_enum import ensure_enum
 
@@ -68,6 +71,7 @@ class Appointment:
         referral_code: ClientCode | None = None,
         is_posted_on_socials: bool = False,
         observations: str | None = None,
+        replaces_appointment_id: UUID | None = None,
         created_at: datetime | None = None,
         updated_at: datetime | None = None,
     ):
@@ -92,6 +96,7 @@ class Appointment:
         self.referral_code = referral_code
         self.is_posted_on_socials = is_posted_on_socials
         self.observations = observations
+        self.replaces_appointment_id = replaces_appointment_id
         self.created_at = created_at or now
         self.updated_at = updated_at or now
 
@@ -114,6 +119,7 @@ class Appointment:
         color: bool = False,
         client_info: ClientInfo,
         referral_code: ClientCode | None = None,
+        replaces_appointment_id: UUID | None = None,
     ) -> "Appointment":
         if end_at <= start_at:
             raise AppointmentMustHaveRealisticTimeAndDateError()
@@ -135,6 +141,7 @@ class Appointment:
             color=color,
             client_info=client_info,
             referral_code=referral_code,
+            replaces_appointment_id=replaces_appointment_id,
         )
 
     def set_price(self, price: Decimal):
@@ -352,6 +359,26 @@ class Appointment:
         recipient = self._get_recipient()
 
         return CreateAppointmentEmailRequested(
+            start_at=self.start_at,
+            end_at=self.end_at,
+            appointment_type=self.appointment_type,
+            user_id=self.user_id,
+            client_email_or_vip_id=recipient,
+        )
+
+    def notify_reschedule_canceled_appointment(
+        self,
+        *,
+        old_appointment_id: UUID,
+    ) -> NotifyRescheduleCanceledAppointment:
+
+        recipient = self._get_recipient()
+        # TODO: fazer o handler os emails e cadastrar tudo isso no eventbus
+        return NotifyRescheduleCanceledAppointment(
+            old_appointment_id=old_appointment_id,
+            new_appointment_id=self.id,
+            status=self.status,
+            has_confirmed_deposit=self.deposit_confirmed_at is not None,
             start_at=self.start_at,
             end_at=self.end_at,
             appointment_type=self.appointment_type,
