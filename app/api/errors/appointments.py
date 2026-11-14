@@ -16,6 +16,7 @@ from app.core.exceptions.appointments import (
     OnlyAdminOrOwnerOfAppointmentError,
     PriceMustBeDefinedError,
     PriceMustBePositiveError,
+    ProjectSessionMustBeRescheduledError,
     ReasonForCancelationMustBeProvidedError,
     ReasonForDepositRetentionOverrideMustBeProvidedError,
     SlotIsAlreadyOccupiedError,
@@ -84,6 +85,9 @@ APPOINTMENT_ROUTE_ERROR_RESPONSES: dict[str, dict[type[Exception], ErrorResponse
             status.HTTP_409_CONFLICT, "total_sessions_does_not_match_project"
         ),
         TotalSessionsExceededError: error(status.HTTP_409_CONFLICT, "project_has_no_remaining_sessions"),
+        ProjectSessionMustBeRescheduledError: error(
+            status.HTTP_409_CONFLICT, "project_session_must_be_rescheduled"
+        ),
     },
     "quote_appointment": {
         AppointmentNotFoundError: error(status.HTTP_404_NOT_FOUND, "appointment_not_found"),

@@ -42,6 +42,18 @@ class ReasonForDepositRetentionOverrideMustBeProvidedError(Exception):
     pass
 
 
+class AppointmentAlreadyReplacedError(Exception):
+    pass
+
+
+class ProjectSessionMustBeRescheduledError(Exception):
+    pass
+
+
+class ProjectSessionAlreadyOccupiedError(Exception):
+    pass
+
+
 class ConfirmedDepositWithoutActivePaymentError(Exception):
     """A confirmed deposit has no active deposit payment for its appointment."""
 

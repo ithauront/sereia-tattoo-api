@@ -10,6 +10,7 @@ from app.application.studio.use_cases.DTO.create_appointment_dto import CreateAp
 from app.core.exceptions.appointments import (
     AppointmentProjectNotFoundError,
     AppointmentProjectRequiresAuthenticatedUserError,
+    ProjectSessionMustBeRescheduledError,
     SlotIsAlreadyOccupiedError,
     SlotIsNotAvailableError,
     TotalSessionsExceededError,
@@ -92,7 +93,7 @@ def test_make_appointment_starts_and_continues_same_project(write_uow, read_uow)
     assert initial_state["total_sessions"] == 3
 
 
-def test_make_appointment_reuses_canceled_session_number(write_uow, read_uow):
+def test_make_appointment_requires_reschedule_for_canceled_session(write_uow, read_uow):
     use_case = _create_use_case(write_uow, read_uow)
     user_id = uuid4()
     client_info = _client_info()
@@ -129,15 +130,13 @@ def test_make_appointment_reuses_canceled_session_number(write_uow, read_uow):
     write_uow.appointments.create(first)
     write_uow.appointments.create(canceled_second)
 
-    replacement, _ = use_case._make_appointment(
-        _project_dto(user_id=user_id, client_info=client_info, project_id=project_id)
-    )
-
-    assert replacement.current_session == 2
-    assert replacement.total_sessions == 3
+    with pytest.raises(ProjectSessionMustBeRescheduledError):
+        use_case._make_appointment(
+            _project_dto(user_id=user_id, client_info=client_info, project_id=project_id)
+        )
 
 
-def test_make_appointment_fills_canceled_gap_before_later_active_session(
+def test_make_appointment_requires_reschedule_even_with_later_active_session(
     write_uow, read_uow
 ):
     use_case = _create_use_case(write_uow, read_uow)
@@ -169,12 +168,10 @@ def test_make_appointment_fills_canceled_gap_before_later_active_session(
             )
         write_uow.appointments.create(appointment)
 
-    replacement, _ = use_case._make_appointment(
-        _project_dto(user_id=user_id, client_info=client_info, project_id=project_id)
-    )
-
-    assert replacement.current_session == 2
-    assert replacement.total_sessions == 3
+    with pytest.raises(ProjectSessionMustBeRescheduledError):
+        use_case._make_appointment(
+            _project_dto(user_id=user_id, client_info=client_info, project_id=project_id)
+        )
 
 
 def test_make_appointment_rejects_unknown_project(write_uow, read_uow):
@@ -783,3 +780,61 @@ async def test_inactive_user_raises_error(
 
     with pytest.raises(UserInactiveError):
         await use_case.execute(dto)
+
+
+def test_make_appointment_continues_after_canceled_session_has_replacement(
+    write_uow, read_uow, make_appointment_base
+):
+    use_case = _create_use_case(write_uow, read_uow)
+    project_id = uuid4()
+    user_id = uuid4()
+    canceled = None
+    for session, status in (
+        (1, AppointmentStatus.REQUESTED),
+        (2, AppointmentStatus.CANCELED),
+        (2, AppointmentStatus.REQUESTED),
+    ):
+        appointment = make_appointment_base(
+            user_id=user_id, project_id=project_id, current_session=session,
+            total_sessions=4, status=status,
+        )
+        if status == AppointmentStatus.CANCELED:
+            canceled = appointment
+        elif session == 2:
+            appointment.replaces_appointment_id = canceled.id
+        write_uow.appointments.create(appointment)
+
+    new, _ = use_case._make_appointment(
+        _project_dto(user_id=user_id, client_info=_client_info(), project_id=project_id)
+    )
+    assert new.current_session == 3
+    assert new.total_sessions == 4
+    assert new.project_id == project_id
+
+
+async def test_create_rejects_canceled_session_without_writes_or_notification(
+    write_uow, read_uow, make_user, make_calendar_settings, make_appointment_base
+):
+    use_case = _create_use_case(write_uow, read_uow)
+    owner = make_user()
+    write_uow.users.create(owner)
+    write_uow.calendar_settings.create(make_calendar_settings(user_id=owner.id))
+    original = make_appointment_base(
+        user_id=owner.id, project_id=uuid4(), current_session=1,
+        total_sessions=4, status=AppointmentStatus.CANCELED,
+    )
+    write_uow.appointments.create(original)
+
+    with pytest.raises(ProjectSessionMustBeRescheduledError):
+        await use_case.execute(
+            _project_dto(
+                user_id=owner.id, actor_id=owner.id, client_info=_client_info(),
+                project_id=original.project_id,
+            )
+        )
+
+    assert write_uow.appointments.find_many() == [original]
+    assert write_uow.audit_logs.find_many_by_entity_name(entity_name="appointments") == []
+    assert use_case.integration_bus.events == []
+    assert write_uow.rolled_back is True
+    assert write_uow.committed is False

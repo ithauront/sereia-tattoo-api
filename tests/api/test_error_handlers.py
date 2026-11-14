@@ -11,6 +11,7 @@ from app.core.exceptions.appointments import (
     AppointmentProjectRequiresAuthenticatedUserError,
     AppointmentProjectStateError,
     OnlyAdminOrOwnerOfAppointmentError,
+    ProjectSessionMustBeRescheduledError,
     TotalSessionsExceededError,
     TotalSessionsMustBeAtLeastTwoError,
     TotalSessionsMustMatchProjectError,
@@ -90,6 +91,7 @@ async def test_unmapped_exception_is_not_hidden():
         ),
         (TotalSessionsMustMatchProjectError(), 409, "total_sessions_does_not_match_project"),
         (TotalSessionsExceededError(), 409, "project_has_no_remaining_sessions"),
+        (ProjectSessionMustBeRescheduledError(), 409, "project_session_must_be_rescheduled"),
         (AppointmentProjectStateError(), 500, "project_is_broken"),
     ],
 )
