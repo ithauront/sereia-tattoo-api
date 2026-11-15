@@ -594,3 +594,33 @@ def test_combined_queries(
     assert result[0].created_at >= result[-1].created_at
 
     assert len(result) == 2
+
+
+def test_cancellation_credit_is_persisted_searchable_and_included_in_balance(
+    sqlalchemy_client_credits_entries_repo, sqlalchemy_vip_clients_repo,
+    make_vip_client, make_client_credit_entry, db_session,
+):
+    repo = sqlalchemy_client_credits_entries_repo
+    vip = make_vip_client()
+    sqlalchemy_vip_clients_repo.create(vip)
+    payment_id = uuid4()
+    entry = make_client_credit_entry(
+        vip_client_id=vip.id,
+        source_id=payment_id,
+        source_type=ClientCreditSourceType.APPOINTMENT_CANCELLATION,
+        quantity=150,
+    )
+    repo.create(entry)
+    db_session.flush()
+    db_session.expunge_all()
+
+    found = repo.find_by_id(entry.id)
+    assert found.source_type == ClientCreditSourceType.APPOINTMENT_CANCELLATION
+    assert found.source_id == payment_id
+    assert found.reason == entry.reason
+    assert found.quantity == 150
+    assert repo.get_balance(vip_client_id=vip.id) == 150
+    assert [item.id for item in repo.find_many_by_source_id(source_id=payment_id)] == [entry.id]
+    assert [item.id for item in repo.find_many_by_source_type_and_vip_client_id(
+        source_type=ClientCreditSourceType.APPOINTMENT_CANCELLATION, vip_client_id=vip.id
+    )] == [entry.id]

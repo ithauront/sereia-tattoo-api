@@ -254,6 +254,14 @@ def make_client_credit_entry():
                 created_at=created_at,
             )
 
+        if source_type == ClientCreditSourceType.APPOINTMENT_CANCELLATION:
+            return ClientCreditEntry.create_credits_from_cancellation(
+                vip_client_id=vip_client_id,
+                payment_id=source_id,
+                quantity=quantity,
+                created_at=created_at,
+            )
+
         if source_type == ClientCreditSourceType.USED_AS_PAYMENT:
             return ClientCreditEntry.used_as_payment(
                 vip_client_id=vip_client_id,
