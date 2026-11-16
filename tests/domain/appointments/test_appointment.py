@@ -263,3 +263,38 @@ def test_reschedule_same_interval_returns_no_event_and_does_not_mutate(make_appo
     )
     assert event is None
     assert (appointment.updated_at, appointment.observations) == before
+
+
+def test_canceled_replacement_notification_identifies_both_appointments(make_quoted_appointment):
+    appointment = make_quoted_appointment()
+    old_id = uuid4()
+
+    event = appointment.notify_reschedule_canceled_appointment(old_appointment_id=old_id)
+
+    assert event.old_appointment_id == old_id
+    assert event.new_appointment_id == appointment.id
+    assert event.status == AppointmentStatus.QUOTED
+    assert event.has_confirmed_deposit is False
+    assert event.start_at == appointment.start_at
+    assert event.end_at == appointment.end_at
+    assert event.user_id == appointment.user_id
+    assert event.appointment_type == appointment.appointment_type
+    assert event.client_email_or_vip_id == "client@email.com"
+
+
+def test_canceled_replacement_notification_captures_confirmed_state_for_vip(
+    make_scheduled_appointment,
+):
+    from app.domain.studio.appointments.entities.value_objects.client_info import ClientInfo
+
+    vip_id = uuid4()
+    appointment = make_scheduled_appointment(client_info=ClientInfo(vip_client_id=vip_id))
+    event = appointment.notify_reschedule_canceled_appointment(old_appointment_id=uuid4())
+
+    assert event.client_email_or_vip_id == vip_id
+    assert event.status == AppointmentStatus.SCHEDULED
+    assert event.has_confirmed_deposit is True
+    # O evento mantém o estado no momento da emissão.
+    appointment.invalidate_deposit()
+    assert event.status == AppointmentStatus.SCHEDULED
+    assert event.has_confirmed_deposit is True
