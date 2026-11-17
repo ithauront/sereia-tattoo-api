@@ -201,7 +201,32 @@ O reagendamento específico de uma sessão cancelada ainda não está disponíve
 implementado, ele criará um novo appointment; o registro cancelado não será apagado nem
 reativado, pois faz parte do histórico.
 
-**Regra de reagendamento (use case; rota ainda pendente)**
+**Regra de reagendamento**
+
+PATCH `/appointments/{appointment_id}/reschedule`
+
+Requer `Authorization: Bearer <token>` de usuário ativo. O ator vem da autenticação;
+campos extras no body, incluindo `actor`, são rejeitados.
+
+```json
+{
+  "new_start_at": "2035-01-08T09:00:00Z",
+  "new_end_at": "2035-01-08T10:00:00Z",
+  "override_deposit_retention": false,
+  "deposit_override_reason": null
+}
+```
+
+As datas precisam informar o fuso: `Z` e offsets como `-03:00` são aceitos e convertidos
+para UTC pelo DTO. Datas sem fuso são rejeitadas com 422. A resposta 200 contém
+`appointment_id`, `new_start_at`, `new_end_at` (em UTC), `status`, `was_deposit_retained`
+e `deposit_override_applied`.
+
+Erros: 401 para token inválido; 403 para usuário inativo ou sem permissão; 404 para
+agendamento inexistente; 409 para status incompatível ou horário ocupado; 400 para
+indisponibilidade do calendário; 422 para dados/intervalo/justificativa inválidos; 500
+para inconsistência financeira ou de contato. A dependência de autenticação atual
+retorna 422 quando o header Authorization está ausente, como nas demais rotas protegidas.
 
 O artista responsável ou um administrador pode reagendar appointments em `REQUESTED`,
 `QUOTED` ou `SCHEDULED`, mesmo quando o horário original já passou. A passagem do tempo
@@ -233,7 +258,17 @@ O appointment, a retenção de pagamentos e a auditoria são persistidos na mesm
 Uma falha no commit impede o retorno de sucesso e a publicação do evento, inclusive quando
 o intervalo não muda. A decisão sobre a caução ocorre antes da alteração dos horários;
 a publicação do evento ocorre depois do commit. Isso não garante a entrega da notificação:
-handler, registro no bus e tratamento de falhas de entrega ainda precisam ser concluídos.
+o handler está registrado e envia emails ao artista e ao cliente em fire-and-forget,
+conforme a decisão atual do projeto, sem entrega durável nem retries automáticos.
+Outbox/retries ficam para uma evolução futura. A melhoria do ciclo de vida da sessão de cada
+tarefa está registrada na seção pós-MVP de `todo_users.todo`. Todos os handlers do integration bus
+aceitam o argumento nomeado `uow`; aqueles que não consultam o banco aceitam `None`.
+O bus agenda uma única chamada por handler, sem tentar novamente quando ocorre `TypeError`.
+Os emails mostram
+os horários em UTC e distinguem caução retida, mantida e ausência de caução confirmada.
+Clientes VIP têm o email resolvido pelo ID. Se o artista ou o cliente VIP não for
+encontrado, o handler não envia os emails. Falhas do provedor propagam pelo handler;
+os dois envios não são atômicos e uma falha pode ocorrer após o outro destinatário receber.
 A proteção contra operações concorrentes também permanece pendente nos TODOs de persistência.
 
 PATCH `/api/appointments/{appointment_id}/quote`
